@@ -75,7 +75,6 @@ void br_netfilter_rtable_init(struct net_bridge *br)
 
 	atomic_set(&rt->dst.__refcnt, 1);
 	rt->dst.dev = br->dev;
-	rt->dst.path = &rt->dst;
 	dst_init_metrics(&rt->dst, br->metrics, false);
 	dst_metric_set(&rt->dst, RTAX_MTU, br->dev->mtu);
 	rt->dst.flags	= DST_NOXFRM | DST_FAKE_RTABLE;
