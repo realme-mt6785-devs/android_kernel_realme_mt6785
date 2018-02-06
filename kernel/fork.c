@@ -2326,6 +2326,8 @@ long _do_fork(unsigned long clone_flags,
 	      int __user *child_tidptr,
 	      unsigned long tls)
 {
+	struct completion vfork;
+	struct pid *pid;
 	struct task_struct *p;
 	int trace = 0;
 	long nr;
@@ -2351,49 +2353,47 @@ long _do_fork(unsigned long clone_flags,
 	p = copy_process(clone_flags, stack_start, stack_size, parent_tidptr,
 			 child_tidptr, NULL, trace, tls, NUMA_NO_NODE);
 	add_latent_entropy();
+
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+
 	/*
 	 * Do this prior waking up the new thread - the thread pointer
 	 * might get invalid after that point, if the thread exits quickly.
 	 */
-	if (!IS_ERR(p)) {
-		struct completion vfork;
-		struct pid *pid;
+	trace_sched_process_fork(current, p);
 
-		cpufreq_task_times_alloc(p);
+	cpufreq_task_times_alloc(p);
 
-		trace_sched_process_fork(current, p);
+	pid = get_task_pid(p, PIDTYPE_PID);
+	nr = pid_vnr(pid);
 
-		pid = get_task_pid(p, PIDTYPE_PID);
-		nr = pid_vnr(pid);
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_ION) && defined(CONFIG_DUMP_TASKS_MEM)
-		//perifeng.Li@Kernel.Permance, 2019/09/06, accounts process-real-phymem
-		atomic64_set(&p->ions, 0);
+	//perifeng.Li@Kernel.Permance, 2019/09/06, accounts process-real-phymem
+	atomic64_set(&p->ions, 0);
 #endif
 
-		if (clone_flags & CLONE_PARENT_SETTID)
-			put_user(nr, parent_tidptr);
+	if (clone_flags & CLONE_PARENT_SETTID)
+		put_user(nr, parent_tidptr);
 
-		if (clone_flags & CLONE_VFORK) {
-			p->vfork_done = &vfork;
-			init_completion(&vfork);
-			get_task_struct(p);
-		}
-
-		wake_up_new_task(p);
-
-		/* forking complete and child started to run, tell ptracer */
-		if (unlikely(trace))
-			ptrace_event_pid(trace, pid);
-
-		if (clone_flags & CLONE_VFORK) {
-			if (!wait_for_vfork_done(p, &vfork))
-				ptrace_event_pid(PTRACE_EVENT_VFORK_DONE, pid);
-		}
-
-		put_pid(pid);
-	} else {
-		nr = PTR_ERR(p);
+	if (clone_flags & CLONE_VFORK) {
+		p->vfork_done = &vfork;
+		init_completion(&vfork);
+		get_task_struct(p);
 	}
+
+	wake_up_new_task(p);
+
+	/* forking complete and child started to run, tell ptracer */
+	if (unlikely(trace))
+		ptrace_event_pid(trace, pid);
+
+	if (clone_flags & CLONE_VFORK) {
+		if (!wait_for_vfork_done(p, &vfork))
+			ptrace_event_pid(PTRACE_EVENT_VFORK_DONE, pid);
+	}
+
+	put_pid(pid);
 	return nr;
 }
 
