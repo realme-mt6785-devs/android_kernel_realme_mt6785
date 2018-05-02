@@ -85,6 +85,7 @@ obj-y				+= l3mdev/
 endif
 obj-$(CONFIG_QRTR)		+= qrtr/
 obj-$(CONFIG_NET_NCSI)		+= ncsi/
+obj-$(CONFIG_XDP_SOCKETS)	+= xdp/
 
 #ifdef OPLUS_FEATURE_DATA_EVAL
 #PengHao@NETWORK.DATA.8124, 2020/05/08, Add for network quality evaluation.
