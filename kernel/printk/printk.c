@@ -1027,6 +1027,11 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 		return len;
 	}
 
+	if (unlikely(strncmp("healthd", line, 7) == 0 || strncmp("Trustonic TEE", line, 13) == 0))
+	{
+		return len;
+	}
+
 	printk_emit(facility, level, NULL, 0, "%s", line);
 
 free:
