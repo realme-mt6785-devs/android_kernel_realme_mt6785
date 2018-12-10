@@ -125,6 +125,22 @@ Description:	Discover cpuidle policy and mechanism
 
 		See files in Documentation/cpuidle/ for more information.
 
+What:		/sys/devices/system/cpu/cpuX/cpuidle/stateN/above
+		/sys/devices/system/cpu/cpuX/cpuidle/stateN/below
+Date:		September 2007
+KernelVersion:	v2.6.24
+Contact:	Linux power management list <linux-pm@vger.kernel.org>
+Description:
+		The directory /sys/devices/system/cpu/cpuX/cpuidle contains per
+		logical CPU specific cpuidle information for each online cpu X.
+		The processor idle states which are available for use have the
+		following attributes:
+
+		above: (RO) Number of times this state was entered, but the
+		       observed CPU idle duration was too short for it (a count).
+
+		below: (RO) Number of times this state was entered, but the
+		       observed CPU idle duration was too long for it (a count).
 
 What:		/sys/devices/system/cpu/cpu#/cpufreq/*
 Date:		pre-git history
