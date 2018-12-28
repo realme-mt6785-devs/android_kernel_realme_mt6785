@@ -34,6 +34,9 @@
 /* Controllers blocked by the commandline in v1 */
 static u16 cgroup_no_v1_mask;
 
+/* disable named v1 mounts */
+static bool cgroup_no_v1_named;
+
 /*
  * pidlist destructions need to be flushed on cgroup destruction.  Use a
  * separate workqueue as flush domain.
@@ -1003,6 +1006,10 @@ static int parse_cgroupfs_options(char *data, struct cgroup_sb_opts *opts)
 		}
 		if (!strncmp(token, "name=", 5)) {
 			const char *name = token + 5;
+
+			/* blocked by boot param? */
+			if (cgroup_no_v1_named)
+				return -ENOENT;
 			/* Can't specify an empty name */
 			if (!strlen(name))
 				return -EINVAL;
@@ -1348,7 +1355,12 @@ static int __init cgroup_no_v1(char *str)
 
 		if (!strcmp(token, "all")) {
 			cgroup_no_v1_mask = U16_MAX;
-			break;
+			continue;
+		}
+
+		if (!strcmp(token, "named")) {
+			cgroup_no_v1_named = true;
+			continue;
 		}
 
 		for_each_subsys(ss, i) {
