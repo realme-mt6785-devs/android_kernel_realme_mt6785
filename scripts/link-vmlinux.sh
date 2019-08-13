@@ -228,9 +228,9 @@ gen_btf()
 	# dump .BTF section into raw binary file to link with final vmlinux
 	bin_arch=$(${OBJDUMP} -f ${1} | grep architecture | \
 		cut -d, -f1 | cut -d' ' -f2)
-	${OBJCOPY} --dump-section .BTF=.btf.kernel.bin ${1} 2>/dev/null
+	${OBJCOPY} --dump-section .BTF=.btf.vmlinux.bin ${1} 2>/dev/null
 	${OBJCOPY} -I binary -O ${CONFIG_OUTPUT_FORMAT} -B ${bin_arch} \
-		--rename-section .data=.BTF .btf.kernel.bin ${2}
+		--rename-section .data=.BTF .btf.vmlinux.bin ${2}
 }
 
 # Create ${2} .o file with all symbols from the ${1} object file
@@ -393,11 +393,11 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
 	kallsyms_vmlinux=.tmp_vmlinux2
 
 	# step 1
-	vmlinux_link .tmp_vmlinux1 ${btf_kernel_bin_o}
+	vmlinux_link .tmp_vmlinux1 ${btf_vmlinux_bin_o}
 	kallsyms .tmp_vmlinux1 .tmp_kallsyms1.o
 
 	# step 2
-	vmlinux_link .tmp_vmlinux2 .tmp_kallsyms1.o ${btf_kernel_bin_o}
+	vmlinux_link .tmp_vmlinux2 .tmp_kallsyms1.o ${btf_vmlinux_bin_o}
 	kallsyms .tmp_vmlinux2 .tmp_kallsyms2.o
 
 	# step 3
@@ -408,13 +408,13 @@ if [ -n "${CONFIG_KALLSYMS}" ]; then
 		kallsymso=.tmp_kallsyms3.o
 		kallsyms_vmlinux=.tmp_vmlinux3
 
-		vmlinux_link .tmp_vmlinux3 .tmp_kallsyms2.o ${btf_kernel_bin_o}
+		vmlinux_link .tmp_vmlinux3 .tmp_kallsyms2.o ${btf_vmlinux_bin_o}
 		kallsyms .tmp_vmlinux3 .tmp_kallsyms3.o
 	fi
 fi
 
 info LD vmlinux
-vmlinux_link vmlinux "${kallsymso}" "${btf_kernel_bin_o}"
+vmlinux_link vmlinux "${kallsymso}" "${btf_vmlinux_bin_o}"
 
 if [ -n "${CONFIG_BUILDTIME_EXTABLE_SORT}" ]; then
 	info SORTEX vmlinux
