@@ -440,7 +440,7 @@ static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 	 */
 
 	/* measured value */
-	measured_us = dev->last_residency;
+	measured_us = dev->last_residency_ns;
 
 	/* Deduct exit latency */
 	if (measured_us > target->exit_latency)
