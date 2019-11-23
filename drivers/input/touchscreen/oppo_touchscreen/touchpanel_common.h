@@ -65,6 +65,22 @@
 #define FingerprintUp       15
 #define SingleTap           16
 #define Heart               17
+
+#define KEY_GESTURE_W               246
+#define KEY_GESTURE_M               247
+#define KEY_DOUBLE_TAP              KEY_WAKEUP
+#define KEY_GESTURE_CIRCLE          249
+#define KEY_GESTURE_TWO_SWIPE       250
+#define KEY_GESTURE_UP_ARROW        251
+#define KEY_GESTURE_DOWN_ARROW      252
+#define KEY_GESTURE_LEFT_ARROW      253
+#define KEY_GESTURE_RIGHT_ARROW     254
+#define KEY_GESTURE_SWIPE_UP        KEY_F8
+#define KEY_GESTURE_SWIPE_DOWN      KEY_F6
+#define KEY_GESTURE_SWIPE_LEFT      KEY_F5
+#define KEY_GESTURE_SWIPE_RIGHT     KEY_F7
+#define KEY_GESTURE_SINGLE_TAP      KEY_F9
+
 #define HEALTH_REPORT_GRIP          "grip_report"
 #define HEALTH_REPORT_BASELINE_ERR  "baseline_err"
 #define HEALTH_REPORT_NOISE         "noise_count"
