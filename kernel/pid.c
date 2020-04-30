@@ -42,6 +42,7 @@
 #include <linux/sched/signal.h>
 #include <linux/sched/task.h>
 #include <linux/idr.h>
+#include <linux/file.h>
 
 #define pid_hashfn(nr, ns)	\
 	hash_long((unsigned long)nr + (unsigned long)ns, pidhash_shift)
@@ -440,6 +441,25 @@ EXPORT_SYMBOL_GPL(task_active_pid_ns);
 struct pid *find_ge_pid(int nr, struct pid_namespace *ns)
 {
 	return idr_get_next(&ns->idr, &nr);
+}
+
+struct pid *pidfd_get_pid(unsigned int fd, unsigned int *flags)
+{
+	struct fd f;
+	struct pid *pid;
+
+	f = fdget(fd);
+	if (!f.file)
+		return ERR_PTR(-EBADF);
+
+	pid = pidfd_pid(f.file);
+	if (!IS_ERR(pid)) {
+		get_pid(pid);
+		*flags = f.file->f_flags;
+	}
+
+	fdput(f);
+	return pid;
 }
 
 /**
