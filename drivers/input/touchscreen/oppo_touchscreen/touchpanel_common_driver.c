@@ -503,6 +503,22 @@ static void tp_gesture_handle(struct touchpanel_data *ts)
                         enabled = gesture_enable;
 			key = KEY_GESTURE_W;
 			break;
+		case FingerprintDown:
+			enabled = gesture_enable;
+			key = KEY_GESTURE_FP_DOWN;
+			break;
+		case FingerprintUp:
+			enabled = gesture_enable;
+			key = KEY_GESTURE_FP_UP;
+			break;
+		case SingleTap:
+			enabled = gesture_enable;
+			key = KEY_GESTURE_SINGLE_TAP;
+			break;
+		case Heart:
+			enabled = gesture_enable;
+			key = KEY_GESTURE_HEART;
+			break;
 	}
 
 #if GESTURE_COORD_GET
@@ -6494,7 +6510,7 @@ int register_common_touch_device(struct touchpanel_data *pdata)
     ts->loading_fw = false;
     ts->is_suspended = 0;
     ts->suspend_state = TP_SPEEDUP_RESUME_COMPLETE;
-    ts->gesture_enable = 0;
+    ts->gesture_enable = 1;
     ts->es_enable = 0;
     ts->fd_enable = 0;
     ts->fp_enable = 0;
