@@ -14,11 +14,11 @@
 
 import sys, os
 import re
-import ConfigParser
+import configparser
 import string
 import xml.dom.minidom
 
-from ModuleObj import ModuleObj
+from obj.ModuleObj import ModuleObj
 from data.RfioData import RfioData
 
 from utility.util import log
