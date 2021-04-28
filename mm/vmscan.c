@@ -1733,7 +1733,7 @@ int isolate_lru_page(struct page *page)
 	 * page, so there many compound pages are relcaimed, so too many warning msg on this case. */
 	WARN_RATELIMIT((!current_is_reclaimer() && PageTail(page)), "trying to isolate tail page");
 #else
-	WARN_RATELIMIT(PageTail(page), "trying to isolate tail page");
+	/* WARN_RATELIMIT(PageTail(page), "trying to isolate tail page"); */
 #endif
 
 	if (PageLRU(page)) {
