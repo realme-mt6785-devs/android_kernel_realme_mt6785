@@ -1945,7 +1945,7 @@ CONFIG_MTK_EARA_THERMAL=y
 #
 # Performance, Power, and Thermal
 #
-CONFIG_MTK_LOWMEM_HINT=y
+# CONFIG_MTK_LOWMEM_HINT is not set
 # CONFIG_MTK_SKB_OWNER is not set
 # CONFIG_MTK_TASK_TURBO is not set
 
