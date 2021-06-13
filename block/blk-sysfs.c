@@ -672,7 +672,7 @@ static struct queue_sysfs_entry queue_ohm_inflight_entry = {
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 static struct queue_sysfs_entry queue_iostats_entry = {
-	.attr = {.name = "iostats", .mode = S_IRUGO | S_IWUSR },
+	.attr = {.name = "iostats", .mode = S_IRUGO },
 	.show = queue_show_iostats,
 	.store = queue_store_iostats,
 };
