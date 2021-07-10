@@ -4212,7 +4212,8 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 	bool woke_kswapd = false;
-	
+	bool used_vmpressure = false;
+
 	/*
 	 * We also sanity check to catch abuse of atomic reserves being used by
 	 * callers that are not in atomic context.
@@ -4252,6 +4253,8 @@ restart:
 			atomic_long_inc(&kswapd_waiters);
 			woke_kswapd = true;
 		}
+		if (!used_vmpressure)
+			used_vmpressure = vmpressure_inc_users(order);
 		wake_all_kswapds(order, ac);
 	}
 
@@ -4349,6 +4352,8 @@ retry:
 		goto nopage;
 
 	/* Try direct reclaim and then allocating */
+	if (!used_vmpressure)
+		used_vmpressure = vmpressure_inc_users(order);
 	page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac,
 							&did_some_progress);
 	if (page)
@@ -4475,6 +4480,8 @@ got_pg:
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 	if (woke_kswapd)
 		atomic_long_dec(&kswapd_waiters);
+	if (used_vmpressure)
+		vmpressure_dec_users();
 	if (!page)
 		warn_alloc(gfp_mask, ac->nodemask,
 				"page allocation failure: order:%u", order);
