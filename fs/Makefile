@@ -154,3 +154,4 @@ obj-$(CONFIG_SDCARD_FS)		+= osdcardfs/
 else
 obj-$(CONFIG_SDCARD_FS)		+= sdcardfs/
 endif
+obj-$(CONFIG_EROFS_FS)		+= erofs/
