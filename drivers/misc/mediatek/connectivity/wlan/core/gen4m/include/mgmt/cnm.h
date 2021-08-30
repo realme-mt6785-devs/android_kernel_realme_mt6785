@@ -313,9 +313,7 @@ void cnmFreeWmmIndex(IN struct ADAPTER *prAdapter,
 #if CFG_SUPPORT_DBDC
 void cnmInitDbdcSetting(IN struct ADAPTER *prAdapter);
 
-uint32_t cnmUpdateDbdcSetting(
-	IN struct ADAPTER *prAdapter,
-	IN u_int8_t fgDbdcEn);
+void cnmUpdateDbdcSetting(IN struct ADAPTER *prAdapter, IN u_int8_t fgDbdcEn);
 
 uint8_t cnmGetDbdcBwCapability(
 	struct ADAPTER *prAdapter,

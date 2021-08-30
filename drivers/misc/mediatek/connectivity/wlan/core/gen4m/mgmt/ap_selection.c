@@ -580,13 +580,6 @@ static u_int8_t scanSanityCheckBssDesc(struct ADAPTER *prAdapter,
 				MAC2STR(prBssDesc->aucBSSID));
 			return FALSE;
 		}
-
-		if (prBssDesc->prBlack->ucCount >= 10)  {
-			log_dbg(SCN, WARN,
-				MACSTR " Skip AP that add to blacklist count >= 10\n",
-				MAC2STR(prBssDesc->aucBSSID));
-			return FALSE;
-		}
 	}
 
 	/* roaming case */
@@ -611,13 +604,12 @@ static u_int8_t scanSanityCheckBssDesc(struct ADAPTER *prAdapter,
 		}
 	}
 
-	if (prBssDesc->fgIsConnected) {
+	if (ucBssIndex != AIS_DEFAULT_INDEX) {
 		struct BSS_DESC *target =
-			aisGetTargetBssDesc(prAdapter, ucBssIndex);
+			aisGetTargetBssDesc(prAdapter, AIS_DEFAULT_INDEX);
 
-		if (!target || (target && !EQUAL_MAC_ADDR(prBssDesc->aucBSSID,
-			target->aucBSSID))) {
-			log_dbg(SCN, WARN, MACSTR" used by others\n",
+		if (target && prBssDesc->eBand == target->eBand) {
+			log_dbg(SCN, WARN, MACSTR" band %d used by main\n",
 				MAC2STR(prBssDesc->aucBSSID));
 			return FALSE;
 		}
@@ -654,11 +646,7 @@ static u_int8_t scanSanityCheckBssDesc(struct ADAPTER *prAdapter,
 			prBssDesc->ucChannelNum);
 		return FALSE;
 	}
-#ifdef OPLUS_FEATURE_WIFI_SMART_BW
-	//gen3 & gen4m is different, modify for Gen4m, refer trigger2GBWSwitch()
-	/*Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/26, for smart band-width decision, neeedn't check beacon phase out */
-	if (prAdapter->rSmartBW.eSmartBWSwitchState != SMART_BW_SWITCH_ONGOING)
-#endif
+
 	if (CHECK_FOR_TIMEOUT(kalGetTimeTick(), prBssDesc->rUpdateTime,
 		SEC_TO_SYSTIME(wlanWfdEnabled(prAdapter) ?
 			SCN_BSS_DESC_STALE_SEC_WFD : SCN_BSS_DESC_STALE_SEC))) {
@@ -1273,18 +1261,15 @@ uint8_t scanInDecidingRoaming(struct ADAPTER *prAdapter, uint8_t ucBssIndex)
 	struct ROAMING_INFO *roam;
 	enum ENUM_PARAM_CONNECTION_POLICY policy;
 	struct CONNECTION_SETTINGS *setting;
-	struct BSS_DESC *target;
 
 	roam = aisGetRoamingInfo(prAdapter, ucBssIndex);
 	setting = aisGetConnSettings(prAdapter, ucBssIndex);
 	policy = setting->eConnectionPolicy;
-	target = aisGetTargetBssDesc(prAdapter, ucBssIndex);
 
 	return IS_BSS_INDEX_AIS(prAdapter, ucBssIndex) &&
-		roam->fgIsEnableRoaming &&
-		roam->eCurrentState == ROAMING_STATE_DECISION &&
-		policy != CONNECT_BY_BSSID &&
-		target;
+	       roam->fgIsEnableRoaming &&
+	       roam->eCurrentState == ROAMING_STATE_DECISION &&
+	       policy != CONNECT_BY_BSSID ? TRUE : FALSE;
 
 }
 

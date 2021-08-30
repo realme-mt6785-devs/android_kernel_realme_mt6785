@@ -393,8 +393,8 @@ void scnSendScanReqV2(IN struct ADAPTER *prAdapter)
 		prCmdScanReq->ucScnFuncMask,
 		prCmdScanReq->aucRandomMac);
 
-	scanLogCacheFlushAll(prAdapter, &(prScanInfo->rScanLogCache),
-		LOG_SCAN_REQ_D2F);
+	scanLogCacheFlushAll(&(prScanInfo->rScanLogCache),
+		LOG_SCAN_REQ_D2F, SCAN_LOG_MSG_MAX_LEN);
 	scanReqLog(prCmdScanReq);
 	if (prCmdScanReq->ucBssIndex == KAL_NETWORK_TYPE_AIS_INDEX)
 		scanInitEssResult(prAdapter);
@@ -802,7 +802,6 @@ void scnEventScanDone(IN struct ADAPTER *prAdapter,
 	struct SCAN_INFO *prScanInfo;
 	struct SCAN_PARAM *prScanParam;
 	uint32_t u4ChCnt = 0;
-	KAL_SPIN_LOCK_DECLARATION();
 
 	prScanInfo = &(prAdapter->rWifiVar.rScanInfo);
 	prScanParam = &prScanInfo->rScanParam;
@@ -816,10 +815,8 @@ void scnEventScanDone(IN struct ADAPTER *prAdapter,
 			prScanDone->u4ScanDurBcnCnt,
 			prScanDone->ucSeqNum);
 
-		KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_FW);
 		scanLogCacheFlushBSS(&(prScanInfo->rScanLogCache.rBSSListFW),
-			LOG_SCAN_DONE_F2D);
-		KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_FW);
+			LOG_SCAN_DONE_F2D, SCAN_LOG_MSG_MAX_LEN);
 
 		if (prScanDone->ucCurrentState != FW_SCAN_STATE_SCAN_DONE) {
 			log_dbg(SCN, INFO, "FW Scan timeout!generate ScanDone event at State%d complete chan count%d ucChannelListNum%d\n",
@@ -874,10 +871,6 @@ void scnEventScanDone(IN struct ADAPTER *prAdapter,
 			print_info(SCN, LOUD,
 				"ScanTime : %s\n", au2ChannelScanTime);
 #undef	print_scan_info
-#ifdef OPLUS_FEATURE_WIFI_SMART_BW
-		/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/6/4, add for smart band-width decision */
-		saveScanWMBusyStatus(prScanDone);
-#endif
 	} else {
 		prScanInfo->fgIsSparseChannelValid = FALSE;
 	}

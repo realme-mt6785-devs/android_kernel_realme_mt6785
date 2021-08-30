@@ -1687,6 +1687,7 @@ void soc3_0_dump_mac_info(IN struct ADAPTER *prAdapter)
 			}
 			DBGLOG(HAL, INFO, "Dump CR: %s\n", buf);
 			pos = 0;
+			kalMdelay(1);
 		}
 	}
 
@@ -1724,6 +1725,7 @@ void soc3_0_dump_mac_info(IN struct ADAPTER *prAdapter)
 			}
 			DBGLOG(HAL, INFO, "Dump CR: %s\n", buf);
 			pos = 0;
+			kalMdelay(1);
 		}
 	}
 
