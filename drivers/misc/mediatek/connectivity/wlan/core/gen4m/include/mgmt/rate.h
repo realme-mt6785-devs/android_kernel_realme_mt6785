@@ -106,7 +106,7 @@ extern const uint8_t aucDataRate[];
 /* Routines in rate.c                                                         */
 /*----------------------------------------------------------------------------*/
 void
-rateGetRateSetFromIEs(IN struct IE_SUPPORTED_RATE_IOT
+rateGetRateSetFromIEs(IN struct IE_SUPPORTED_RATE
 		      *prIeSupportedRate,
 		      IN struct IE_EXT_SUPPORTED_RATE *prIeExtSupportedRate, OUT
 		      uint16_t *pu2OperationalRateSet,

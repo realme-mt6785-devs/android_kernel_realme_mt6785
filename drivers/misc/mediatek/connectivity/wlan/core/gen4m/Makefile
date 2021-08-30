@@ -122,13 +122,9 @@ CONFIG_NUM_OF_WFDMA_RX_RING=3
 CONFIG_NUM_OF_WFDMA_TX_RING=0
 CONFIG_MTK_WIFI_CONNINFRA_SUPPORT=y
 CONFIG_MTK_WIFI_CONNAC2X_2x2=y
-CFG_WIFI_WORKAROUND_HWITS00012836_WTBL_SEARCH_FAIL=1
-CFG_WIFI_WORKAROUND_HWITS00010371_PMF_CIPHER_MISMATCH=1
 ccflags-y += -DCFG_POWER_ON_DOWNLOAD_EMI_ROM_PATCH=1
 ccflags-y += -DCFG_DOWNLOAD_DYN_MEMORY_MAP=1
 ccflags-y += -DCFG_ROM_PATCH_NO_SEM_CTRL=1
-ccflags-y += -DCFG_WIFI_WORKAROUND_HWITS00012836_WTBL_SEARCH_FAIL=1
-ccflags-y += -DCFG_WIFI_WORKAROUND_HWITS00010371_PMF_CIPHER_MISMATCH=1
 ccflags-y += -DCFG_ANDORID_CONNINFRA_SUPPORT=1
 else
 ccflags-y += -DCFG_ANDORID_CONNINFRA_SUPPORT=0
@@ -382,8 +378,6 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/performance/include/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/emi/$(MTK_PLATFORM)
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/emi/submodule
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/pmic/include/
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/power_throttling/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/common
 ccflags-y += -I$(srctree)/drivers/devfreq/
 ccflags-y += -I$(srctree)/net
@@ -419,11 +413,6 @@ ccflags-y += -I$(src)/test -I$(src)/test/lib/include -I$(src)/test/testcases -I$
 else ifeq ($(CONFIG_MTK_COMBO_WIFI_HIF), none)
 ccflags-y += -I$(src)/os/$(os)/hif/none/include
 endif
-
-#ifdef OPLUS_FEATURE_WIFI_SMART_BW
-#//Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/2, add for smart band-width decision
-ccflags-y += -I$(src)/oppo_smart_bw_decision
-#endif /* OPLUS_FEATURE_WIFI_SMART_BW */
 
 ifneq ($(PLATFORM_FLAGS), )
     ccflags-y += $(PLATFORM_FLAGS)
@@ -705,11 +694,6 @@ SYSDVT_OBJS += $(SYSDVT_DIR)dvt_dmashdl.o
 endif
 endif
 
-#ifdef OPLUS_FEATURE_WIFI_SMART_BW
-#//Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/2, add for smart band-width decision
-SMART_BW_DECISION_OBJS += oppo_smart_bw_decision/oppo_smart_bw_decision.o
-#endif /* OPLUS_FEATURE_WIFI_SMART_BW */
-
 # ---------------------------------------------------
 # Service git List
 # ---------------------------------------------------
@@ -749,11 +733,6 @@ $(MODULE_NAME)-objs  += $(HIF_OBJS)
 $(MODULE_NAME)-objs  += $(MGMT_OBJS)
 $(MODULE_NAME)-objs  += $(CHIPS_OBJS)
 $(MODULE_NAME)-objs  += $(SYSDVT_OBJS)
-
-#ifdef OPLUS_FEATURE_WIFI_SMART_BW
-#//Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/2, add for smart band-width decision
-$(MODULE_NAME)-objs  += $(SMART_BW_DECISION_OBJS)
-#endif /* OPLUS_FEATURE_WIFI_SMART_BW */
 
 ifneq ($(findstring UT_TEST_MODE,$(MTK_COMBO_CHIP)),)
 include $(src)/test/ut.make

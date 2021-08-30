@@ -424,11 +424,6 @@ cnmDbdcFsmExitFunc_WAIT_HW_ENABLE(
 );
 
 static void
-cnmDbdcFsmExitFunc_WAIT_HW_DISABLE(
-	IN struct ADAPTER *prAdapter
-);
-
-static void
 cnmDbdcOpModeChangeDoneCallback(
 	IN struct ADAPTER *prAdapter,
 	IN uint8_t ucBssIndex,
@@ -504,7 +499,7 @@ static struct DBDC_FSM_T arDdbcFsmActionTable[] = {
 	{
 		cnmDbdcFsmEntryFunc_WAIT_HW_DISABLE,
 		cnmDbdcFsmEventHandler_WAIT_HW_DISABLE,
-		cnmDbdcFsmExitFunc_WAIT_HW_DISABLE
+		NULL
 	},
 
 	/* ENUM_DBDC_FSM_STATE_DISABLE_GUARD */
@@ -1689,22 +1684,16 @@ static uint8_t cnmGetAPBwPermitted(struct ADAPTER
 	}
 
 	if (prBssDesc) {
-		DBGLOG(SCN, TRACE, "prBssDesc 2, prBssDesc->eChannelWidth = %d, prBssDesc->eSco = %d\n", prBssDesc->eChannelWidth, prBssDesc->eSco);
 		if (prBssDesc->eChannelWidth == CW_20_40MHZ) {
 			if ((prBssDesc->eSco == CHNL_EXT_SCA)
 			    || (prBssDesc->eSco == CHNL_EXT_SCB))
 				ucAPBandwidth = MAX_BW_40MHZ;
 			else
 				ucAPBandwidth = MAX_BW_20MHZ;
-#ifdef OPLUS_FEATURE_WIFI_SMART_BW
-			/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/26, add for smart band-width decision */
-			/* ucAPBandwidth won't be modified if condition isn't match */
-			tuneSTABW(prBssInfo, prBssDesc, &ucAPBandwidth, ucBssIndex);
-			DBGLOG(SCN, TRACE, "prBssDesc 8, ucAPBandwidth = %d\n", ucAPBandwidth);
-#endif
 		} else {
 			ucAPBandwidth = prBssDesc->eChannelWidth + ucOffset;
 		}
+
 	}
 
 	return ucAPBandwidth;
@@ -1725,7 +1714,7 @@ u_int8_t cnmBss40mBwPermitted(struct ADAPTER *prAdapter,
 			      uint8_t ucBssIndex)
 {
 	ASSERT(prAdapter);
-	DBGLOG(SCN, TRACE, "cnmBss40mBwPermitted 1\n");
+
 	/* Note: To support real-time decision instead of current
 	 *       activated-time, the STA roaming case shall be considered
 	 *       about synchronization problem. Another variable
@@ -2337,10 +2326,10 @@ void cnmDbdcOpModeChangeDoneCallback(
  *
  * @param (none)
  *
- * @return (uint32_t)
+ * @return (none)
  */
 /*----------------------------------------------------------------------------*/
-uint32_t cnmUpdateDbdcSetting(IN struct ADAPTER *prAdapter,
+void cnmUpdateDbdcSetting(IN struct ADAPTER *prAdapter,
 			  IN u_int8_t fgDbdcEn)
 {
 	struct CMD_DBDC_SETTING rDbdcSetting;
@@ -2419,12 +2408,6 @@ uint32_t cnmUpdateDbdcSetting(IN struct ADAPTER *prAdapter,
 
 				      NULL, /* pvSetQueryBuffer */
 				      0 /* u4SetQueryBufferLen */);
-
-	if (rStatus != WLAN_STATUS_PENDING)
-		DBGLOG(CNM, WARN,
-			"cnmUpdateDbdcSetting set cmd fail %d\n", rStatus);
-
-	return rStatus;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2515,20 +2498,8 @@ static void
 cnmDbdcFsmEntryFunc_DISABLE_IDLE(IN struct ADAPTER *prAdapter)
 {
 	uint8_t ucWmmIndex;
-	uint8_t ucBssIndex;
-	struct CNM_OPMODE_BSS_CONTROL_T *prBssOpCtrl;
 
-	if (cnmDBDCIsReqPeivilegeLock()) {
-            cnmDBDCFsmActionReqPeivilegeUnLock(prAdapter);
-        }
-
-	for (ucBssIndex = 0; ucBssIndex < prAdapter->ucHwBssIdNum;
-		ucBssIndex++) {
-		prBssOpCtrl = &(g_arBssOpControl[ucBssIndex]);
-		prBssOpCtrl->rRunning.fgIsRunning = false;
-		prBssOpCtrl->arReqPool[CNM_OPMODE_REQ_DBDC].fgEnable = false;
-	}
-
+	cnmDBDCFsmActionReqPeivilegeUnLock(prAdapter);
 	for (ucWmmIndex = 0; ucWmmIndex < prAdapter->ucWmmSetNum;
 		ucWmmIndex++) {
 		cnmWmmQuotaSetMaxQuota(
@@ -2550,18 +2521,10 @@ cnmDbdcFsmEntryFunc_WAIT_PROTOCOL_ENABLE(IN struct ADAPTER *prAdapter)
 static void
 cnmDbdcFsmEntryFunc_WAIT_HW_ENABLE(IN struct ADAPTER *prAdapter)
 {
-	uint32_t rStatus;
-
 	if (!cnmDBDCIsReqPeivilegeLock())
 		cnmDBDCFsmActionReqPeivilegeLock();
 
-	rStatus = cnmUpdateDbdcSetting(prAdapter, TRUE);
-
-	if (rStatus != WLAN_STATUS_PENDING) {
-		cnmDBDCFsmActionReqPeivilegeUnLock(prAdapter);
-		DBDC_FSM_EVENT_HANDLER(prAdapter,
-			DBDC_FSM_EVENT_ERR);
-	}
+	cnmUpdateDbdcSetting(prAdapter, TRUE);
 }
 
 static void
@@ -2601,29 +2564,17 @@ cnmDbdcFsmEntryFunc_ENABLE_IDLE(
 static void
 cnmDbdcFsmEntryFunc_WAIT_HW_DISABLE(IN struct ADAPTER *prAdapter)
 {
-	uint32_t rStatus;
-
 #if (CFG_SUPPORT_DBDC_NO_BLOCKING_OPMODE)
 	if (!cnmDBDCIsReqPeivilegeLock())
 		cnmDBDCFsmActionReqPeivilegeLock();
 #endif
 
-	rStatus = cnmUpdateDbdcSetting(prAdapter, FALSE);
-
-	if (rStatus != WLAN_STATUS_PENDING) {
-		cnmDBDCFsmActionReqPeivilegeUnLock(prAdapter);
-		DBDC_FSM_EVENT_HANDLER(prAdapter,
-			DBDC_FSM_EVENT_ERR);
-	}
+	cnmUpdateDbdcSetting(prAdapter, FALSE);
 }
 
 static void
 cnmDbdcFsmEntryFunc_DISABLE_GUARD(IN struct ADAPTER *prAdapter)
 {
-	 /* Do nothing if we will enter A+G immediately */
-         if (g_rDbdcInfo.fgPostpondEnterAG)
-             return;
-
 	if (timerPendingTimer(&g_rDbdcInfo.rDbdcGuardTimer)) {
 		log_dbg(CNM, WARN,
 		       "[DBDC] Guard Timer type %u should not exist, stop it\n",
@@ -2700,11 +2651,6 @@ cnmDbdcFsmEventHandler_WAIT_PROTOCOL_ENABLE(
 {
 	switch (eEvent) {
 	case DBDC_FSM_EVENT_BSS_DISCONNECT_LEAVE_AG:
-         /* Stop Enabling DBDC */
-         g_rDbdcInfo.eDbdcFsmNextState =
-             ENUM_DBDC_FSM_STATE_DISABLE_IDLE;
-         break;
-
 	case DBDC_FSM_EVENT_BSS_CONNECTING_ENTER_AG:
 		/* IGNORE */
 		break;
@@ -2775,13 +2721,7 @@ cnmDbdcFsmEventHandler_WAIT_HW_ENABLE(
 
 	case DBDC_FSM_EVENT_DBDC_HW_SWITCH_DONE:
 		g_rDbdcInfo.eDbdcFsmNextState =
-			ENUM_DBDC_FSM_STATE_ENABLE_GUARD;
-		break;
-
-	case DBDC_FSM_EVENT_ERR:
-		g_rDbdcInfo.eDbdcFsmNextState =
-			ENUM_DBDC_FSM_STATE_DISABLE_IDLE;
-		g_rDbdcInfo.fgPostpondLeaveAG = FALSE;
+		ENUM_DBDC_FSM_STATE_ENABLE_GUARD;
 		break;
 
 	default:
@@ -2934,13 +2874,7 @@ cnmDbdcFsmEventHandler_WAIT_HW_DISABLE(
 
 	case DBDC_FSM_EVENT_DBDC_HW_SWITCH_DONE:
 		g_rDbdcInfo.eDbdcFsmNextState =
-			ENUM_DBDC_FSM_STATE_DISABLE_GUARD;
-		break;
-
-	case DBDC_FSM_EVENT_ERR:
-		g_rDbdcInfo.eDbdcFsmNextState =
-			ENUM_DBDC_FSM_STATE_ENABLE_IDLE;
-		g_rDbdcInfo.fgPostpondEnterAG = FALSE;
+		ENUM_DBDC_FSM_STATE_DISABLE_GUARD;
 		break;
 
 	default:
@@ -3090,10 +3024,6 @@ cnmDbdcFsmEventHandler_WAIT_PROTOCOL_DISABLE(
 
 	switch (eEvent) {
 	case DBDC_FSM_EVENT_BSS_DISCONNECT_LEAVE_AG:
-		/* Return to idle state to prevent getting stuck */
-		g_rDbdcInfo.eDbdcFsmNextState =
-			ENUM_DBDC_FSM_STATE_DISABLE_IDLE;
-		break;
 	case DBDC_FSM_EVENT_BSS_CONNECTING_ENTER_AG:
 		/* IGNORE */
 		break;
@@ -3160,16 +3090,6 @@ cnmDbdcFsmExitFunc_WAIT_HW_ENABLE(
 {
 	cnmDBDCFsmActionReqPeivilegeUnLock(prAdapter);
 }
-
-static void
-cnmDbdcFsmExitFunc_WAIT_HW_DISABLE(
-	IN struct ADAPTER *prAdapter)
-{
-	 /* Do not release privilege lock if we will enter A+G immediately */
-        if (!g_rDbdcInfo.fgPostpondEnterAG)
-            cnmDBDCFsmActionReqPeivilegeUnLock(prAdapter);
-}
-
 
 /*----------------------------------------------------------------------------*/
 /*!
@@ -3542,6 +3462,7 @@ uint8_t cnmSapChannelSwitchReq(IN struct ADAPTER *prAdapter,
 		prRfChannelInfo->ucChannelNum,
 		prRfChannelInfo->eBand,
 		prRfChannelInfo->ucChnlBw);
+
 	/* Free chandef buffer */
 	if (!prGlueInfo) {
 		DBGLOG(P2P, WARN, "glue info is not active\n");
@@ -3619,7 +3540,9 @@ uint8_t cnmSapChannelSwitchReq(IN struct ADAPTER *prAdapter,
 	p2pFunNotifyChnlSwitch(prAdapter, ucBssIdx,
 		prGlueInfo->prP2PInfo[ucRoleIdx]->eChnlSwitchPolicy,
 		prRfChannelInfo);
+
 	return 0;
+
 error:
 
 	return -1;

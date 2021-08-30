@@ -45,17 +45,21 @@ endif
     $(MODULE_NAME)-objs += common/connectivity_build_in_adapter.o
     $(MODULE_NAME)-objs += common/wmt_build_in_adapter.o
 
+
+    # Do build-in for Makefile checking
+    # export CONFIG_WLAN_DRV_BUILD_IN=y
+
     ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
+
         # for gen4m options
         export CONFIG_MTK_COMBO_WIFI_HIF=axi
         export MTK_COMBO_CHIP=CONNAC
         export WLAN_CHIP_ID=6785
         export MTK_ANDROID_WMT=y
         export MTK_ANDROID_EMI=y
-        export ADAPTOR_OPTS=$(MTK_COMBO_CHIP)
-
         export WIFI_IP_SET=2
         export WIFI_ECO_VER=1
+        export ADAPTOR_OPTS=$(MTK_COMBO_CHIP)
 
         # Do build-in for xxx.c checking
         subdir-ccflags-y += -D MTK_WCN_REMOVE_KERNEL_MODULE
@@ -63,12 +67,13 @@ endif
         obj-y += common/
         obj-y += wlan/adaptor/
         obj-y += wlan/core/gen4m/
+
     endif
 
     # Do build-in for rest of connectivity drivers
-    obj-$(CONFIG_MTK_COMBO_BT)  += bt/mt66xx/legacy/
-    obj-$(CONFIG_MTK_FMRADIO)   += fmradio/
-    obj-$(CONFIG_MTK_COMBO_GPS) += gps/
+    obj-y += bt/mt66xx/legacy/
+    obj-y += fmradio/
+    obj-y += gps/
 
 # Otherwise we were called directly from the command line;
 # invoke the kernel build system.

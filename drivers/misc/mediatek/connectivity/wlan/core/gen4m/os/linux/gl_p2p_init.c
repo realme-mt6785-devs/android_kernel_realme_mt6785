@@ -118,6 +118,7 @@ static uint16_t mode = RUNNING_P2P_MODE;
 void p2pSetSuspendMode(struct GLUE_INFO *prGlueInfo, u_int8_t fgEnable)
 {
 	struct net_device *prDev = NULL;
+	struct GL_P2P_INFO *prP2PInfo = NULL;
 
 	if (!prGlueInfo)
 		return;
@@ -127,7 +128,23 @@ void p2pSetSuspendMode(struct GLUE_INFO *prGlueInfo, u_int8_t fgEnable)
 		return;
 	}
 
-	prDev = prGlueInfo->prP2PInfo[0]->prDevHandler;
+	/* For P2P interfaces, prDevHandler points to the net_device of
+	 * p2p0 interface. And aprRoleHandler points to the net_device
+	 * of p2p virtual interface (i.e., p2p1) when it was created.
+	 * And when p2p virtual interface is deleted, aprRoleHandler
+	 * will change to point to prDevHandler. Hence, when
+	 * aprRoleHandler & prDevHandler are pointing to different
+	 * addresses, it means vif p2p1 exists. Otherwise it means p2p1
+	 * was already deleted.
+	 */
+	prP2PInfo = prGlueInfo->prP2PInfo[0];
+	if ((prP2PInfo->aprRoleHandler != NULL) &&
+		(prP2PInfo->aprRoleHandler != prP2PInfo->prDevHandler)) {
+		prDev = prP2PInfo->aprRoleHandler;
+	} else {
+		prDev = prP2PInfo->prDevHandler;
+	}
+
 	if (!prDev) {
 		DBGLOG(INIT, INFO,
 			"%s: P2P dev is not available, SKIP!\n", __func__);

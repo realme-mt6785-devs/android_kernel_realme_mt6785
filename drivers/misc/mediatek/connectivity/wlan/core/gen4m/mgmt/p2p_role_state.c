@@ -414,8 +414,7 @@ p2pRoleStateAbort_GC_JOIN(IN struct ADAPTER *prAdapter,
 			/* Reset the flag to clear target BSS state */
 			prBssDesc = prJoinInfo->prTargetBssDesc;
 			if (prBssDesc != NULL) {
-				prBssDesc->fgIsConnecting &=
-					~BIT(prP2pRoleFsmInfo->ucBssIndex);
+				prBssDesc->fgIsConnecting = FALSE;
 			}
 
 			mboxSendMsg(prAdapter,

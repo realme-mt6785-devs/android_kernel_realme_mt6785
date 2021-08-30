@@ -145,30 +145,6 @@ static u_int8_t cnmTimerSetTimer(IN struct ADAPTER *prAdapter,
 	return fgNeedWakeLock;
 }
 
-void dumpAllCnmTimer(IN struct ADAPTER *prAdapter)
-{
-    struct ROOT_TIMER *prRootTimer;
-    struct LINK_ENTRY *prLinkEntry;
-    struct TIMER *prTimerEntry;
-    struct LINK *prTimerList;
-
-    prRootTimer = &prAdapter->rRootTimer;
-	prTimerList = &prRootTimer->rLinkHead;
-
-    log_dbg(CNM, INFO, "Current time:%u, currently started timer:", kalGetTimeTick());
-    LINK_FOR_EACH(prLinkEntry, prTimerList) {
-        if (prLinkEntry == NULL)
-            break;
-
-        prTimerEntry = LINK_ENTRY(prLinkEntry, struct TIMER, rLinkEntry);
-        ASSERT(prTimerEntry);
-
-        log_dbg(CNM, INFO, "timer:%p, func:%pf, ExpiredSysTime:%u", prTimerEntry, 
-            prTimerEntry->pfMgmtTimeOutFunc, prTimerEntry->rExpiredSysTime);
-    }
-}
-
-
 /*----------------------------------------------------------------------------*/
 /*!
  * \brief This routines is called to initialize a root timer.
@@ -279,6 +255,13 @@ cnmTimerInitTimerOption(IN struct ADAPTER *prAdapter,
 			/* Remove timer to prevent timer list collapse */
 			cnmTimerStopTimer_impl(prAdapter, prTimer, FALSE);
 
+			/* Search entire list again because of nest del and add
+			 * timers and current MGMT_TIMER could be volatile after
+			 * stopped
+			 */
+			prLinkEntry = (struct LINK_ENTRY *) prTimerList;
+			if (prLinkEntry == NULL)
+				break;
 		}
 	}
 
@@ -337,8 +320,6 @@ static void cnmTimerStopTimer_impl(IN struct ADAPTER *prAdapter,
 
 	if (fgAcquireSpinlock)
 		KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_TIMER);
-
-    dumpAllCnmTimer(prAdapter);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -355,7 +336,7 @@ void cnmTimerStopTimer(IN struct ADAPTER *prAdapter, IN struct TIMER *prTimer)
 	ASSERT(prAdapter);
 	ASSERT(prTimer);
 
-	log_dbg(CNM, INFO, "stop timer, timer %p func %pf\n",
+	log_dbg(CNM, TRACE, "stop timer, timer %p func %pf\n",
 		prTimer, prTimer->pfMgmtTimeOutFunc);
 
 	cnmTimerStopTimer_impl(prAdapter, prTimer, TRUE);
@@ -384,7 +365,7 @@ void cnmTimerStartTimer(IN struct ADAPTER *prAdapter, IN struct TIMER *prTimer,
 	ASSERT(prAdapter);
 	ASSERT(prTimer);
 
-	log_dbg(CNM, INFO, "start timer, timer %p func %pf\n",
+	log_dbg(CNM, TRACE, "start timer, timer %p func %pf\n",
 		prTimer, prTimer->pfMgmtTimeOutFunc);
 
 #if (CFG_SUPPORT_STATISTICS == 1)
@@ -445,8 +426,6 @@ void cnmTimerStartTimer(IN struct ADAPTER *prAdapter, IN struct TIMER *prTimer,
 		LINK_INSERT_TAIL(prTimerList, &prTimer->rLinkEntry);
 
 	KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_TIMER);
-
-    dumpAllCnmTimer(prAdapter);
 }
 
 /*----------------------------------------------------------------------------*/

@@ -94,6 +94,7 @@
 #define IS_UNICAST_KEY        BIT(30)
 #define IS_AUTHENTICATOR      BIT(28)
 
+/* WTBL cipher selector, sync with HAL RX from hal_hw_def_rom.h */
 #define CIPHER_SUITE_NONE               0
 #define CIPHER_SUITE_WEP40              1
 #define CIPHER_SUITE_TKIP               2
@@ -103,8 +104,11 @@
 #define CIPHER_SUITE_BIP                6
 #define CIPHER_SUITE_WEP128             7
 #define CIPHER_SUITE_WPI                8
-#define CIPHER_SUITE_CCMP_W_CCX         9
-#define CIPHER_SUITE_GCMP               10
+#define CIPHER_SUITE_CCMP_W_CCX         9 /* CCMP-128 for DFP or CCX MFP */
+#define CIPHER_SUITE_CCMP_256           10
+#define CIPHER_SUITE_GCMP_128           11
+#define CIPHER_SUITE_GCMP_256           12
+#define CIPHER_SUITE_GCM_WPI_128        13
 
 /* Todo:: Move to register */
 #if defined(MT6630)

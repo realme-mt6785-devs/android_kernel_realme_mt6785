@@ -169,16 +169,14 @@ const u_int8_t afgIsOFDMRate[RATE_NUM_SW] = {
  * @param[in] prIeExtSupportedRate       Pointer to the Ext Supported Rate IE
  * @param[out] pu2OperationalRateSet     Pointer to the Operational Rate Set
  * @param[out] pu2BSSBasicRateSet        Pointer to the Basic Rate Set
- * @param[out] pfgIsUnknownBSSBasicRate  Pointer to a Flag to indicate
- that
+ * @param[out] pfgIsUnknownBSSBasicRate  Pointer to a Flag to indicate that
  *                                       Basic Rate Set has unknown Rate Code
  *
  * \return (none)
  */
 /*----------------------------------------------------------------------------*/
 void
-rateGetRateSetFromIEs(
-		      IN struct IE_SUPPORTED_RATE_IOT *prIeSupportedRate,
+rateGetRateSetFromIEs(IN struct IE_SUPPORTED_RATE *prIeSupportedRate,
 		      IN struct IE_EXT_SUPPORTED_RATE *prIeExtSupportedRate,
 		      OUT uint16_t *pu2OperationalRateSet,
 		      OUT uint16_t *pu2BSSBasicRateSet,
@@ -202,6 +200,8 @@ rateGetRateSetFromIEs(
 		ASSERT(prIeSupportedRate->ucLength <= RATE_NUM_SW);
 
 		for (i = 0; i < prIeSupportedRate->ucLength; i++) {
+			if (i >= ELEM_MAX_LEN_SUP_RATES)
+				break;
 			ucRate =
 			    prIeSupportedRate->aucSupportedRates[i] & RATE_MASK;
 
@@ -212,7 +212,7 @@ rateGetRateSetFromIEs(
 					u2OperationalRateSet |= BIT(j);
 
 					if (prIeSupportedRate->aucSupportedRates
-						[i] & RATE_BASIC_BIT)
+					    [i] & RATE_BASIC_BIT)
 						u2BSSBasicRateSet |= BIT(j);
 
 					break;
