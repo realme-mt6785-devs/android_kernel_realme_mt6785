@@ -16,12 +16,91 @@
 #include "../../codecs/mt6359.h"
 #include "../common/mtk-sp-spk-amp.h"
 
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+#include <linux/of_gpio.h>
+#include <linux/gpio.h>
+
+#define EXT_SPK_HP_AMP_W_NAME "Ext_Headphone_Amp_Switch"
+
+struct pinctrl *pinctrl_ext_hp_amp;
+struct audhpamp_gpio_attr {
+	const char *name;
+	bool gpio_prepare;
+	struct pinctrl_state *gpioctrl;
+};
+
+enum audhpamp_gpio_type {
+	GPIO_EXTHPAMP_OFF = 0,
+	GPIO_EXTHPAMP_ON,
+	GPIO_NUM
+};
+
+static struct audhpamp_gpio_attr audhpamp_gpios[GPIO_NUM] = {
+	[GPIO_EXTHPAMP_OFF] = {"ext_hp_amp_off", false, NULL},
+	[GPIO_EXTHPAMP_ON] = {"ext_hp_amp_on", false, NULL},
+};
+
+static inline int audio_exthpamp_setup_gpio(struct platform_device *device)
+{
+	int index_gpio = 0;
+	int ret;
+
+	pinctrl_ext_hp_amp = devm_pinctrl_get(&device->dev);
+	if (IS_ERR(pinctrl_ext_hp_amp)) {
+		ret = PTR_ERR(pinctrl_ext_hp_amp);
+		pr_info("[audio] Cannot find ext_hp_amp ret = %d !\n", ret);
+		return ret;
+	}
+	for (index_gpio = 0; index_gpio < ARRAY_SIZE(audhpamp_gpios);
+			index_gpio++) {
+		audhpamp_gpios[index_gpio].gpioctrl =
+			pinctrl_lookup_state(pinctrl_ext_hp_amp,
+			audhpamp_gpios[index_gpio].name);
+		if (IS_ERR(audhpamp_gpios[index_gpio].gpioctrl)) {
+			ret = PTR_ERR(audhpamp_gpios[index_gpio].gpioctrl);
+			pr_info("[audio] %s lookup_state %s fail %d\n",
+			__func__, audhpamp_gpios[index_gpio].name, ret);
+		} else {
+			audhpamp_gpios[index_gpio].gpio_prepare = true;
+			pr_debug("[audio] %s lookup_state %s success!\n",
+				 __func__, audhpamp_gpios[index_gpio].name);
+		}
+	}
+	return 0;
+}
+
+static void audio_exthpamp_enable(void)
+{
+	if (audhpamp_gpios[GPIO_EXTHPAMP_ON].gpio_prepare) {
+		pinctrl_select_state(pinctrl_ext_hp_amp,
+			audhpamp_gpios[GPIO_EXTHPAMP_ON].gpioctrl);
+		pr_info("[audio] set audhpamp_gpios[GPIO_EXTHPAMP_ON] pins\n");
+	} else {
+		pr_info("[audio] audhpamp_gpios[GPIO_EXTHPAMP_ON] pins are not prepared!\n");
+	}
+}
+
+static void audio_exthpamp_disable(void)
+{
+	if (audhpamp_gpios[GPIO_EXTHPAMP_OFF].gpio_prepare) {
+		pinctrl_select_state(pinctrl_ext_hp_amp,
+			audhpamp_gpios[GPIO_EXTHPAMP_OFF].gpioctrl);
+		pr_info("[audio] set aud_gpios[GPIO_EXTHPAMP_OFF] pins\n");
+	} else {
+		pr_info("[audio] aud_gpios[GPIO_EXTHPAMP_OFF] pins are not prepared!\n");
+	}
+}
+#endif
 /*
  * if need additional control for the ext spk amp that is connected
  * after Lineout Buffer / HP Buffer on the codec, put the control in
  * mt6785_mt6359_spk_amp_event()
  */
 #define EXT_SPK_AMP_W_NAME "Ext_Speaker_Amp"
+// wuhui@Multimedia.Audio.Driver 2021/01/02 modified for sia8109 bringup
+#ifdef OPLUS_BUG_COMPATIBILITY
+#include "../sia81xx/sia81xx_aux_dev_if.h"
+#endif
 
 static const char *const mt6785_spk_type_str[] = {MTK_SPK_NOT_SMARTPA_STR,
 						  MTK_SPK_RICHTEK_RT5509_STR,
@@ -40,6 +119,106 @@ static const struct soc_enum mt6785_spk_type_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(mt6785_spk_i2s_type_str),
 			    mt6785_spk_i2s_type_str),
 };
+
+#ifdef OPLUS_BUG_STABILITY
+/* wuhui@ODM.CM.Multimedia.Audio 2020/09/08 modified for aw87339 bringup */
+#ifdef CONFIG_SND_SOC_AW87339
+extern unsigned char aw87339_audio_kspk(void);
+extern unsigned char aw87339_audio_drcv(void);
+extern unsigned char aw87339_audio_off(void);
+// wuhui@ODM.CM.Multimedia.Audio 2020/09/08 added for aw87339 speaker & voice mode switch
+extern unsigned char aw87339_audio_voicespk(void);
+
+enum {
+	SPEAKER_SCENE_PLAYBACK = 0,
+	SPEAKER_SCENE_VOICE,
+	SPEAKER_SCENE_NUM
+};
+static int aw87339_speaker_scene = SPEAKER_SCENE_PLAYBACK;
+static const char *const aw87339_spk_scene[] = { "Playback", "Voice" };
+static const struct soc_enum aw87339_spk_scene_enum =
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(aw87339_spk_scene), aw87339_spk_scene);
+
+static int aw87339_spk_scene_get(struct snd_kcontrol *kcontrol,
+			       struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("%s() = %d\n", __func__, aw87339_speaker_scene);
+	ucontrol->value.integer.value[0] = aw87339_speaker_scene;
+	return 0;
+}
+
+static int aw87339_spk_scene_set(struct snd_kcontrol *kcontrol,
+			       struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("%s: ucontrol = %ld\n", __func__, ucontrol->value.integer.value[0]);
+
+	if(SPEAKER_SCENE_NUM <= ucontrol->value.integer.value[0]) {
+		aw87339_speaker_scene = SPEAKER_SCENE_PLAYBACK;
+		pr_err("%s(): set speaker scene val = %ld !!! \r\n", __func__, ucontrol->value.integer.value[0]);
+	} else {
+		aw87339_speaker_scene = ucontrol->value.integer.value[0];
+	}
+
+	return 0;
+}
+/* wuhui@Multimedia.AudioDriver 2021/01/02,Add for aw87339 probe */
+extern int aw87339_audio_probe_get(void);
+static const char *const aw87339_Probe[] = { "Off", "On" };
+static const struct soc_enum aw87339_spk_probe_enum =
+        SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(aw87339_Probe), aw87339_Probe);
+static int aw87339_spk_probe_get(struct snd_kcontrol *kcontrol,
+                               struct snd_ctl_elem_value *ucontrol)
+{
+        int probe = aw87339_audio_probe_get();
+        pr_debug("%s() = %d\n", __func__, probe);
+        ucontrol->value.integer.value[0] = probe;
+        return 0;
+}
+#endif
+#ifdef CONFIG_SND_SOC_AW87359
+// wuhui@ODM.CM.Multimedia.Audio 2020/09/08 added for aw87359 bringup
+extern unsigned char aw87359_audio_dspk(void);
+extern unsigned char aw87359_audio_drcv(void);
+extern unsigned char aw87359_audio_abspk(void);
+extern unsigned char aw87359_audio_dspk_ftm(void);
+extern unsigned char aw87359_audio_off(void);
+
+enum {
+	SPEAKER_SCENE_NORMAL = 0,
+	SPEAKER_SCENE_FTM,
+	SPEAKER_SCENE_N
+};
+
+static int aw87359_speaker_scene = SPEAKER_SCENE_NORMAL;
+static const char *const aw87359_spk_scene[] = { "Normal", "FTM" };
+static const struct soc_enum aw87359_spk_scene_enum =
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(aw87359_spk_scene), aw87359_spk_scene);
+
+static int aw87359_spk_scene_get(struct snd_kcontrol *kcontrol,
+			       struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("%s() = %d\n", __func__, aw87359_speaker_scene);
+	ucontrol->value.integer.value[0] = aw87359_speaker_scene;
+	return 0;
+}
+
+static int aw87359_spk_scene_set(struct snd_kcontrol *kcontrol,
+			       struct snd_ctl_elem_value *ucontrol)
+{
+	pr_debug("%s: ucontrol = %ld\n", __func__, ucontrol->value.integer.value[0]);
+
+	if(SPEAKER_SCENE_N <= ucontrol->value.integer.value[0]) {
+		aw87359_speaker_scene = SPEAKER_SCENE_NORMAL;
+		pr_err("%s(): set speaker scene val = %ld !!! \n", __func__, ucontrol->value.integer.value[0]);
+	} else {
+		aw87359_speaker_scene = ucontrol->value.integer.value[0];
+	}
+
+	return 0;
+}
+
+#endif
+#endif /* OPLUS_BUG_STABILITY */
 
 static int mt6785_spk_type_get(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
@@ -83,9 +262,41 @@ static int mt6785_mt6359_spk_amp_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		/* spk amp on control */
+		#ifdef OPLUS_BUG_STABILITY
+		/* wuhui@ODM.CM.Multimedia.Audio 2020/09/08 modified for aw87339 bringup */
+		#ifdef CONFIG_SND_SOC_AW87339
+		if(aw87339_speaker_scene == SPEAKER_SCENE_PLAYBACK)
+			aw87339_audio_kspk();
+		else if(aw87339_speaker_scene == SPEAKER_SCENE_VOICE)
+			aw87339_audio_voicespk();
+		else
+			aw87339_audio_kspk();
+		#endif
+
+		#ifdef CONFIG_SND_SOC_AW87359
+		// wuhui@ODM.CM.Multimedia.Audio 2020/09/08 added for aw87359 bringup
+		if(aw87359_speaker_scene == SPEAKER_SCENE_NORMAL)
+			aw87359_audio_dspk();
+		else if(aw87359_speaker_scene == SPEAKER_SCENE_FTM)
+			aw87359_audio_dspk_ftm();
+		else
+			aw87359_audio_dspk();
+		#endif
+		#endif /* OPLUS_BUG_STABILITY */
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
 		/* spk amp off control */
+		#ifdef OPLUS_BUG_STABILITY
+		/* wuhui@ODM.CM.Multimedia.Audio 2020/09/08 modified for aw87339 bringup */
+		#ifdef CONFIG_SND_SOC_AW87339
+		aw87339_audio_off();
+		#endif
+
+		#ifdef CONFIG_SND_SOC_AW87359
+		// wuhui@ODM.CM.Multimedia.Audio 2020/09/08 added for aw87359 bringup
+		aw87359_audio_off();
+		#endif
+		#endif /* OPLUS_BUG_STABILITY */
 		break;
 	default:
 		break;
@@ -94,24 +305,76 @@ static int mt6785_mt6359_spk_amp_event(struct snd_soc_dapm_widget *w,
 	return 0;
 };
 
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+static int mt6785_mt6359_headphone_amp_event(struct snd_soc_dapm_widget *w,
+				       struct snd_kcontrol *kcontrol,
+				       int event)
+{
+	struct snd_soc_dapm_context *dapm = w->dapm;
+	struct snd_soc_card *card = dapm->card;
+
+	dev_info(card->dev, "%s(), event %d\n", __func__, event);
+
+	switch (event) {
+	case SND_SOC_DAPM_POST_PMU:
+		/* spk amp on control */
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+		audio_exthpamp_enable();
+#endif
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+		/* spk amp off control */
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+		audio_exthpamp_disable();
+#endif
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+};
+#endif
+
 static const struct snd_soc_dapm_widget mt6785_mt6359_widgets[] = {
 	SND_SOC_DAPM_SPK(EXT_SPK_AMP_W_NAME, mt6785_mt6359_spk_amp_event),
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+	SND_SOC_DAPM_SPK(EXT_SPK_HP_AMP_W_NAME,
+		     mt6785_mt6359_headphone_amp_event),
+#endif
 };
 
 static const struct snd_soc_dapm_route mt6785_mt6359_routes[] = {
 	{EXT_SPK_AMP_W_NAME, NULL, "LINEOUT L"},
 	{EXT_SPK_AMP_W_NAME, NULL, "Headphone L Ext Spk Amp"},
 	{EXT_SPK_AMP_W_NAME, NULL, "Headphone R Ext Spk Amp"},
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+	{EXT_SPK_HP_AMP_W_NAME, NULL, "LINEOUT L"},
+	{EXT_SPK_HP_AMP_W_NAME, NULL, "Headphone L Ext Spk Amp"},
+	{EXT_SPK_HP_AMP_W_NAME, NULL, "Headphone R Ext Spk Amp"},
+#endif
 };
 
 static const struct snd_kcontrol_new mt6785_mt6359_controls[] = {
 	SOC_DAPM_PIN_SWITCH(EXT_SPK_AMP_W_NAME),
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+	SOC_DAPM_PIN_SWITCH(EXT_SPK_HP_AMP_W_NAME),
+#endif
 	SOC_ENUM_EXT("MTK_SPK_TYPE_GET", mt6785_spk_type_enum[0],
 		     mt6785_spk_type_get, NULL),
 	SOC_ENUM_EXT("MTK_SPK_I2S_OUT_TYPE_GET", mt6785_spk_type_enum[1],
 		     mt6785_spk_i2s_out_type_get, NULL),
 	SOC_ENUM_EXT("MTK_SPK_I2S_IN_TYPE_GET", mt6785_spk_type_enum[1],
 		     mt6785_spk_i2s_in_type_get, NULL),
+#ifdef OPLUS_BUG_STABILITY
+// wuhui@ODM.CM.Multimedia.Audio 2020/09/08 added for aw87339 speaker & voice mode switch
+	SOC_ENUM_EXT("AW87339 Spk Scene", aw87339_spk_scene_enum,
+			aw87339_spk_scene_get, aw87339_spk_scene_set),
+       SOC_ENUM_EXT("AW87359 Spk Scene", aw87359_spk_scene_enum,
+			aw87359_spk_scene_get, aw87359_spk_scene_set),
+	SOC_ENUM_EXT("AW87339 Spk Probe Get", aw87339_spk_probe_enum,
+			aw87339_spk_probe_get, NULL),
+#endif /* OPLUS_BUG_STABILITY */
 };
 
 /*
@@ -1157,9 +1420,18 @@ static int mt6785_mt6359_dev_probe(struct platform_device *pdev)
 			continue;
 		mt6785_mt6359_dai_links[i].codec_of_node = codec_node;
 	}
+#ifdef CONFIG_SND_SOC_MT8185_EVB
+		audio_exthpamp_setup_gpio(pdev);
+#endif
 
 	card->dev = &pdev->dev;
-
+// wuhui@Multimedia.Audio.Driver 2021/01/02 modified for sia8109 bringup
+#ifdef OPLUS_BUG_COMPATIBILITY
+	ret = soc_aux_init_only_sia81xx(pdev, card);
+	if (ret)
+		dev_err(&pdev->dev, "%s soc_aux_init_only_sia8108 fail %d\n",
+			__func__, ret);
+#endif /* OPLUS_BUG_COMPATIBILITY */
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret)
 		dev_err(&pdev->dev, "%s snd_soc_register_card fail %d\n",
