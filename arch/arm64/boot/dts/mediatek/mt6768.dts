@@ -43,6 +43,18 @@ page_owner=on loop.max_part=7";
 		kaslr-seed = <0 0>;
 	};
 
+        shell_front {
+                compatible = "oppo,shell-temp";
+        };
+
+        shell_frame {
+                compatible = "oppo,shell-temp";
+        };
+
+        shell_back {
+                compatible = "oppo,shell-temp";
+        };
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -1169,6 +1181,10 @@ page_owner=on loop.max_part=7";
 		disp_mutex_reg = <0x14016000 0x1000>;
 		g3d_config_base = <0x13000000 0 0xffff0000>;
 		mmsys_config_base = <0x14000000 1 0xffff0000>;
+//#ifdef ODM_WT_EDIT
+//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/12/2, modify clk_change function
+		mipitx0_base = <0x11c80000 99 0xffff0000>;
+//#endif
 		disp_dither_base = <0x14010000 2 0xffff0000>;
 		mm_na_base = <0x14020000 3 0xffff0000>;
 		imgsys_base = <0x15020000 4 0xffff0000>;
@@ -1388,9 +1404,25 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		interrupts = <GIC_SPI 163 IRQ_TYPE_LEVEL_LOW>;
 	};
 
+//#ifdef OPLUS_FEATURE_FINGERPRINT
+//Qi.zhang@BSP.Biometrics.Fingerprint 2020/09/08 add  fingerprint driver start
 	goodix_fp: fingerprint {
 		compatible = "mediatek,goodix-fp";
 	};
+	egis_fp: egis_fp {
+		compatible = "mediatek,finger-fp";
+	};
+	fpc_interrupt:fpc_interrupt {
+		compatible    = "fpc,fpc_irq";
+	};
+	oplus_fp_common:oplus_fp_common {
+		compatible = "oplus,fp_common";
+	};
+	oppo_secure_common:oppo_secure_common {
+		compatible = "oppo,secure_common";
+	};
+//Qi.zhang@BSP.Biometrics.Fingerprint 2020/09/08 add  fingerprint driver end
+//#endif //OPLUS_FEATURE_FINGERPRINT
 
 	accdet: accdet {
 		compatible = "mediatek,pmic-accdet";
@@ -3267,7 +3299,24 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 			part = <0>;
 		};
 	};
-
+	flashlights_pascal: flashlights_pascal {
+		compatible = "mediatek,flashlights_pascal";
+		decouple = <1>;
+		channel@1 {
+			type = <0>;
+			ct = <0>;
+			part = <0>;
+		};
+	};
+	flashlights_monet: flashlights_monet {
+		compatible = "mediatek,flashlights_monet";
+		decouple = <1>;
+		channel@1 {
+			type = <0>;
+			ct = <0>;
+			part = <0>;
+		};
+	};
 	camsv1@1a050000 {
 		compatible = "mediatek,camsv1";
 		reg = <0 0x1a050000 0 0x1000>;
@@ -3489,6 +3538,13 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		vsys_watt = <5000000>;
 	};
 
+	oplus_fast_charger: oplus_fast_charger {
+		compatible = "mediatek,oplus-fastcharger";
+	};
+
+	otg_iddig: otg_iddig {
+	};
+
 	pd_adapter: pd_adapter {
 		compatible = "mediatek,pd_adapter";
 		adapter_name = "pd_adapter";
@@ -3522,16 +3578,19 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 	};
 
 	touch: touch {
-		compatible = "goodix,touch";
+		compatible = "mediatek,touch";
 	};
 
-	nfc:nfc {
+	//#ifdef OPLUS_FEATURE_NFC_CONSOFT
+	//LinJunBin@CONNECTIVITY.NFC.BASIC, 2020/12/25, delete for: move original device
+	/*nfc:nfc {
 		compatible = "mediatek,nfc-gpio-v2";
 		gpio-rst = <159>;
 		gpio-rst-std = <&pio 159 0x0>;
 		gpio-irq = <9>;
 		gpio-irq-std = <&pio 9 0x0>;
-	};
+	};*/
+	//#endif /* OPLUS_FEATURE_NFC_CONSOFT */
 
 	irq_nfc: irq_nfc {
 		compatible = "mediatek,irq_nfc-eint";
@@ -3760,12 +3819,15 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 #include "mediatek/cust_mt6768_msdc.dtsi"
 #include "mediatek/mt6370.dtsi"
 #include "mediatek/mt6370_pd.dtsi"
-#ifdef CONFIG_CHARGER_RT9471
-#include "mediatek/rt9471.dtsi"
-#endif
 #ifdef CONFIG_TCPC_RT1711H
-#include "mediatek/tcpc_config.dtsi"
+#include "mediatek/tcpc_config_6769.dtsi"
 #endif
 #ifdef CONFIG_MTK_ENABLE_GENIEZONE
 #include "mediatek/trusty.dtsi"
 #endif
+//#ifdef OPLUS_BUG_STABILITY
+// Zengchao.Duan@ODM_WT.MM.AudioDriver.Machine, 2019/10/23, MonetX audio sia8108 bringup
+#ifdef CONFIG_SND_SIA81XX_PA
+#include "mediatek/mt6768-sia81xx.dtsi"
+#endif
+//#endif

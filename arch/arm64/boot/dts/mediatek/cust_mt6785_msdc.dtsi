@@ -62,8 +62,10 @@
 	register_setting = <&msdc1_register_setting_default>;
 
 	host_function = /bits/ 8 <MSDC_SD>;
-
-	cd_level = /bits/ 8 <MSDC_CD_LOW>;
+//#ifdef OPLUS_FEATURE_SDCARD
+//WeiZhenXi@BSP.Storage.Sdcard, 2020/09/09, Modify for enable sdcard
+	cd_level = /bits/ 8 <MSDC_CD_HIGH>;
+//#endif /* OPLUS_FEATURE_SDCARD */
 	cd-gpios = <&pio 8 0>;
 
 	status = "okay";
