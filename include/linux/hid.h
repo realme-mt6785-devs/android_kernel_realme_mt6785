@@ -955,10 +955,11 @@ static inline void hid_map_usage(struct hid_input *hidinput,
 
 	if (unlikely(c > limit || !bmap)) {
 		pr_warn_ratelimited("%s: Invalid code %d type %d\n",
-				input->name, c, type);
+		input->name, c, type);
 		*bit = NULL;
 		return;
 	}
+
 	usage->type = type;
 	usage->code = c;
 	*max = limit;
