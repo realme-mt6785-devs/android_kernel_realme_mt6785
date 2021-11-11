@@ -21,6 +21,11 @@
 #include <hal_kpd.h>
 #include <mt-plat/mtk_boot_common.h>
 
+//#ifdef OPLUS_BUG_STABILITY
+//zhouhengguo@BSP.Kernel.Stability, 2020/10/19, 20075/20076 using hw gpio, other using pmic hw reset
+#include <soc/oppo/oppo_project.h>
+//#endif /*OPLUS_BUG_STABILITY*/
+
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH /*for pmic not ready*/
 static int kpd_enable_lprst = 1;
 #endif
@@ -55,6 +60,10 @@ void kpd_get_keymap_state(u16 state[])
 void long_press_reboot_function_setting(void)
 {
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH /*for pmic not ready*/
+//#ifdef OPLUS_BUG_STABILITY
+//zhouhengguo@BSP.Kernel.Stability, 2020/10/19, 20075/20076 using hw gpio, other using pmic hw reset
+	if (20075 != get_project() && 20076 != get_project()) {
+//#endif /*OPLUS_BUG_STABILITY*/
 	/* unlock PMIC protect key */
 	pmic_set_register_value(PMIC_RG_CPS_W_KEY, 0x4729);
 	if (kpd_enable_lprst && get_boot_mode() == NORMAL_BOOT) {
@@ -100,6 +109,10 @@ void long_press_reboot_function_setting(void)
 	}
 	/* lock PMIC protect key */
 	pmic_set_register_value(PMIC_RG_CPS_W_KEY, 0);
+//#ifdef OPLUS_BUG_STABILITY
+//zhouhengguo@BSP.Kernel.Stability, 2020/10/19, 20075/20076 using hw gpio, other using pmic hw reset
+	}
+//#endif /*OPLUS_BUG_STABILITY*/
 #endif
 }
 

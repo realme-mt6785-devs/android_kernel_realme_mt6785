@@ -443,7 +443,6 @@ int vcu_ipi_send(struct platform_device *pdev,
 		if (!vcu_ptr->abort) {
 			task_lock(vcud_task);
 			send_sig(SIGTERM, vcud_task, 0);
-			send_sig(SIGKILL, vcud_task, 0);
 			task_unlock(vcud_task);
 		}
 		if (vcu_ptr->open_cnt > 0) {
@@ -765,10 +764,8 @@ static void vcu_gce_flush_callback(struct cmdq_cb_data data)
 	atomic_dec(&vcu->gce_info[j].flush_pending);
 
 	mutex_lock(&vcu->vcu_gce_mutex[i]);
-	if (i == VCU_VENC) {
-		venc_encode_pmqos_gce_end(vcu->gce_info[j].v4l2_ctx, core_id,
+	venc_encode_pmqos_gce_end(vcu->gce_info[j].v4l2_ctx, core_id,
 				vcu->gce_job_cnt[i][core_id].counter);
-	}
 	if (atomic_dec_and_test(&vcu->gce_job_cnt[i][core_id]) &&
 		vcu->gce_info[j].v4l2_ctx != NULL){
 		if (i == VCU_VENC) {
@@ -1009,17 +1006,15 @@ static int vcu_gce_cmd_flush(struct mtk_vcu *vcu,
 		(buff.cmdq_buff.secure == 0)?vcu_gce_timeout_callback:NULL;
 	pkt_ptr->err_cb.data = (void *)&vcu_ptr->gce_info[j].buff[i];
 
-	pr_info("[VCU][%d] %s: buff %p type %d cnt %d order %d pkt %p hndl %llx %d %d\n",
+	pr_info("[VCU][%d] %s: buff %p type %d cnt %d order %d hndl %llx %d %d\n",
 		core_id, __func__, &vcu_ptr->gce_info[j].buff[i],
 		buff.cmdq_buff.codec_type,
-		cmds->cmd_cnt, buff.cmdq_buff.flush_order, pkt_ptr,
+		cmds->cmd_cnt, buff.cmdq_buff.flush_order,
 		buff.cmdq_buff.gce_handle, ret, j);
 
 	/* flush cmd async */
-	ret = cmdq_pkt_flush_threaded(pkt_ptr,
+	cmdq_pkt_flush_threaded(pkt_ptr,
 		vcu_gce_flush_callback, (void *)&vcu_ptr->gce_info[j].buff[i]);
-	if (ret < 0)
-		pr_info("[VCU] cmdq flush fail pkt %p\n", pkt_ptr);
 
 	atomic_inc(&vcu_ptr->gce_info[j].flush_pending);
 	time_check_end(100, strlen(vcodec_param_string));

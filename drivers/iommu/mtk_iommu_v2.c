@@ -2589,7 +2589,6 @@ int mtk_iommu_get_iova_space(struct device *dev,
 		unsigned long *base, unsigned long *max,
 		int *owner, struct list_head *list)
 {
-	int ret;
 	struct mtk_iommu_domain *dom;
 	struct mtk_iommu_pgtable *pgtable = mtk_iommu_get_pgtable(NULL, 0);
 	unsigned long flags = 0;
@@ -2605,13 +2604,7 @@ int mtk_iommu_get_iova_space(struct device *dev,
 
 	if (pgtable)
 		spin_lock_irqsave(&pgtable->pgtlock, flags);
-	ret = iommu_dma_get_iovad_info(dev, base, max);
-	if (ret) {
-		pr_info("%s, get_iovad_info fail, dev:%s\n",
-			__func__, dev_name(dev));
-		*base = 0;
-		*max = 0;
-	}
+	iommu_dma_get_iovad_info(dev, base, max);
 	if (pgtable)
 		spin_unlock_irqrestore(&pgtable->pgtlock, flags);
 
@@ -4164,8 +4157,11 @@ static int mtk_iommu_hw_init(struct mtk_iommu_data *data)
 
 	writel_relaxed(F_MMU_TFRP_PA_SET(data->protect_base, data->enable_4GB),
 		   data->base + REG_MMU_TFRP_PADDR);
+#ifndef MTK_DISABLE_DCM_SUPPORT
+	writel_relaxed(0, data->base + REG_MMU_DCM_DIS);
+#else
 	writel_relaxed(0x100, data->base + REG_MMU_DCM_DIS);
-
+#endif
 	//writel_relaxed(0, data->base + REG_MMU_STANDARD_AXI_MODE);
 
 	if (devm_request_irq(data->dev, data->irq, mtk_iommu_isr, 0,

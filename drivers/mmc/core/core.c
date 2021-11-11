@@ -86,6 +86,7 @@ static void mmc_enqueue_queue(struct mmc_host *host, struct mmc_request *mrq)
 		spin_unlock_irqrestore(&host->dat_que_lock, flags);
 	} else {
 		spin_lock_irqsave(&host->cmd_que_lock, flags);
+		atomic_inc(&host->areq_cnt);
 		if (mrq->flags)
 			list_add(&mrq->link, &host->cmd_que);
 		else

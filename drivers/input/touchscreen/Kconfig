@@ -1255,4 +1255,9 @@ config TOUCHSCREEN_MTK_TOUCH
 
          To compile this dirver for used touch IC.
 
+#ifdef OPLUS_FEATURE_TP_BASIC
+#Xuhang.Li@BSP.TP, 20200726, Add common touchpanel driver
+source "drivers/input/touchscreen/oppo_touchscreen/Kconfig"
+#endif /* OPLUS_FEATURE_TP_BASIC */
+
 endif

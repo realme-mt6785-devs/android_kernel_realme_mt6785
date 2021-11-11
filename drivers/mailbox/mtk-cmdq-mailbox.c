@@ -196,35 +196,12 @@ static void cmdq_init_cpu(struct cmdq *cmdq)
 	cmdq_trace_ex_end();
 }
 
-#if IS_ENABLED(CONFIG_MACH_MT6873)
-static inline void cmdq_init_check(struct cmdq *cmdq)
-{
-	s32 i;
-	u32 val;
-
-	cmdq_log("%s cmdq:%p pa:%pa token_cnt:%u",
-		__func__, cmdq, &cmdq->base_pa, cmdq->token_cnt);
-
-	for (i = 0; i < cmdq->token_cnt; i++) {
-		writel(0x3FF & cmdq->tokens[i],
-			cmdq->base + CMDQ_SYNC_TOKEN_ID);
-		val = readl(cmdq->base + CMDQ_SYNC_TOKEN_VAL);
-		if (val != 0x1)
-			cmdq_err("tokens[%d]:%#x val:%#x set to 1 failed",
-				i, cmdq->tokens[i], val);
-	}
-}
-#endif
-
 static void cmdq_init(struct cmdq *cmdq)
 {
 	if (cmdq->init_cmds_base)
 		cmdq_init_cmds(cmdq);
 	else
 		cmdq_init_cpu(cmdq);
-#if IS_ENABLED(CONFIG_MACH_MT6873)
-	cmdq_init_check(cmdq);
-#endif
 }
 
 static inline void cmdq_mmp_init(void)
@@ -246,7 +223,6 @@ static inline void cmdq_mmp_init(void)
 	cmdq_mmp.submit = mmprofile_register_event(cmdq_mmp.cmdq, "submit");
 	cmdq_mmp.wait = mmprofile_register_event(cmdq_mmp.cmdq, "wait");
 	cmdq_mmp.warning = mmprofile_register_event(cmdq_mmp.cmdq, "warning");
-	mmprofile_enable_event_recursive(cmdq_mmp.cmdq, 1);
 	mmprofile_start(1);
 #endif
 }
@@ -333,10 +309,7 @@ static void cmdq_clk_disable(struct cmdq *cmdq)
 
 	usage = atomic_dec_return(&cmdq->usage);
 
-	if (usage == -1)
-		cmdq_util_aee("CMDQ", "%s cmdq:%pa suspend:%d usage:%d",
-			__func__, &cmdq->base_pa, cmdq->suspended, usage);
-	else if (usage < 0) {
+	if (usage < 0) {
 		/* print error but still try close */
 		cmdq_err("ref count error after dec:%d suspend:%s",
 			usage, cmdq->suspended ? "true" : "false");
@@ -624,7 +597,6 @@ void cmdq_init_cmds(void *dev_cmdq)
 	struct cmdq *cmdq = dev_cmdq;
 	struct cmdq_thread *thread = &cmdq->thread[0];
 	dma_addr_t pc, end;
-	int i;
 
 	cmdq_trace_ex_begin("%s", __func__);
 
@@ -642,13 +614,6 @@ void cmdq_init_cmds(void *dev_cmdq)
 		cmdq_err("clear event instructions timeout pc:%#lx end:%#lx",
 			(unsigned long)pc,
 			(unsigned long)end);
-		for (i = 0; i < ARRAY_SIZE(cmdq->thread); i++)
-			if (cmdq->thread->chan) {
-				cmdq_err("%s cmdq:%d thread:%d i:%d",
-					__func__, cmdq->hwid, thread->idx, i);
-				cmdq_util_dump_dbg_reg(cmdq->thread->chan);
-				break;
-			}
 		cmdq_thread_reset(cmdq, thread);
 	}
 	writel(CMDQ_THR_DISABLED, thread->base + CMDQ_THR_ENABLE_TASK);
@@ -716,11 +681,6 @@ static void cmdq_task_exec(struct cmdq_pkt *pkt, struct cmdq_thread *thread)
 			spin_unlock_irqrestore(&cmdq->lock, flags);
 		}
 #endif
-#if IS_ENABLED(CONFIG_MACH_MT6873)
-		if (thread->idx >= 19 && thread->idx <= 22)
-			cmdq_init_check(cmdq);
-#endif
-
 		writel(CMDQ_INST_CYCLE_TIMEOUT,
 			thread->base + CMDQ_THR_INST_CYCLES);
 		writel(thread->priority & CMDQ_THR_PRIORITY,
@@ -962,29 +922,15 @@ static irqreturn_t cmdq_irq_handler(int irq, void *dev)
 {
 	struct cmdq *cmdq = dev;
 	unsigned long irq_status, flags = 0L;
-	int bit, i;
+	int bit;
 	bool secure_irq = false;
 	struct cmdq_task *task, *tmp;
 	struct list_head removes;
 
-	if (atomic_read(&cmdq->usage) == -1)
-		cmdq_util_aee("CMDQ", "%s irq:%d cmdq:%pa suspend:%d usage:%d",
-			__func__, irq, &cmdq->base_pa, cmdq->suspended,
-			atomic_read(&cmdq->usage));
-
 	if (atomic_read(&cmdq->usage) <= 0) {
-		if (cmdq->suspended)
-			return IRQ_HANDLED;
-
-		cmdq_clk_enable(cmdq);
-		cmdq_thread_dump_all(cmdq);
-
-		for (i = 0; i < ARRAY_SIZE(cmdq->thread); i++)
-			if (cmdq->thread[i].chan) {
-				cmdq_dump_core(cmdq->thread[i].chan);
-				break;
-			}
-		cmdq_clk_disable(cmdq);
+		cmdq_msg("%s cmdq:%#lx suspend:%s",
+			__func__, (unsigned long)cmdq->base_pa,
+			cmdq->suspended ? "true" : "false");
 		return IRQ_HANDLED;
 	}
 
@@ -1245,7 +1191,7 @@ void cmdq_pkt_poll_gpr_check(
 		return;
 	}
 
-	cmdq_log("pkt:%p gpr_idx:%u start:%d thread:%d:%d",
+	cmdq_msg("pkt:%p gpr_idx:%u start:%d thread:%d:%d",
 		pkt, gpr_idx, start, cmdq->gpr[gpr_idx], thread->idx);
 	cmdq->gpr[gpr_idx] = thread->idx;
 
@@ -1877,11 +1823,6 @@ static int cmdq_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!res) {
-		cmdq_err("failed to get resource");
-		return -EINVAL;
-	}
-
 	cmdq->base = devm_ioremap_resource(dev, res);
 	cmdq->base_pa = res->start;
 	if (IS_ERR(cmdq->base)) {

@@ -61,7 +61,6 @@
 #define SMI_LARB_VC_PRI_MODE (0x020)
 #define SMI_LARB_NON_SEC_CON(port) (0x380 + 4 * (port))
 #define GET_M4U_PORT 0x1F
-#define MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH 128
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 static struct dentry *mtkfb_dbgfs;
@@ -82,7 +81,6 @@ unsigned int mipi_volt;
 unsigned int disp_met_en;
 
 int gCaptureOVLEn;
-int gCaptureWDMAEn;
 int gCapturePriLayerDownX = 20;
 int gCapturePriLayerDownY = 20;
 u64 vfp_backup;
@@ -90,8 +88,6 @@ u64 vfp_backup;
 
 static atomic_t lfr_dbg;
 static atomic_t lfr_params;
-
-static struct completion cwb_cmp;
 
 struct logger_buffer {
 	char **buffer_ptr;
@@ -324,14 +320,8 @@ int mtk_dprec_logger_get_buf(enum DPREC_LOGGER_PR_TYPE type, char *stringbuf,
 {
 	int n = 0;
 	int i;
+	int c = dprec_logger_buffer[type].id;
 	char **buf_arr;
-	int c;
-
-	if (type < 0) {
-		DDPPR_ERR("%s invalid DPREC_LOGGER_PR_TYPE\n", __func__);
-		return -1;
-	}
-	c = dprec_logger_buffer[type].id;
 
 	if (type >= DPREC_LOGGER_PR_NUM || type < 0 || len < 0)
 		return 0;
@@ -840,7 +830,7 @@ int mtk_ddic_dsi_send_cmd(struct mtk_ddic_dsi_msg *cmd_msg,
 		cmdq_pkt_set_event(cmdq_handle,
 			mtk_crtc->gce_obj.event[EVENT_CABC_EOF]);
 		cmdq_pkt_set_event(cmdq_handle,
-			mtk_crtc->gce_obj.event[EVENT_STREAM_BLOCK]);
+				mtk_crtc->gce_obj.event[EVENT_STREAM_BLOCK]);
 	}
 
 	if (blocking) {
@@ -1091,12 +1081,15 @@ done:
 
 void ddic_dsi_read_cmd_test(unsigned int case_num)
 {
-	unsigned int j = 0;
+	unsigned int i = 0, j = 0;
 	unsigned int ret_dlen = 0;
 	int ret;
 	struct mtk_ddic_dsi_msg *cmd_msg =
 		vmalloc(sizeof(struct mtk_ddic_dsi_msg));
 	u8 tx[10] = {0};
+	u8 tx_1[10] = {0};
+	u8 tx_2[10] = {0};
+	u8 tx_3[10] = {0};
 
 	DDPMSG("%s start case_num:%d\n", __func__, case_num);
 
@@ -1118,10 +1111,31 @@ void ddic_dsi_read_cmd_test(unsigned int case_num)
 		cmd_msg->tx_len[0] = 1;
 
 		cmd_msg->rx_cmd_num = 1;
-		cmd_msg->rx_buf[0] = vmalloc(4 * sizeof(unsigned char));
+		cmd_msg->rx_buf[0] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
 		memset(cmd_msg->rx_buf[0], 0, 4);
 		cmd_msg->rx_len[0] = 1;
 
+		break;
+	}
+	case 1001:
+	{
+		/* Read 0x0A = 0x1C */
+		cmd_msg->channel = 0;
+		cmd_msg->tx_cmd_num = 20;
+		cmd_msg->rx_cmd_num = 20;
+		tx[0] = 0x0A;
+
+		for (i = 0; i < 20; i++) {
+			cmd_msg->type[i] = 0x06;
+			cmd_msg->tx_buf[i] = tx;
+			cmd_msg->tx_len[i] = 1;
+
+			cmd_msg->rx_buf[i] = kmalloc(4 * sizeof(unsigned char),
+				GFP_ATOMIC);
+			memset(cmd_msg->rx_buf[i], 0, 4);
+			cmd_msg->rx_len[i] = 1;
+		}
 		break;
 	}
 	case 2:
@@ -1135,10 +1149,31 @@ void ddic_dsi_read_cmd_test(unsigned int case_num)
 		cmd_msg->tx_len[0] = 1;
 
 		cmd_msg->rx_cmd_num = 1;
-		cmd_msg->rx_buf[0] = vmalloc(8 * sizeof(unsigned char));
+		cmd_msg->rx_buf[0] = kmalloc(8 * sizeof(unsigned char),
+			GFP_ATOMIC);
 		memset(cmd_msg->rx_buf[0], 0, 4);
 		cmd_msg->rx_len[0] = 4;
 
+		break;
+	}
+	case 1002:
+	{
+		/* Read 0xe8 = 0x00,0x01,0x23,0x00 */
+		cmd_msg->channel = 0;
+		cmd_msg->tx_cmd_num = 20;
+		cmd_msg->rx_cmd_num = 20;
+		tx[0] = 0xe8;
+
+		for (i = 0; i < 20; i++) {
+			cmd_msg->type[i] = 0x06;
+			cmd_msg->tx_buf[i] = tx;
+			cmd_msg->tx_len[i] = 1;
+
+			cmd_msg->rx_buf[i] = kmalloc(8 * sizeof(unsigned char),
+				GFP_ATOMIC);
+			memset(cmd_msg->rx_buf[i], 0, 4);
+			cmd_msg->rx_len[i] = 4;
+		}
 		break;
 	}
 	case 3:
@@ -1155,7 +1190,8 @@ void ddic_dsi_read_cmd_test(unsigned int case_num)
 		cmd_msg->tx_len[0] = 1;
 
 		cmd_msg->rx_cmd_num = 1;
-		cmd_msg->rx_buf[0] = vmalloc(20 * sizeof(unsigned char));
+		cmd_msg->rx_buf[0] = kmalloc(20 * sizeof(unsigned char),
+			GFP_ATOMIC);
 		memset(cmd_msg->rx_buf[0], 0, 20);
 		cmd_msg->rx_len[0] = 10;
 
@@ -1172,10 +1208,130 @@ void ddic_dsi_read_cmd_test(unsigned int case_num)
 		cmd_msg->tx_len[0] = 1;
 
 		cmd_msg->rx_cmd_num = 1;
-		cmd_msg->rx_buf[0] = vmalloc(4 * sizeof(unsigned char));
+		cmd_msg->rx_buf[0] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
 		memset(cmd_msg->rx_buf[0], 0, 4);
 		cmd_msg->rx_len[0] = 1;
 
+		break;
+	}
+	case 5:
+	{
+		/* multiple cmd Read*/
+		/*0x0A = 0x1C;*/
+		cmd_msg->channel = 0;
+		cmd_msg->tx_cmd_num = 2;
+		cmd_msg->rx_cmd_num = 2;
+
+		cmd_msg->type[0] = 0x06;
+		tx[0] = 0x0A;
+		cmd_msg->tx_buf[0] = tx;
+		cmd_msg->tx_len[0] = 1;
+
+		cmd_msg->rx_buf[0] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[0], 0, 4);
+		cmd_msg->rx_len[0] = 1;
+
+		/*0x0e = 0x80 */
+		cmd_msg->type[1] = 0x06;
+		tx_1[0] = 0x0e;
+		cmd_msg->tx_buf[1] = tx_1;
+		cmd_msg->tx_len[1] = 1;
+
+		cmd_msg->rx_buf[1] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[1], 0, 4);
+		cmd_msg->rx_len[1] = 1;
+		break;
+	}
+	case 6:
+	{
+		/* multiple cmd Read*/
+		/*0x0A = 0x1C; */
+		cmd_msg->channel = 0;
+		cmd_msg->tx_cmd_num = 3;
+		cmd_msg->rx_cmd_num = 3;
+
+		cmd_msg->type[0] = 0x06;
+		tx[0] = 0x0A;
+		cmd_msg->tx_buf[0] = tx;
+		cmd_msg->tx_len[0] = 1;
+		cmd_msg->rx_buf[0] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[0], 0, 4);
+		cmd_msg->rx_len[0] = 1;
+
+		/*0x0e = 0x80 */
+		cmd_msg->type[1] = 0x06;
+		tx_1[0] = 0x0e;
+		cmd_msg->tx_buf[1] = tx_1;
+		cmd_msg->tx_len[1] = 1;
+		cmd_msg->rx_buf[1] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[1], 0, 4);
+		cmd_msg->rx_len[1] = 1;
+
+		/* Read 0xe8 = 0x00,0x01,0x23,0x00 */
+		cmd_msg->type[2] = 0x06;
+		tx_2[0] = 0xe8;
+		cmd_msg->tx_buf[2] = tx_2;
+		cmd_msg->tx_len[2] = 1;
+		cmd_msg->rx_buf[2] = kmalloc(8 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[2], 0, 4);
+		cmd_msg->rx_len[2] = 4;
+		break;
+	}
+	case 7:
+	{
+		/* multiple cmd Read*/
+		/*0x0A = 0x1C; */
+		cmd_msg->channel = 0;
+		cmd_msg->tx_cmd_num = 4;
+		cmd_msg->rx_cmd_num = 4;
+
+		cmd_msg->type[0] = 0x06;
+		tx[0] = 0x0A;
+		cmd_msg->tx_buf[0] = tx;
+		cmd_msg->tx_len[0] = 1;
+		cmd_msg->rx_buf[0] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[0], 0, 4);
+		cmd_msg->rx_len[0] = 1;
+
+		/*0x0e = 0x80 */
+		cmd_msg->type[1] = 0x06;
+		tx_1[0] = 0x0e;
+		cmd_msg->tx_buf[1] = tx_1;
+		cmd_msg->tx_len[1] = 1;
+		cmd_msg->rx_buf[1] = kmalloc(4 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[1], 0, 4);
+		cmd_msg->rx_len[1] = 1;
+
+		/* Read 0xe8 = 0x00,0x01,0x23,0x00 */
+		cmd_msg->type[2] = 0x06;
+		tx_2[0] = 0xe8;
+		cmd_msg->tx_buf[2] = tx_2;
+		cmd_msg->tx_len[2] = 1;
+		cmd_msg->rx_buf[2] = kmalloc(8 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[2], 0, 4);
+		cmd_msg->rx_len[2] = 4;
+
+		/*
+		 * Read 0xb6 =
+		 *	0x30,0x6b,0x00,0x06,0x03,0x0A,0x13,0x1A,0x6C,0x18
+		 */
+		cmd_msg->type[3] = 0x06;
+		tx_3[0] = 0xb6;
+		cmd_msg->tx_buf[3] = tx_3;
+		cmd_msg->tx_len[3] = 1;
+		cmd_msg->rx_buf[3] = kmalloc(20 * sizeof(unsigned char),
+			GFP_ATOMIC);
+		memset(cmd_msg->rx_buf[3], 0, 20);
+		cmd_msg->rx_len[3] = 10;
 		break;
 	}
 	default:
@@ -1189,17 +1345,20 @@ void ddic_dsi_read_cmd_test(unsigned int case_num)
 		goto  done;
 	}
 
-	ret_dlen = cmd_msg->rx_len[0];
-	DDPMSG("read lcm addr:0x%x--dlen:%d\n",
-		*(char *)(cmd_msg->tx_buf[0]), ret_dlen);
-	for (j = 0; j < ret_dlen; j++) {
-		DDPMSG("read lcm addr:0x%x--byte:%d,val:0x%x\n",
-			*(char *)(cmd_msg->tx_buf[0]), j,
-			*(char *)(cmd_msg->rx_buf[0] + j));
+	for (i = 0; i < cmd_msg->rx_cmd_num; i++) {
+		ret_dlen = cmd_msg->rx_len[i];
+		DDPMSG("read lcm addr:0x%x--dlen:%d--cmd_idx:%d\n",
+			*(char *)(cmd_msg->tx_buf[i]), ret_dlen, i);
+		for (j = 0; j < ret_dlen; j++) {
+			DDPMSG("read lcm addr:0x%x--byte:%d,val:0x%x\n",
+				*(char *)(cmd_msg->tx_buf[i]), j,
+				*(char *)(cmd_msg->rx_buf[i] + j));
+		}
 	}
 
 done:
-	vfree(cmd_msg->rx_buf[0]);
+	for (i = 0; i < cmd_msg->rx_cmd_num; i++)
+		kfree(cmd_msg->rx_buf[i]);
 	vfree(cmd_msg);
 
 	DDPMSG("%s end -\n", __func__);
@@ -1217,305 +1376,278 @@ int mtk_dprec_mmp_dump_ovl_layer(struct mtk_plane_state *plane_state)
 	return -1;
 }
 
-int mtk_dprec_mmp_dump_cwb_buffer(struct drm_crtc *crtc,
-		void *buffer, unsigned int buf_idx)
-{
-	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+static struct mtk_wdma_capture_info *wdma_capt_info_l;
+static struct capture_info *user_buffer_l;
+#ifdef OPLUS_FEATURE_MIDAS
+		DEFINE_MUTEX(g_dispcap_buffer_lock);
+		typedef void (*fp_buffer_complete_notify)(void *user_buffer);
+		fp_buffer_complete_notify buffer_complete_notify = 0;
+#endif
 
-	if (gCaptureWDMAEn && mtk_crtc->cwb_info) {
-		mtk_drm_mmp_cwb_buffer(crtc, mtk_crtc->cwb_info,
-					buffer, buf_idx);
-		return 0;
-	}
-	DDPDBG("%s, gCaptureWDMAEn is %d\n",
-		__func__, gCaptureWDMAEn);
-	return -1;
-}
-
-static void user_copy_done_function(void *buffer,
-	enum CWB_BUFFER_TYPE type)
-{
-	DDPMSG("[capture] I get buffer:0x%x, type:%d\n",
-			buffer, type);
-	complete(&cwb_cmp);
-}
-
-static const struct mtk_cwb_funcs user_cwb_funcs = {
-	.copy_done = user_copy_done_function,
-};
-
-static void mtk_drm_cwb_info_init(struct drm_crtc *crtc)
-{
-	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
-	int crtc_idx = drm_crtc_index(&mtk_crtc->base);
-	struct mtk_drm_private *priv = mtk_crtc->base.dev->dev_private;
-	struct mtk_cwb_info *cwb_info = mtk_crtc->cwb_info;
-	struct drm_mode_fb_cmd2 mode = {0};
-	struct mtk_drm_gem_obj *mtk_gem;
-
-	if (!cwb_info) {
-		DDPPR_ERR("%s: cwb_info not found\n", __func__);
-		return;
-	} else if (!cwb_info->enable)
-		return;
-
-	cwb_info->count = 0;
-
-	cwb_info->src_roi.width =
-				crtc->state->adjusted_mode.hdisplay;
-	cwb_info->src_roi.height =
-				crtc->state->adjusted_mode.vdisplay;
-
-	cwb_info->scn = WDMA_WRITE_BACK;
-	if (crtc_idx == 0)
-		cwb_info->comp = priv->ddp_comp[DDP_COMPONENT_WDMA0];
-
-	if (!cwb_info->buffer[0].dst_roi.width ||
-		!cwb_info->buffer[0].dst_roi.height) {
-		mtk_rect_make(&cwb_info->buffer[0].dst_roi, 0, 0,
-			MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH,
-			MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH);
-		mtk_rect_make(&cwb_info->buffer[1].dst_roi, 0, 0,
-			MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH,
-			MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH);
-	}
-
-	/*alloc && config two fb*/
-	if (!cwb_info->buffer[0].fb) {
-		mode.width = MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH;
-		mode.height = cwb_info->src_roi.height;
-		mode.pixel_format = DRM_FORMAT_RGB888;
-		mode.pitches[0] = mode.width * 3;
-
-		mtk_gem = mtk_drm_gem_create(
-			crtc->dev, mode.width * mode.height * 3, true);
-		cwb_info->buffer[0].addr_mva = (u32)mtk_gem->dma_addr;
-		cwb_info->buffer[0].addr_va = (u64)mtk_gem->kvaddr;
-
-		cwb_info->buffer[0].fb  =
-			mtk_drm_framebuffer_create(
-			crtc->dev, &mode, &mtk_gem->base);
-		DDPMSG("[capture] b[0].addr_mva:0x%x, addr_va:0x%llx\n",
-				cwb_info->buffer[0].addr_mva,
-				cwb_info->buffer[0].addr_va);
-
-		mtk_gem = mtk_drm_gem_create(
-			crtc->dev, mode.width * mode.height * 3, true);
-		cwb_info->buffer[1].addr_mva = (u32)mtk_gem->dma_addr;
-		cwb_info->buffer[1].addr_va = (u64)mtk_gem->kvaddr;
-
-		cwb_info->buffer[1].fb  =
-			mtk_drm_framebuffer_create(
-			crtc->dev, &mode, &mtk_gem->base);
-		DDPMSG("[capture] b[1].addr_mva:0x%x, addr_va:0x%llx\n",
-				cwb_info->buffer[1].addr_mva,
-				cwb_info->buffer[1].addr_va);
-	}
-
-	DDPMSG("[capture] enable capture, roi:(%d,%d,%d,%d)\n",
-		cwb_info->buffer[0].dst_roi.x,
-		cwb_info->buffer[0].dst_roi.y,
-		cwb_info->buffer[0].dst_roi.width,
-		cwb_info->buffer[0].dst_roi.height);
-}
-
-bool mtk_drm_cwb_enable(int en,
-			const struct mtk_cwb_funcs *funcs,
-			enum CWB_BUFFER_TYPE type)
+bool setCaptureRect(int left, int top, int width, int height)
 {
 	struct drm_crtc *crtc;
 	struct mtk_drm_crtc *mtk_crtc;
-	struct mtk_cwb_info *cwb_info;
-
-	crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
-				typeof(*crtc), head);
-	if (!crtc) {
-		DDPPR_ERR("find crtc fail\n");
-		return false;
-	}
-	mtk_crtc = to_mtk_crtc(crtc);
-
-	if (!mtk_crtc->cwb_info) {
-		mtk_crtc->cwb_info = kzalloc(sizeof(struct mtk_cwb_info),
-			GFP_KERNEL);
-		DDPMSG("%s: need allocate memory\n", __func__);
-	}
-	if (!mtk_crtc->cwb_info) {
-		DDPPR_ERR("%s: allocate memory fail\n", __func__);
-		return false;
-	}
-
-	cwb_info = mtk_crtc->cwb_info;
-	if (cwb_info->enable == en) {
-		DDPMSG("[capture] en:%d already effective\n", en);
-		return true;
-	}
-	cwb_info->funcs = funcs;
-	cwb_info->type = type;
-
-	DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-	cwb_info->enable = en;
-	if (en)
-		mtk_drm_cwb_info_init(crtc);
-	else
-		DDPMSG("[capture] disable capture");
-	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-
-	return true;
-}
-
-bool mtk_drm_set_cwb_roi(struct mtk_rect rect)
-{
-	struct drm_crtc *crtc;
-	struct mtk_drm_crtc *mtk_crtc;
-	struct mtk_cwb_info *cwb_info;
-	struct mtk_drm_gem_obj *mtk_gem;
-	struct drm_mode_fb_cmd2 mode = {0};
-
-	crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
-				typeof(*crtc), head);
-	if (!crtc) {
-		DDPPR_ERR("find crtc fail\n");
-		return false;
-	}
-
-	mtk_crtc = to_mtk_crtc(crtc);
-	DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-	if (!mtk_crtc->cwb_info) {
-		mtk_crtc->cwb_info = kzalloc(sizeof(struct mtk_cwb_info),
-			GFP_KERNEL);
-			DDPMSG("%s: need allocate memory\n", __func__);
-	}
-	if (!mtk_crtc->cwb_info) {
-		DDPPR_ERR("%s: allocate memory fail\n", __func__);
-		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-		return false;
-	}
-	cwb_info = mtk_crtc->cwb_info;
-	cwb_info->src_roi.width =
-				crtc->state->adjusted_mode.hdisplay;
-	cwb_info->src_roi.height =
-				crtc->state->adjusted_mode.vdisplay;
-
-	if (rect.x >= cwb_info->src_roi.width ||
-		rect.y >= cwb_info->src_roi.height ||
-		!rect.width || !rect.height) {
-		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-		return false;
-	}
-
-	if (rect.width > MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH)
-		rect.width = MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH;
-
-	if (rect.x + rect.width > cwb_info->src_roi.width)
-		rect.width = cwb_info->src_roi.width - rect.x;
-	if (rect.y + rect.height > cwb_info->src_roi.height)
-		rect.height = cwb_info->src_roi.height - rect.y;
-
-	if (!cwb_info->buffer[0].fb) {
-		mode.width = MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH;
-		mode.height = cwb_info->src_roi.height;
-		mode.pixel_format = DRM_FORMAT_RGB888;
-		mode.pitches[0] = mode.width * 3;
-
-		mtk_gem = mtk_drm_gem_create(
-			crtc->dev, mode.width * mode.height * 3, true);
-		cwb_info->buffer[0].addr_mva = (u32)mtk_gem->dma_addr;
-		cwb_info->buffer[0].addr_va = (u64)mtk_gem->kvaddr;
-
-		cwb_info->buffer[0].fb  =
-			mtk_drm_framebuffer_create(
-			crtc->dev, &mode, &mtk_gem->base);
-		DDPMSG("[capture] b[0].addr_mva:0x%x, addr_va:0x%llx\n",
-				cwb_info->buffer[0].addr_mva,
-				cwb_info->buffer[0].addr_va);
-
-		mtk_gem = mtk_drm_gem_create(
-			crtc->dev, mode.width * mode.height * 3, true);
-		cwb_info->buffer[1].addr_mva = (u32)mtk_gem->dma_addr;
-		cwb_info->buffer[1].addr_va = (u64)mtk_gem->kvaddr;
-
-		cwb_info->buffer[1].fb  =
-			mtk_drm_framebuffer_create(
-			crtc->dev, &mode, &mtk_gem->base);
-		DDPMSG("[capture] b[1].addr_mva:0x%x, addr_va:0x%llx\n",
-				cwb_info->buffer[1].addr_mva,
-				cwb_info->buffer[1].addr_va);
-	}
-
-	/* update roi */
-	mtk_rect_make(&cwb_info->buffer[0].dst_roi,
-		rect.x, rect.y, rect.width, rect.height);
-	mtk_rect_make(&cwb_info->buffer[1].dst_roi,
-		rect.x, rect.y, rect.width, rect.height);
-
-	DDPMSG("[capture] change roi:(%d,%d,%d,%d)\n",
-		cwb_info->buffer[0].dst_roi.x,
-		cwb_info->buffer[0].dst_roi.y,
-		cwb_info->buffer[0].dst_roi.width,
-		cwb_info->buffer[0].dst_roi.height);
-
-	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-	return true;
-
-}
-
-void mtk_drm_cwb_backup_copy_size(void)
-{
-	struct drm_crtc *crtc;
-	struct mtk_drm_crtc *mtk_crtc;
-	struct mtk_cwb_info *cwb_info;
-	struct mtk_ddp_comp *comp;
-
-	crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
-				typeof(*crtc), head);
-	if (!crtc) {
-		DDPPR_ERR("find crtc fail\n");
-		return;
-	}
-	mtk_crtc = to_mtk_crtc(crtc);
-	cwb_info = mtk_crtc->cwb_info;
-
-	if (!cwb_info)
-		return;
-
-	if (!cwb_info->comp) {
-		DDPPR_ERR("[capture] cwb enable, but has not comp\n");
-		return;
-	}
-
-	comp = cwb_info->comp;
-	mtk_ddp_comp_io_cmd(comp, NULL, WDMA_READ_DST_SIZE, cwb_info);
-}
-
-bool mtk_drm_set_cwb_user_buf(void *user_buffer, enum CWB_BUFFER_TYPE type)
-{
-	struct drm_crtc *crtc;
-	struct mtk_drm_crtc *mtk_crtc;
-	struct mtk_cwb_info *cwb_info;
 
 	/* this debug cmd only for crtc0 */
 	crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
 				typeof(*crtc), head);
 	if (!crtc) {
-		DDPPR_ERR("find crtc fail\n");
+		DDPMSG("[ERR]find crtc fail\n");
 		return false;
 	}
 	mtk_crtc = to_mtk_crtc(crtc);
-	cwb_info = mtk_crtc->cwb_info;
 
-	if (!cwb_info)
+	if (wdma_capt_info_l == 0) {
+		wdma_capt_info_l = kzalloc(sizeof(struct mtk_wdma_capture_info),
+			GFP_KERNEL);
+			DDPMSG("%s: need allocate memory\n", __func__);
+		}
+	if (wdma_capt_info_l == 0) {
+		DDPMSG("[ERR]%s: allocate memory fail\n", __func__);
 		return false;
+	}
+	if (width*height == 0) {
+		left = 0;
+		top = 0;
+		width = 128;
+		height = 128;
+	}
 
-	DDP_MUTEX_LOCK(&mtk_crtc->cwb_lock, __func__, __LINE__);
-	cwb_info->type = type;
-	cwb_info->user_buffer = user_buffer;
-	DDP_MUTEX_UNLOCK(&mtk_crtc->cwb_lock, __func__, __LINE__);
-	DDPMSG("[capture] User set buffer:0x%x, type:%d\n",
-			user_buffer, type);
+	DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
+	mtk_rect_make(&wdma_capt_info_l->buffer[0].dst_roi,
+			left, top, width, height);
+	mtk_rect_make(&wdma_capt_info_l->buffer[1].dst_roi,
+			left, top, width, height);
+	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+
+	return true;
+
+}
+#ifdef OPLUS_FEATURE_MIDAS
+	EXPORT_SYMBOL(setCaptureRect);
+#endif
+
+bool setCaptureInterval(int interval)
+{
+	struct drm_crtc *crtc;
+	struct mtk_drm_crtc *mtk_crtc;
+
+	/* this debug cmd only for crtc0 */
+	crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
+				typeof(*crtc), head);
+	if (!crtc) {
+		DDPMSG("[ERR]find crtc fail\n");
+		return false;
+	}
+	mtk_crtc = to_mtk_crtc(crtc);
+
+	if (wdma_capt_info_l == 0) {
+		wdma_capt_info_l = kzalloc(sizeof(struct mtk_wdma_capture_info),
+			GFP_KERNEL);
+			DDPMSG("%s: need allocate memory\n", __func__);
+		}
+	if (wdma_capt_info_l == 0) {
+		DDPMSG("[ERR]%s: allocate memory fail\n", __func__);
+		return false;
+	}
+
+	DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
+	wdma_capt_info_l->capture_interval = interval;
+	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+	return true;
+}
+#ifdef OPLUS_FEATURE_MIDAS
+	EXPORT_SYMBOL(setCaptureInterval);
+#endif
+
+bool setUserBuffer(u8 *user_buffer)
+{
+	if (wdma_capt_info_l) {
+#ifdef OPLUS_FEATURE_MIDAS
+		mutex_lock(&g_dispcap_buffer_lock);
+#endif
+		wdma_capt_info_l->user_buffer = user_buffer;
+#ifdef OPLUS_FEATURE_MIDAS
+		mutex_unlock(&g_dispcap_buffer_lock);
+
+		drm_trigger_repaint(DRM_REPAINT_FOR_IDLE, drm_dev);
+#endif
+		DDPMSG("[capture] user set buffer:0x%x", user_buffer);
+	}
+	return true;
+}
+#ifdef OPLUS_FEATURE_MIDAS
+	EXPORT_SYMBOL(setUserBuffer);
+#endif
+
+#ifdef OPLUS_FEATURE_MIDAS
+bool setBufferCompleteNotifyCallback(fp_buffer_complete_notify cb) {
+		mutex_lock(&g_dispcap_buffer_lock);
+		buffer_complete_notify = cb;
+		mutex_unlock(&g_dispcap_buffer_lock);
+		return true;
+}
+EXPORT_SYMBOL(setBufferCompleteNotifyCallback);
+#endif
+
+void mtk_crtc_set_wdma_capt_inf(struct drm_crtc *crtc)
+{
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	unsigned int size = sizeof(struct mtk_wdma_capture_info);
+	unsigned int addr = 0;
+	struct drm_mode_fb_cmd2 mode = {0};
+	struct mtk_drm_gem_obj *mtk_gem1;
+	struct mtk_drm_gem_obj *mtk_gem0;
+
+	if (!wdma_capt_info_l->enable && wdma_capt_info_l != 0) {
+		kfree(wdma_capt_info_l);
+		wdma_capt_info_l = 0;
+	}
+
+	if (wdma_capt_info_l == 0) {
+		wdma_capt_info_l = kzalloc(size, GFP_KERNEL);
+		DDPMSG("%s: need allocate memory\n", __func__);
+	}
+
+	if (wdma_capt_info_l == 0) {
+		DDPMSG("[ERR]%s: allocate memory fail\n", __func__);
+		return;
+	}
+
+	wdma_capt_info_l->src_roi.width =
+					crtc->state->adjusted_mode.hdisplay;
+	wdma_capt_info_l->src_roi.height =
+					crtc->state->adjusted_mode.vdisplay;
+	if (!wdma_capt_info_l->buffer[0].dst_roi.width) {
+		mtk_rect_make(&wdma_capt_info_l->buffer[0].dst_roi,
+				0, 0, 128, 128);
+		mtk_rect_make(&wdma_capt_info_l->buffer[1].dst_roi,
+				0, 0, 128, 128);
+	}
+	wdma_capt_info_l->scn = WDMA_READ_BACK;
+	if (wdma_capt_info_l->capture_interval == 0)
+		wdma_capt_info_l->capture_interval = 1;
+	wdma_capt_info_l->capture_count = 0;
+	wdma_capt_info_l->config_count = 0;
+	/*alloc && config two fb*/
+	if (wdma_capt_info_l->enable) {
+		struct drm_framebuffer *fb;
+
+		mode.width = wdma_capt_info_l->buffer[0].dst_roi.width;
+		mode.height = wdma_capt_info_l->buffer[0].dst_roi.height;
+		mode.pixel_format = DRM_FORMAT_RGB888;
+		mode.pitches[0] = mode.width * 3;
+		if (!wdma_capt_info_l->buffer[0].addr_virt) {
+			mtk_gem0 = mtk_drm_gem_create(
+				crtc->dev, mode.width * mode.height * 3, true);
+			wdma_capt_info_l->buffer[0].addr_virt =
+					(unsigned long long)mtk_gem0->kvaddr;
+			wdma_capt_info_l->buffer[0].fb  =
+				mtk_drm_framebuffer_create(
+				crtc->dev, &mode, &mtk_gem0->base);
+			fb = wdma_capt_info_l->buffer[0].fb;
+			addr = (u32)mtk_fb_get_dma(fb);
+			wdma_capt_info_l->buffer[0].addr_phy = addr;
+		}
+		if (!wdma_capt_info_l->buffer[1].addr_virt) {
+			mtk_gem1 = mtk_drm_gem_create(
+				crtc->dev, mode.width * mode.height * 3, true);
+			wdma_capt_info_l->buffer[1].addr_virt =
+					(unsigned long long)mtk_gem1->kvaddr;
+			wdma_capt_info_l->buffer[1].fb  =
+				mtk_drm_framebuffer_create(
+				crtc->dev, &mode, &mtk_gem1->base);
+			fb = wdma_capt_info_l->buffer[1].fb;
+			addr = (u32)mtk_fb_get_dma(fb);
+			wdma_capt_info_l->buffer[1].addr_phy = addr;
+		}
+	}
+	mtk_crtc->wdma_capture_info = wdma_capt_info_l;
+	DDPMSG("[capture] enable capture, roi:(%d,%d,%d,%d), interval:%d\n",
+		wdma_capt_info_l->buffer[0].dst_roi.x,
+		wdma_capt_info_l->buffer[0].dst_roi.y,
+		wdma_capt_info_l->buffer[0].dst_roi.width,
+		wdma_capt_info_l->buffer[0].dst_roi.height,
+		wdma_capt_info_l->capture_interval);
+}
+
+bool createUserBuffer(void)
+{
+	if (user_buffer_l == 0) {
+		user_buffer_l = kzalloc(sizeof(struct capture_info),
+			GFP_KERNEL);
+		DDPMSG("%s: need allocate memory\n", __func__);
+	}
+
+	if (user_buffer_l == 0) {
+		DDPMSG("[ERR]%s: allocate memory fail\n", __func__);
+		return false;
+	}
+
+	user_buffer_l->data.image = kzalloc(sizeof(u8)*128*128*3, GFP_KERNEL);
+
+	if (user_buffer_l->data.image == 0) {
+		DDPMSG("[ERR]%s: allocate memory fail\n", __func__);
+		return false;
+	}
 
 	return true;
 }
+
+bool enableCapture(int en)
+{
+	struct drm_crtc *crtc;
+	struct mtk_drm_crtc *mtk_crtc;
+	struct mtk_drm_private *private;
+
+	/* this debug cmd only for crtc0 */
+	crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
+				typeof(*crtc), head);
+	if (!crtc) {
+		DDPMSG("[ERR]find crtc fail\n");
+		return false;
+	}
+	mtk_crtc = to_mtk_crtc(crtc);
+
+	if (wdma_capt_info_l == 0) {
+		wdma_capt_info_l = kzalloc(sizeof(struct mtk_wdma_capture_info),
+			GFP_KERNEL);
+		DDPMSG("%s: need allocate memory\n", __func__);
+	}
+	if (wdma_capt_info_l == 0) {
+		DDPMSG("[ERR]%s: allocate memory fail\n", __func__);
+		return false;
+	}
+	if (user_buffer_l == 0) {
+#ifdef OPLUS_FEATURE_MIDAS
+		mtk_crtc->user_buffer = 0;
+#else
+		createUserBuffer();
+		mtk_crtc->user_buffer = user_buffer_l;
+#endif
+	}
+	private = crtc->dev->dev_private;
+
+	DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
+	if (!mtk_crtc->enabled) {
+		DDPMSG("crtc%d disable skip %s\n",
+			drm_crtc_index(&mtk_crtc->base), __func__);
+		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+		return false;
+	}
+
+	wdma_capt_info_l->enable = en;
+	if (en)
+		mtk_crtc_set_wdma_capt_inf(crtc);
+	else
+		DDPMSG("[capture] disable capture");
+	DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+	return true;
+}
+#ifdef OPLUS_FEATURE_MIDAS
+	EXPORT_SYMBOL(enableCapture);
+#endif
 
 static void process_dbg_opt(const char *opt)
 {
@@ -1906,17 +2038,6 @@ static void process_dbg_opt(const char *opt)
 		if (downSampleY)
 			gCapturePriLayerDownY = downSampleY;
 		gCaptureOVLEn = dump_en;
-	} else if (strncmp(opt, "dump_user_buffer:", 17) == 0) {
-		int ret;
-		unsigned int dump_en;
-
-		DDPMSG("get dump\n");
-		ret = sscanf(opt, "dump_user_buffer:%d\n", &dump_en);
-		if (ret != 1) {
-			DDPMSG("error to parse cmd\n");
-			return;
-		}
-		gCaptureWDMAEn = dump_en;
 #ifdef CONFIG_MTK_HDMI_SUPPORT
 	} else if (strncmp(opt, "dptx:", 5) == 0) {
 		mtk_dp_debug(opt + 5);
@@ -1960,7 +2081,6 @@ static void process_dbg_opt(const char *opt)
 		lfr_con.lfr_mode     = mtk_dbg_get_lfr_mode_value();
 		lfr_con.lfr_type     = mtk_dbg_get_lfr_type_value();
 		lfr_con.lfr_enable   = mtk_dbg_get_lfr_enable_value();
-		lfr_con.lfr_vse_dis  = mtk_dbg_get_lfr_vse_dis_value();
 		lfr_con.lfr_skip_num = mtk_dbg_get_lfr_skip_num_value();
 
 		/* this debug cmd only for crtc0 */
@@ -1973,9 +2093,7 @@ static void process_dbg_opt(const char *opt)
 
 		mtk_crtc = to_mtk_crtc(crtc);
 		comp = mtk_ddp_comp_request_output(mtk_crtc);
-		if (comp) {
-			comp->funcs->io_cmd(comp, NULL, DSI_LFR_SET, &lfr_con);
-		}
+		comp->funcs->io_cmd(comp, NULL, DSI_LFR_SET, &lfr_con);
 	} else if (strncmp(opt, "LFR_update", 10) == 0) {
 		struct mtk_ddp_comp *comp;
 		struct drm_crtc *crtc;
@@ -1991,9 +2109,7 @@ static void process_dbg_opt(const char *opt)
 
 		mtk_crtc = to_mtk_crtc(crtc);
 		comp = mtk_ddp_comp_request_output(mtk_crtc);
-		if (comp) {
-			comp->funcs->io_cmd(comp, NULL, DSI_LFR_UPDATE, NULL);
-		}
+		comp->funcs->io_cmd(comp, NULL, DSI_LFR_UPDATE, NULL);
 	} else if (strncmp(opt, "LFR_status_check", 16) == 0) {
 		//unsigned int data = mtk_dbg_get_LFR_value();
 		struct mtk_ddp_comp *comp;
@@ -2010,9 +2126,8 @@ static void process_dbg_opt(const char *opt)
 
 		mtk_crtc = to_mtk_crtc(crtc);
 		comp = mtk_ddp_comp_request_output(mtk_crtc);
-		if (comp) {
-			comp->funcs->io_cmd(comp, NULL, DSI_LFR_STATUS_CHECK, NULL);
-		}
+		comp->funcs->io_cmd(comp, NULL, DSI_LFR_STATUS_CHECK, NULL);
+
 	} else if (strncmp(opt, "tui:", 4) == 0) {
 		unsigned int en, ret;
 
@@ -2027,96 +2142,6 @@ static void process_dbg_opt(const char *opt)
 			display_enter_tui();
 		else
 			display_exit_tui();
-	} else if (strncmp(opt, "cwb_en:", 7) == 0) {
-		unsigned int ret, enable;
-
-		/* this debug cmd only for crtc0 */
-		ret = sscanf(opt, "cwb_en:%d\n", &enable);
-		if (ret != 1) {
-			DDPMSG("error to parse cmd\n");
-			return;
-		}
-
-		mtk_drm_cwb_enable(enable, &user_cwb_funcs, IMAGE_ONLY);
-	} else if (strncmp(opt, "cwb_roi:", 8) == 0) {
-		unsigned int ret, offset_x, offset_y, clip_w, clip_h;
-		struct mtk_rect rect;
-
-		/* this debug cmd only for crtc0 */
-		ret = sscanf(opt, "cwb_roi:%d,%d,%d,%d\n", &offset_x,
-			     &offset_y, &clip_w, &clip_h);
-		if (ret != 4) {
-			DDPMSG("error to parse cmd\n");
-			return;
-		}
-		rect.x = offset_x;
-		rect.y = offset_y;
-		rect.width = clip_w;
-		rect.height = clip_h;
-
-		mtk_drm_set_cwb_roi(rect);
-	} else if (strncmp(opt, "cwb:", 4) == 0) {
-		unsigned int ret, enable, offset_x, offset_y;
-		unsigned int clip_w, clip_h;
-		struct mtk_rect rect;
-
-		/* this debug cmd only for crtc0 */
-		ret = sscanf(opt, "cwb:%d,%d,%d,%d,%d\n", &enable,
-				&offset_x, &offset_y,
-				&clip_w, &clip_h);
-		if (ret != 5) {
-			DDPMSG("error to parse cmd\n");
-			return;
-		}
-		rect.x = offset_x;
-		rect.y = offset_y;
-		rect.width = clip_w;
-		rect.height = clip_h;
-
-		mtk_drm_set_cwb_roi(rect);
-		mtk_drm_cwb_enable(enable, &user_cwb_funcs, IMAGE_ONLY);
-	} else if (strncmp(opt, "cwb_get_buffer", 14) == 0) {
-		u8 *user_buffer;
-		struct drm_crtc *crtc;
-		struct mtk_drm_crtc *mtk_crtc;
-		struct mtk_cwb_info *cwb_info;
-		int width, height, size, ret;
-
-		/* this debug cmd only for crtc0 */
-		crtc = list_first_entry(&(drm_dev)->mode_config.crtc_list,
-					typeof(*crtc), head);
-		if (!crtc) {
-			DDPPR_ERR("find crtc fail\n");
-			return;
-		}
-
-		mtk_crtc = to_mtk_crtc(crtc);
-		cwb_info = mtk_crtc->cwb_info;
-		if (!cwb_info)
-			return;
-
-		DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-		width = MTK_CWB_NO_EFFECT_HRT_MAX_WIDTH;
-		height = cwb_info->src_roi.height;
-		size = sizeof(u8) * width * height * 3;
-		user_buffer = kzalloc(size, GFP_KERNEL);
-		mtk_drm_set_cwb_user_buf((void *)user_buffer, IMAGE_ONLY);
-		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-		DDPMSG("[capture] wait frame complete\n");
-		ret = wait_for_completion_interruptible_timeout(&cwb_cmp,
-			msecs_to_jiffies(3000));
-		if (ret > 0)
-			DDPMSG("[capture] frame complete done\n");
-		else {
-			DDPMSG("[capture] wait frame timeout(3s)\n");
-			DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
-			mtk_drm_set_cwb_user_buf((void *)NULL, IMAGE_ONLY);
-			DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
-		}
-		kfree(user_buffer);
-		reinit_completion(&cwb_cmp);
-	}  else if (strncmp(opt, "drm:", 4) == 0) {
-		disp_drm_debug(opt + 4);
 	}
 
 }
@@ -2438,7 +2463,6 @@ out:
 void disp_dbg_init(struct drm_device *dev)
 {
 	drm_dev = dev;
-	init_completion(&cwb_cmp);
 }
 
 void disp_dbg_deinit(void)
@@ -2478,3 +2502,13 @@ void get_disp_dbg_buffer(unsigned long *addr, unsigned long *size,
 		*start = 0;
 	}
 }
+
+//#ifdef VENDOR_EDIT
+/* liwei.a@PSW.MM.Display.LCD.Stability, 2019/10/21, add for oppo private api*/
+struct drm_device *get_drm_device(){
+    return drm_dev;
+}
+EXPORT_SYMBOL(get_drm_device);
+//#endif
+
+

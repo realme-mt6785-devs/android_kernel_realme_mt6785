@@ -716,6 +716,11 @@ static int ion_history_record(void *data)
 				struct ion_buffer
 				*buffer = rb_entry(n, struct ion_buffer, node);
 				heap_id = buffer->heap->id;
+				if (heap_id ==
+					ION_HEAP_TYPE_MULTIMEDIA_MAP_MVA ||
+					heap_id ==
+					ION_HEAP_TYPE_MULTIMEDIA_PA2MVA)
+					continue;
 				total_size += buffer->size;
 				if (!buffer->handle_count)
 					total_orphaned_size += buffer->size;
@@ -746,7 +751,13 @@ static int ion_history_record(void *data)
 
 		/* == client == */
 		if (g_client_history) {
+#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
+/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
+ * clients in ion_device */
+			down_read(&dev->client_lock);
+#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 			down_read(&dev->lock);
+#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 			start = sched_clock();
 			for (n = rb_first(&dev->clients); n; n = rb_next(n)) {
 				struct ion_client
@@ -796,7 +807,13 @@ static int ion_history_record(void *data)
 					     "kernel", size, client);
 				}
 			}
+#ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
+/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
+ * clients in ion_device */
+			up_read(&dev->client_lock);
+#else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 			up_read(&dev->lock);
+#endif /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		}
 	}
 

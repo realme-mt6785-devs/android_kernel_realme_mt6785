@@ -38,6 +38,11 @@
 #include "mtk_secure_api.h"
 #include "i2c-mtk.h"
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Riqin.Wei@Camera.Drv, 2020/10/24, add for control config i2c-2/i2c-4  pull-up*/
+#include<soc/oplus/system/oppo_project.h>
+#include <mt-plat/mtk_boot_common.h>
+#endif
 static struct i2c_dma_info g_dma_regs[I2C_MAX_CHANNEL];
 static struct mt_i2c *g_mt_i2c[I2C_MAX_CHANNEL];
 static struct mtk_i2c_compatible i2c_common_compat;
@@ -385,6 +390,13 @@ static inline void mt_i2c_wait_done(struct mt_i2c *i2c, u16 ch_off)
 
 static inline void mt_i2c_init_hw(struct mt_i2c *i2c)
 {
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Riqin.Wei@Camera.Drv, 2020/10/24, add for control config i2c-2/i2c-4  pull-up*/
+	void __iomem *i2c_2_4_pull_base;
+	unsigned int val;
+	unsigned int pcb_version = 0;
+	#endif
+
 	/* clear interrupt status */
 	i2c_writew_shadow(0, i2c, OFFSET_INTR_MASK);
 	i2c->irq_stat = i2c_readw_shadow(i2c, OFFSET_INTR_STAT);
@@ -418,6 +430,38 @@ static inline void mt_i2c_init_hw(struct mt_i2c *i2c)
 		dump_dma_regs();
 		WARN_ON(1);
 	}
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Riqin.Wei@Camera.Drv, 2020/10/24, add for control config i2c-2/i2c-4  pull-up */
+	pcb_version = get_PCB_Version();
+	pr_info("pcb version=%u\n", pcb_version);
+	if (is_project(19151) || is_project(19350)) {
+	    pr_info("19151 and 19350 no need to disable i2c2 and i2c4 inside pull up\n");
+	} else if (is_project(19531) && (pcb_version > HW_VERSION__13)) {
+	    pr_info("19531&&pcb_version > HW_VERSION__13 no need to disable i2c2 and i2c4 inside pull up\n");
+	} else if (is_project(18531) || is_project(18561)) {
+	    i2c_2_4_pull_base = ioremap(0x11D20000, 0x1000);
+	    val = readl(i2c_2_4_pull_base + 0xF0);
+	    val &= ~((0x3 << 14) | (0x3 << 24));
+	    val |= ((0 << 14) | (0 << 24));
+	    writel(val, i2c_2_4_pull_base + 0xF0);
+
+	    val = readl(i2c_2_4_pull_base + 0x60);
+	    val &= ~((0x3 << 28));
+	    val |= ((0 << 28));
+	    writel(val, i2c_2_4_pull_base + 0x60);
+
+	    val = readl(i2c_2_4_pull_base + 0xF0);
+	    val &= ~((0x3 << 17) | (0x3 << 27));
+	    val |= ((0 << 17) | (0 << 27));
+	    writel(val, i2c_2_4_pull_base + 0xF0);
+
+	    val = readl(i2c_2_4_pull_base + 0x60);
+	    val &= ~((0x3 << 30));
+	    val |= ((0 << 30));
+	    writel(val, i2c_2_4_pull_base + 0x60);
+	    pr_info("disable i2c2 and i2c4 inside pull up\n");
+	}
+	#endif
 }
 
 /* calculate i2c port speed */
@@ -749,6 +793,7 @@ void i2c_gpio_dump_info(struct mt_i2c *i2c)
 	if (i2c->gpiobase) {
 		dev_info(i2c->dev, "%s +++++++++++++++++++\n", __func__);
 		//gpio_dump_regs_range(i2c->scl_gpio_id, i2c->sda_gpio_id);
+		gpio_dump_regs_range(i2c->scl_gpio_id-1, i2c->sda_gpio_id+1);
 		dev_info(i2c->dev, "I2C gpio structure:\n"
 		       I2CTAG "EH_CFG=0x%x,PU_CFG=0x%x,RSEL_CFG=0x%x\n",
 		       readl(i2c->gpiobase + i2c->offset_eh_cfg),
@@ -778,6 +823,90 @@ void dump_i2c_status(int id)
 }
 EXPORT_SYMBOL(dump_i2c_status);
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
+#include <linux/pinctrl/consumer.h>
+#define I2C_RESET_BUS		7
+#define FG_DEVICE_ADDR		0x55
+#define DEVICE_TYPE_ZY0602	3
+#define I2C_STATE "i2c-state"
+#define OUTPUT_LOW_STATE "output-low-state"
+static int fg_device_type = 0;
+static void i2c_gpio_reset(struct mt_i2c *i2c)
+{
+	int ret = 0;
+	static bool i2c_reset_processing = false;
+	struct pinctrl *pctrl = NULL;
+	struct pinctrl_state *i2c_state = NULL;
+	struct pinctrl_state *output_low_state = NULL;
+	int boot_mode = get_boot_mode();
+
+	//pr_err("%s: test i2c id=%d\n", __func__, i2c->id);   /*for debug*/
+	if ((i2c == NULL) || (i2c->id != I2C_RESET_BUS))
+		return;
+
+	pctrl = i2c->pctrl;
+	if (IS_ERR_OR_NULL(pctrl)) {
+		pr_err("%s: no pinctrl setting! id=%d\n", __func__, i2c->id);
+		return;
+	}
+	 if (boot_mode == META_BOOT || boot_mode == FACTORY_BOOT
+		 || boot_mode == ADVMETA_BOOT || boot_mode == ATE_FACTORY_BOOT) {
+		pr_err("i2c_gpio_reset boot_mode:%d, return\n", boot_mode);
+		return;
+	}
+	if (i2c_reset_processing == true) {
+		pr_err("%s: i2c_reset is processing, return\n", __func__);
+		return;
+	}
+	i2c_reset_processing = true;
+
+	i2c_state = pinctrl_lookup_state(pctrl, I2C_STATE);
+	if (IS_ERR_OR_NULL(i2c_state)) {
+		pr_err("%s: get pinctrl state: %s failed! id=%d\n", __func__, I2C_STATE, i2c->id);
+		return;
+	}
+
+	output_low_state = pinctrl_lookup_state(pctrl, OUTPUT_LOW_STATE);
+	if (IS_ERR_OR_NULL(output_low_state)) {
+		pr_err("%s: get pinctrl state: %s failed! id=%d\n", __func__, OUTPUT_LOW_STATE, i2c->id);
+		return;
+	}
+
+	ret = pinctrl_select_state(pctrl, output_low_state);
+	if (ret < 0) {
+		pr_err("%s: set pinctrl state: %s failed! id=%d\n", __func__, OUTPUT_LOW_STATE, i2c->id);
+		return;
+	}
+
+	mdelay(2500);
+
+	ret = pinctrl_select_state(pctrl, i2c_state);
+	if (ret < 0) {
+		pr_err("%s: set pinctrl state: %s failed! id=%d\n", __func__, I2C_STATE, i2c->id);
+		return;
+	}
+
+	i2c_reset_processing = false;
+	pr_err("%s: gpio reset successful id=%d\n", __func__, i2c->id);
+}
+
+int oplus_get_fg_device_type(void)
+{
+	pr_err("oplus_get_fg_device_type  fg_device_type[%d]\n", fg_device_type);
+	return fg_device_type;
+}
+EXPORT_SYMBOL(oplus_get_fg_device_type);
+
+void oplus_set_fg_device_type(int device_type)
+{
+	pr_err("oplus_set_fg_device_type  fg_device_type[%d]\n", fg_device_type);
+	fg_device_type = device_type;
+	return;
+}
+EXPORT_SYMBOL(oplus_set_fg_device_type);
+#endif /*OPLUS_FEATURE_CHG_BASIC*/
+
 static int mt_i2c_do_transfer(struct mt_i2c *i2c)
 {
 	u16 addr_reg = 0;
@@ -792,7 +921,11 @@ static int mt_i2c_do_transfer(struct mt_i2c *i2c)
 	u8 *ptr;
 	int ret = 0;
 	/* u16 ch_offset; */
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
+	const char * chg_i2c = "i2c-7";
+	static int err_count_for_reset = 0;
+#endif
 	i2c->trans_stop = false;
 	i2c->irq_stat = 0;
 	if ((i2c->total_len > 8 || i2c->msg_aux_len > 8))
@@ -879,6 +1012,9 @@ static int mt_i2c_do_transfer(struct mt_i2c *i2c)
 	if (i2c->dev_comp->control_irq_sel == 1)
 		control_reg |= I2C_CONTROL_IRQ_SEL;
 	i2c_writew(control_reg, i2c, OFFSET_CONTROL);
+
+    if(7 == i2c->id)
+        i2c_writew(I2C_RECOVER_LOW, i2c,OFFSET_DEBUGCTRL);
 
 	/* set start condition */
 	if (speed_hz <= 100000)
@@ -1105,7 +1241,27 @@ static int mt_i2c_do_transfer(struct mt_i2c *i2c)
 			i2c_writew_shadow(I2C_RESUME_ARBIT, i2c, OFFSET_START);
 			dev_info(i2c->dev, "bus channel transferred\n");
 		}
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
+		if (i2c->addr == FG_DEVICE_ADDR) {
+			dev_err(i2c->dev, "[OPLUS_TEST] %s, %x \n", dev_name(i2c->dev), i2c->addr);
+			if (oplus_get_fg_device_type() == DEVICE_TYPE_ZY0602) {
+				if (err_count_for_reset >= 5) {
+					i2c_gpio_reset(i2c);
+					err_count_for_reset = 0;
+				} else {
+					err_count_for_reset++;
+				}
+			} else {
+				if (err_count_for_reset < 10) {
+					i2c_gpio_reset(i2c);
+				} else {
+					dev_err(i2c->dev, "err_count_for_reset(%d) >= %d so not reset\n", err_count_for_reset);
+				}
+				err_count_for_reset++;
+			}
+		}
+#endif /*OPLUS_FEATURE_CHG_BASIC*/
 		if (start_reg & I2C_TRANSAC_START) {
 			dev_info(i2c->dev, "bus tied low/high(0x%x)\n",
 				start_reg);
@@ -1113,6 +1269,14 @@ static int mt_i2c_do_transfer(struct mt_i2c *i2c)
 		}
 		return -ETIMEDOUT;
 	}
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
+	else {
+		if (i2c->addr == FG_DEVICE_ADDR) {
+			err_count_for_reset = 0;
+		}
+	}
+#endif /*OPLUS_FEATURE_CHG_BASIC*/
 	if (i2c->irq_stat & (I2C_HS_NACKERR | I2C_ACKERR |
 	    I2C_TIMEOUT | I2C_BUS_ERR | I2C_IBI)) {
 		dev_info(i2c->dev,
@@ -1168,8 +1332,37 @@ static int mt_i2c_do_transfer(struct mt_i2c *i2c)
 				dev_info(i2c->dev, "bus channel transferred\n");
 			}
 		}
+		#ifdef OPLUS_FEATURE_CHG_BASIC
+/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
+		if (i2c->addr == FG_DEVICE_ADDR) {
+			dev_err(i2c->dev, "[OPLUS_TEST] %s, %x \n", dev_name(i2c->dev), i2c->addr);
+			if (oplus_get_fg_device_type() == DEVICE_TYPE_ZY0602) {
+				if (err_count_for_reset >= 5) {
+					i2c_gpio_reset(i2c);
+					err_count_for_reset = 0;
+				} else {
+					err_count_for_reset++;
+				}
+			} else {
+				if (err_count_for_reset < 10) {
+					i2c_gpio_reset(i2c);
+				} else {
+					dev_err(i2c->dev, "err_count_for_reset(%d) >= %d so not reset\n", err_count_for_reset);
+				}
+				err_count_for_reset++;
+			}
+		}
+#endif /*OPLUS_FEATURE_CHG_BASIC*/
 		return -EREMOTEIO;
 	}
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
+	else {
+		if (i2c->addr == FG_DEVICE_ADDR) {
+			err_count_for_reset = 0;
+		}
+	}
+#endif /*OPLUS_FEATURE_CHG_BASIC*/
 	if (i2c->op != I2C_MASTER_WR && isDMA == false) {
 		if (i2c->op == I2C_MASTER_WRRD)
 			data_size = i2c->msg_aux_len;
@@ -1674,7 +1867,10 @@ static int mt_i2c_probe(struct platform_device *pdev)
 	unsigned int clk_src_in_hz;
 	struct resource *res;
 	const struct of_device_id *of_id;
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/19,  Add to debug iic7 crash */
+	dev_info(&pdev->dev, ">>> mt_i2c_probe start.. \n");
+#endif
 	i2c = devm_kzalloc(&pdev->dev, sizeof(struct mt_i2c), GFP_KERNEL);
 	if (i2c == NULL)
 		return -ENOMEM;
@@ -1686,6 +1882,10 @@ static int mt_i2c_probe(struct platform_device *pdev)
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 
 	i2c->base = devm_ioremap_resource(&pdev->dev, res);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/19,  Add to debug iic7 crash */
+	dev_info(&pdev->dev, "i2c->base: %p, res %p\n",i2c->base, res);
+#endif
 	if (IS_ERR(i2c->base))
 		return PTR_ERR(i2c->base);
 
@@ -1710,7 +1910,8 @@ static int mt_i2c_probe(struct platform_device *pdev)
 	if (i2c->irqnr <= 0)
 		return -EINVAL;
 	init_waitqueue_head(&i2c->wait);
-
+#ifndef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/19,  Add to debug iic7 crash */
 	ret = devm_request_irq(&pdev->dev, i2c->irqnr, mt_i2c_irq,
 		IRQF_NO_SUSPEND | IRQF_TRIGGER_NONE, I2C_DRV_NAME, i2c);
 	if (ret < 0) {
@@ -1718,10 +1919,14 @@ static int mt_i2c_probe(struct platform_device *pdev)
 			"Request I2C IRQ %d fail\n", i2c->irqnr);
 		return ret;
 	}
+#endif
 	of_id = of_match_node(mtk_i2c_of_match, pdev->dev.of_node);
 	if (!of_id)
 		return -EINVAL;
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	/*Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/07/01, sjc Add for zhongying fg ZY0602*/
+	i2c->pctrl = devm_pinctrl_get(&pdev->dev);
+#endif
 	i2c->dev_comp = of_id->data;
 	i2c->i2c_pll_info = &i2c_pll_info;
 	i2c->adap.dev.of_node = pdev->dev.of_node;
@@ -1836,13 +2041,32 @@ static int mt_i2c_probe(struct platform_device *pdev)
 	mt_i2c_init_hw(i2c);
 
 	mt_i2c_clock_disable(i2c);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/19,  Add to debug iic7 crash */
+	ret = devm_request_irq(&pdev->dev, i2c->irqnr, mt_i2c_irq,
+					IRQF_NO_SUSPEND | IRQF_TRIGGER_NONE, I2C_DRV_NAME, i2c);
+	dev_info(&pdev->dev, "devm_request_irq  mt_i2c_irq.\n");
+	if (ret < 0) {
+		dev_info(&pdev->dev,
+				"Request I2C IRQ %d fail\n", i2c->irqnr);
+		return ret;
+	}
+#endif
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+	if (i2c->ch_offset_default)
+		i2c->dma_buf.vaddr = dma_alloc_coherent(&pdev->dev,
+			(PAGE_SIZE * 2), &i2c->dma_buf.paddr, GFP_KERNEL | GFP_DMA);
+	else
+		i2c->dma_buf.vaddr = dma_alloc_coherent(&pdev->dev,
+			PAGE_SIZE, &i2c->dma_buf.paddr, GFP_KERNEL | GFP_DMA);
+#else
 	if (i2c->ch_offset_default)
 		i2c->dma_buf.vaddr = dma_alloc_coherent(&pdev->dev,
 			(PAGE_SIZE * 2), &i2c->dma_buf.paddr, GFP_KERNEL);
 	else
 		i2c->dma_buf.vaddr = dma_alloc_coherent(&pdev->dev,
 			PAGE_SIZE, &i2c->dma_buf.paddr, GFP_KERNEL);
-
+#endif
 	if (i2c->dma_buf.vaddr == NULL) {
 		dev_info(&pdev->dev, "dma_alloc_coherent fail\n");
 		return -ENOMEM;
@@ -1856,7 +2080,10 @@ static int mt_i2c_probe(struct platform_device *pdev)
 		return ret;
 	}
 	platform_set_drvdata(pdev, i2c);
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/19,  Add to debug iic7 crash */
+	dev_info(&pdev->dev, "<<< mt_i2c_probe end Id: %d \n", i2c->id);
+#endif
 	if (!map_cg_regs(i2c))
 		pr_info("Map cg regs successfully.\n");
 

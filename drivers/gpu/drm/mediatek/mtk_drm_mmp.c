@@ -150,16 +150,6 @@ void init_crtc_mmp_event(void)
 		g_CRTC_MMP_Events[i].release_present_fence =
 			mmprofile_register_event(crtc_mmp_root,
 				"release_present_fence");
-		g_CRTC_MMP_Events[i].update_sf_present_fence =
-			mmprofile_register_event(crtc_mmp_root,
-				"update_sf_present_fence");
-		g_CRTC_MMP_Events[i].release_sf_present_fence =
-			mmprofile_register_event(crtc_mmp_root,
-				"release_sf_present_fence");
-		g_CRTC_MMP_Events[i].warn_sf_pf_0 =
-			mmprofile_register_event(crtc_mmp_root, "warn_sf_pf_0");
-		g_CRTC_MMP_Events[i].warn_sf_pf_2 =
-			mmprofile_register_event(crtc_mmp_root, "warn_sf_pf_2");
 		g_CRTC_MMP_Events[i].atomic_begin = mmprofile_register_event(
 			crtc_mmp_root, "atomic_begin");
 		g_CRTC_MMP_Events[i].atomic_flush = mmprofile_register_event(
@@ -237,13 +227,13 @@ void init_crtc_mmp_event(void)
 					mmprofile_register_event(
 					g_CRTC_MMP_Events[i].layerBmpDump,
 					"layer5_dump");
-		g_CRTC_MMP_Events[i].cwbBmpDump =
+		g_CRTC_MMP_Events[i].wdmaBmpDump =
 					mmprofile_register_event(
-					crtc_mmp_root, "CwbBmpDump");
-		g_CRTC_MMP_Events[i].cwb_dump =
+					crtc_mmp_root, "WdmaBmpDump");
+		g_CRTC_MMP_Events[i].wdma_dump =
 					mmprofile_register_event(
-					g_CRTC_MMP_Events[i].cwbBmpDump,
-					"cwb_dump");
+					g_CRTC_MMP_Events[i].wdmaBmpDump,
+					"wdma_dump");
 	}
 }
 void drm_mmp_init(void)
@@ -291,7 +281,6 @@ int crtc_mva_map_kernel(unsigned int mva, unsigned int size,
 	else
 		DDPINFO("%s, %d, disp_dev is null\n", __func__, __LINE__);
 #endif
-
 	return 0;
 }
 
@@ -442,24 +431,69 @@ end:
 	return 0;
 }
 
-int mtk_drm_mmp_cwb_buffer(struct drm_crtc *crtc,
-		struct mtk_cwb_info *cwb_info,
-		void *buffer, unsigned int buf_idx)
+int mtk_drm_mmp_wdma_cpt(struct drm_crtc *crtc,
+			  struct mtk_wdma_capture_info *wdma_capt_info)
 {
 	int crtc_idx = drm_crtc_index(crtc);
-	enum CWB_BUFFER_TYPE type = cwb_info->type;
 	struct mmp_metadata_bitmap_t bitmap;
+	unsigned int buf_index = wdma_capt_info->buf_index;
+	unsigned int addr = wdma_capt_info->buffer[buf_index].addr_phy;
 	mmp_event event_base = 0;
 
 	memset(&bitmap, 0, sizeof(struct mmp_metadata_bitmap_t));
-	bitmap.data1 = buf_idx;
-	bitmap.width = cwb_info->copy_w;
-	bitmap.height = cwb_info->copy_h;
+	bitmap.data1 = 0;
+	bitmap.width = wdma_capt_info->buffer[buf_index].dst_roi.width;
+	bitmap.height = wdma_capt_info->buffer[buf_index].dst_roi.height;
 
 	bitmap.format = MMPROFILE_BITMAP_RGB888;
 	bitmap.bpp = 24;
 
-	CRTC_MMP_EVENT_START(crtc_idx, cwbBmpDump,
+	CRTC_MMP_EVENT_START(crtc_idx, wdmaBmpDump,
+			     buf_index, addr);
+
+	bitmap.pitch = bitmap.width * 3;
+	bitmap.start_pos = 0;
+	bitmap.data_size = bitmap.pitch * bitmap.height;
+	bitmap.down_sample_x = 1;
+	bitmap.down_sample_y = 1;
+
+	if (crtc_mva_map_kernel(addr, bitmap.data_size,
+				(unsigned long *)&bitmap.p_data,
+				&bitmap.data_size) != 0) {
+		DDPMSG("%s,fail to dump rgb\n", __func__);
+		goto end;
+	}
+	event_base = g_CRTC_MMP_Events[crtc_idx].wdma_dump;
+	if (event_base)
+		mmprofile_log_meta_bitmap(
+			event_base,
+			MMPROFILE_FLAG_PULSE,
+			&bitmap);
+	crtc_mva_unmap_kernel(addr, bitmap.data_size,
+			      (unsigned long)bitmap.p_data);
+end:
+	CRTC_MMP_EVENT_END(crtc_idx, wdmaBmpDump,
+			   addr, MMPROFILE_BITMAP_RGB888);
+
+	return 0;
+}
+
+int mtk_drm_mmp_user_buffer(struct drm_crtc *crtc,
+			  struct capture_info *buffer)
+{
+	int crtc_idx = drm_crtc_index(crtc);
+	struct mmp_metadata_bitmap_t bitmap;
+	mmp_event event_base = 0;
+
+	memset(&bitmap, 0, sizeof(struct mmp_metadata_bitmap_t));
+	bitmap.data1 = 0;
+	bitmap.width = buffer->data.width;
+	bitmap.height = buffer->data.height;
+
+	bitmap.format = MMPROFILE_BITMAP_RGB888;
+	bitmap.bpp = 24;
+
+	CRTC_MMP_EVENT_START(crtc_idx, wdmaBmpDump,
 			     0, 0);
 
 	bitmap.pitch = bitmap.width * 3;
@@ -467,22 +501,338 @@ int mtk_drm_mmp_cwb_buffer(struct drm_crtc *crtc,
 	bitmap.data_size = bitmap.pitch * bitmap.height;
 	bitmap.down_sample_x = 1;
 	bitmap.down_sample_y = 1;
-	if (type == IMAGE_ONLY) {
-		bitmap.p_data = (void *)buffer;
-	} else if (type == CARRY_METADATA) {
-		struct user_cwb_buffer *tmp = (struct user_cwb_buffer *)buffer;
+	bitmap.p_data = (void *)buffer->data.image;
 
-		bitmap.p_data = (void *)tmp->data.image;
-	}
-
-	event_base = g_CRTC_MMP_Events[crtc_idx].cwb_dump;
+	event_base = g_CRTC_MMP_Events[crtc_idx].wdma_dump;
 	if (event_base)
 		mmprofile_log_meta_bitmap(
 			event_base,
 			MMPROFILE_FLAG_PULSE,
 			&bitmap);
-
-	CRTC_MMP_EVENT_END(crtc_idx, cwbBmpDump,
+	CRTC_MMP_EVENT_END(crtc_idx, wdmaBmpDump,
 			   0, 0);
+
 	return 0;
 }
+
+int mtk_drm_mmp_user_buffer_v2(struct drm_crtc *crtc,
+		struct mtk_wdma_capture_info *wdma_capt_info,
+		u8 *buffer)
+{
+	int crtc_idx = drm_crtc_index(crtc);
+	struct mmp_metadata_bitmap_t bitmap;
+	mmp_event event_base = 0;
+
+	memset(&bitmap, 0, sizeof(struct mmp_metadata_bitmap_t));
+	bitmap.data1 = 0;
+	bitmap.width = wdma_capt_info->buffer[0].dst_roi.width;
+	bitmap.height = wdma_capt_info->buffer[0].dst_roi.height;
+
+	bitmap.format = MMPROFILE_BITMAP_RGB888;
+	bitmap.bpp = 24;
+
+	CRTC_MMP_EVENT_START(crtc_idx, wdmaBmpDump,
+			     0, 0);
+
+	bitmap.pitch = bitmap.width * 3;
+	bitmap.start_pos = 0;
+	bitmap.data_size = bitmap.pitch * bitmap.height;
+	bitmap.down_sample_x = 1;
+	bitmap.down_sample_y = 1;
+	bitmap.p_data = (void *)buffer;
+
+	event_base = g_CRTC_MMP_Events[crtc_idx].wdma_dump;
+	if (event_base)
+		mmprofile_log_meta_bitmap(
+			event_base,
+			MMPROFILE_FLAG_PULSE,
+			&bitmap);
+	CRTC_MMP_EVENT_END(crtc_idx, wdmaBmpDump,
+			   0, 0);
+
+	return 0;
+}
+
+int mtk_drm_copy_wdma_cpt(struct drm_crtc *crtc,
+			  struct mtk_wdma_capture_info *wdma_capt_info,
+			  struct capture_info *buffer)
+{
+	unsigned int buf_index = 1 - wdma_capt_info->buf_index;
+	unsigned int addr = wdma_capt_info->buffer[buf_index].addr_phy;
+	int width, height, pitch, size;
+	unsigned long va;
+
+	width = wdma_capt_info->buffer[buf_index].dst_roi.width;
+	height = wdma_capt_info->buffer[buf_index].dst_roi.height;
+	pitch = width * 3;
+	size = pitch * height;
+
+	if (crtc_mva_map_kernel(addr, size, &va, &size) != 0) {
+		DDPMSG("%s,fail to dump rgb\n", __func__);
+		goto end;
+	}
+	buffer->data.width = width;
+	buffer->data.height = height;
+	buffer->meta.frameIndex = wdma_capt_info->capture_count;
+	buffer->meta.timestamp = wdma_capt_info->buffer[buf_index].timestamp;
+	memcpy(buffer->data.image, (void *)va, size);
+	crtc_mva_unmap_kernel(addr, size, va);
+
+end:
+
+	return 0;
+}
+
+#ifdef OPLUS_FEATURE_MIDAS
+		extern struct mutex g_dispcap_buffer_lock;
+#endif
+int mtk_drm_copy_wdma_cpt_v2(struct drm_crtc *crtc,
+			  struct mtk_wdma_capture_info *wdma_capt_info,
+			  u8 *buffer)
+{
+	unsigned int buf_index = 1 - wdma_capt_info->buf_index;
+	unsigned int addr = wdma_capt_info->buffer[buf_index].addr_phy;
+	int width, height, pitch, size;
+	unsigned long va;
+
+	width = wdma_capt_info->buffer[buf_index].dst_roi.width;
+	height = wdma_capt_info->buffer[buf_index].dst_roi.height;
+	pitch = width * 3;
+	size = pitch * height;
+
+	if (crtc_mva_map_kernel(addr, size, &va, &size) != 0) {
+		DDPMSG("%s,fail to dump rgb\n", __func__);
+		goto end;
+	}
+	memcpy(buffer, (void *)va, size);
+	DDPMSG("[capture] copy buffer to buffer:0x%x done", buffer);
+	crtc_mva_unmap_kernel(addr, size, va);
+
+end:
+
+	return 0;
+}
+
+#ifdef OPLUS_FEATURE_MIDAS
+	typedef void (*fp_buffer_complete_notify)(void *user_buffer);
+	extern fp_buffer_complete_notify buffer_complete_notify;
+#endif
+
+static unsigned int mtk_drm_calculate_capture_interval(struct drm_crtc *crtc,
+	unsigned int interval)
+{
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	struct mtk_wdma_capture_info *wdma_capture_info;
+	struct capture_info *buffer;
+	unsigned int buf_index;
+
+	wdma_capture_info = mtk_crtc->wdma_capture_info;
+
+	if (wdma_capture_info->config_count == 0) {
+		interval = wdma_capture_info->capture_interval;
+		buffer = mtk_crtc_get_buffer(crtc);
+		if (wdma_capture_info->user_buffer) {
+			if (wdma_capture_info->capture_count ==	0xffffffff)
+				wdma_capture_info->capture_count = 0;
+			else
+				wdma_capture_info->capture_count++;
+			wdma_capture_info->config_count++;
+			buf_index = wdma_capture_info->buf_index;
+			buf_index = 1 - buf_index;
+			wdma_capture_info->buf_index = buf_index;
+#ifdef OPLUS_FEATURE_MIDAS
+			mutex_lock(&g_dispcap_buffer_lock);
+			if (NULL != wdma_capture_info->user_buffer) {
+				mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
+					wdma_capture_info->user_buffer);
+				if (NULL != buffer_complete_notify) {
+					buffer_complete_notify(wdma_capture_info->user_buffer);
+				}
+				wdma_capture_info->user_buffer = 0;
+			}
+			mutex_unlock(&g_dispcap_buffer_lock);
+#else
+			mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
+				wdma_capture_info->user_buffer);
+			mtk_drm_mmp_user_buffer_v2(crtc, wdma_capture_info,
+				wdma_capture_info->user_buffer);
+			kfree(wdma_capture_info->user_buffer);
+			wdma_capture_info->user_buffer = 0;
+#endif
+			if (interval == 1) {
+				buf_index = 1 - buf_index;
+				wdma_capture_info->buf_index = buf_index;
+			}
+		} else if (buffer) {
+			if (wdma_capture_info->capture_count ==	0xffffffff)
+				wdma_capture_info->capture_count = 0;
+			else
+				wdma_capture_info->capture_count++;
+			wdma_capture_info->config_count++;
+			buf_index = wdma_capture_info->buf_index;
+			buf_index = 1 - buf_index;
+			wdma_capture_info->buf_index = buf_index;
+			mtk_drm_copy_wdma_cpt(crtc, wdma_capture_info, buffer);
+			mtk_drm_mmp_user_buffer(crtc, buffer);
+			if (interval == 1) {
+				buf_index = 1 - buf_index;
+				wdma_capture_info->buf_index = buf_index;
+			}
+		}
+	} else {
+		if (interval)
+			interval--;
+		if (interval == 1) {
+			buf_index = wdma_capture_info->buf_index;
+			buf_index = 1 - buf_index;
+			wdma_capture_info->buf_index = buf_index;
+		} else if (interval == 0) {
+			buf_index = wdma_capture_info->buf_index;
+			buffer = mtk_crtc_get_buffer(crtc);
+			if (wdma_capture_info->user_buffer) {
+				if (wdma_capture_info->capture_count ==
+					0xffffffff)
+					wdma_capture_info->capture_count = 0;
+				else
+					wdma_capture_info->capture_count++;
+#ifdef OPLUS_FEATURE_MIDAS
+				mutex_lock(&g_dispcap_buffer_lock);
+				if (NULL != wdma_capture_info->user_buffer) {
+					mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
+						wdma_capture_info->user_buffer);
+					if (NULL != buffer_complete_notify) {
+						buffer_complete_notify(wdma_capture_info->user_buffer);
+					}
+					wdma_capture_info->user_buffer = 0;
+				}
+				mutex_unlock(&g_dispcap_buffer_lock);
+#else
+				mtk_drm_copy_wdma_cpt_v2(crtc, wdma_capture_info,
+					wdma_capture_info->user_buffer);
+				mtk_drm_mmp_user_buffer_v2(crtc, wdma_capture_info,
+					wdma_capture_info->user_buffer);
+				kfree(wdma_capture_info->user_buffer);
+				wdma_capture_info->user_buffer = 0;
+#endif
+				interval = wdma_capture_info->capture_interval;
+				if (interval == 1) {
+					buf_index = 1 - buf_index;
+					wdma_capture_info->buf_index =
+						buf_index;
+				}
+			} else if (buffer) {
+				if (wdma_capture_info->capture_count ==
+					0xffffffff)
+					wdma_capture_info->capture_count = 0;
+				else
+					wdma_capture_info->capture_count++;
+				mtk_drm_copy_wdma_cpt(crtc, wdma_capture_info,
+					buffer);
+				mtk_drm_mmp_user_buffer(crtc, buffer);
+				interval = wdma_capture_info->capture_interval;
+				if (interval == 1) {
+					buf_index = 1 - buf_index;
+					wdma_capture_info->buf_index =
+						buf_index;
+				}
+			}
+		}
+	}
+
+	return interval;
+}
+
+static int mtk_drm_wdma_capt_monitor_thread(void *data)
+{
+	int ret = 0;
+	struct drm_crtc *crtc = (struct drm_crtc *)data;
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	struct mtk_drm_private *priv = crtc->dev->dev_private;
+	struct mtk_crtc_state *mtk_state;
+	struct mtk_wdma_capture_info *wdma_capture_info;
+	unsigned int interval = 0;
+
+	msleep(16000);
+	while (1) {
+		ret = wait_event_interruptible(
+			mtk_crtc->capt_wq,
+			atomic_read(&mtk_crtc->capt_task_active));
+
+		DDP_MUTEX_LOCK(&mtk_crtc->lock, __func__, __LINE__);
+
+		if (!mtk_crtc->enabled) {
+			atomic_set(&mtk_crtc->capt_task_active, 0);
+			DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+			mtk_crtc_wait_status(crtc, 1, MAX_SCHEDULE_TIMEOUT);
+			continue;
+		}
+
+		if (crtc->state) {
+			mtk_state = to_mtk_crtc_state(crtc->state);
+			if (mtk_state->prop_val[CRTC_PROP_DOZE_ACTIVE]) {
+				atomic_set(&mtk_crtc->capt_task_active, 0);
+				DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__,
+						__LINE__);
+				continue;
+			}
+		}
+
+		if (mtk_crtc_is_dc_mode(crtc)
+			|| priv->session_mode != MTK_DRM_SESSION_DL
+			|| mtk_crtc->sec_on) {
+			atomic_set(&mtk_crtc->capt_task_active, 0);
+			DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+			continue;
+		}
+		wdma_capture_info = mtk_crtc->wdma_capture_info;
+		if (!wdma_capture_info || !wdma_capture_info->enable) {
+			atomic_set(&mtk_crtc->capt_task_active, 0);
+			DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+			continue;
+		}
+
+		if (atomic_read(&mtk_crtc->capt_task_active)) {
+			atomic_set(&mtk_crtc->capt_task_active, 0);
+			interval = mtk_drm_calculate_capture_interval(crtc,
+					interval);
+		}
+
+		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
+
+		if (kthread_should_stop())
+			break;
+	}
+
+	return 0;
+}
+
+int mtk_drm_wdma_capture_init(struct drm_crtc *crtc)
+{
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	const int len = 50;
+	char name[len];
+#ifdef OPLUS_FEATURE_MIDAS
+	struct cpumask mask;
+#endif
+
+	DDPMSG("%s\n", __func__);
+
+	snprintf(name, len, "mtk_drm_disp_wdma_capt");
+	mtk_crtc->capt_task =
+		kthread_create(mtk_drm_wdma_capt_monitor_thread, crtc, name);
+#ifdef OPLUS_FEATURE_MIDAS
+	cpumask_clear(&mask);
+	cpumask_set_cpu(0, &mask);
+	cpumask_set_cpu(1, &mask);
+	cpumask_set_cpu(2, &mask);
+	cpumask_set_cpu(3, &mask);
+	kthread_bind_mask(mtk_crtc->capt_task, &mask); // bind small cores to reduce power consumption
+#endif
+	init_waitqueue_head(&mtk_crtc->capt_wq);
+	atomic_set(&mtk_crtc->capt_task_active, 0);
+
+	wake_up_process(mtk_crtc->capt_task);
+
+	return 0;
+}
+

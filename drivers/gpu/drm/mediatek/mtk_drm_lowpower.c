@@ -24,7 +24,7 @@
 #include "mtk_drm_ddp_comp.h"
 #include "mtk_drm_mmp.h"
 
-#define MAX_ENTER_IDLE_RSZ_RATIO 300
+#define MAX_ENTER_IDLE_RSZ_RATIO 250
 
 static void mtk_drm_idlemgr_enable_crtc(struct drm_crtc *crtc);
 static void mtk_drm_idlemgr_disable_crtc(struct drm_crtc *crtc);
@@ -56,14 +56,9 @@ static void mtk_drm_vdo_mode_enter_idle(struct drm_crtc *crtc)
 	}
 
 	comp = mtk_ddp_comp_request_output(mtk_crtc);
-	if (comp) {
+	if (comp)
 		mtk_ddp_comp_io_cmd(comp, handle, DSI_VFP_IDLE_MODE, NULL);
-		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_LFR)) {
-			int en = 0;
 
-			mtk_ddp_comp_io_cmd(comp, handle, DSI_LFR_SET, &en);
-		}
-	}
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
 	drm_crtc_vblank_off(crtc);
@@ -94,14 +89,8 @@ static void mtk_drm_vdo_mode_leave_idle(struct drm_crtc *crtc)
 	}
 
 	comp = mtk_ddp_comp_request_output(mtk_crtc);
-	if (comp) {
+	if (comp)
 		mtk_ddp_comp_io_cmd(comp, handle, DSI_VFP_DEFAULT_MODE, NULL);
-		if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_LFR)) {
-			int en = 1;
-
-			mtk_ddp_comp_io_cmd(comp, handle, DSI_LFR_SET, &en);
-		}
-	}
 
 	cmdq_pkt_flush(handle);
 	cmdq_pkt_destroy(handle);
@@ -410,7 +399,12 @@ static int mtk_drm_idlemgr_monitor_thread(void *data)
 			} else {
 				idlemgr_ctx->idlemgr_last_kick_time =
 					sched_clock();
+				//#ifndef OPLUS_BUG_STABILITY
+				/* liwei.a@PSW.MM.Display.LCD.Stability, 2020/10/24, modify stutters issue*/
+				//idlemgr_vblank_check_internal = 10;
+				//#else
 				idlemgr_vblank_check_internal = 50;
+				//#endif
 			}
 		}
 

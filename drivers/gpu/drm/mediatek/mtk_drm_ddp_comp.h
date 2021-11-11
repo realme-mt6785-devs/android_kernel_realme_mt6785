@@ -68,72 +68,67 @@ enum mtk_ddp_comp_type {
 	EXPR(DDP_COMPONENT_BLS)                                             \
 	EXPR(DDP_COMPONENT_CCORR0)                                          \
 	EXPR(DDP_COMPONENT_CCORR1)                                          \
-/*5*/	EXPR(DDP_COMPONENT_COLOR0)                                          \
+	EXPR(DDP_COMPONENT_COLOR0)                                          \
 	EXPR(DDP_COMPONENT_COLOR1)                                          \
 	EXPR(DDP_COMPONENT_COLOR2)                                          \
 	EXPR(DDP_COMPONENT_DITHER0)                                         \
 	EXPR(DDP_COMPONENT_DITHER1)                                         \
-/*10*/	EXPR(DDP_COMPONENT_DPI0)                                            \
+	EXPR(DDP_COMPONENT_DPI0)                                            \
 	EXPR(DDP_COMPONENT_DPI1)                                            \
 	EXPR(DDP_COMPONENT_DSI0)                                            \
 	EXPR(DDP_COMPONENT_DSI1)                                            \
 	EXPR(DDP_COMPONENT_GAMMA0)                                          \
-/*15*/	EXPR(DDP_COMPONENT_GAMMA1)                                          \
+	EXPR(DDP_COMPONENT_GAMMA1)                                          \
 	EXPR(DDP_COMPONENT_OD)                                              \
 	EXPR(DDP_COMPONENT_OD1)                                             \
 	EXPR(DDP_COMPONENT_OVL0)                                            \
 	EXPR(DDP_COMPONENT_OVL1)                                            \
-/*20*/	EXPR(DDP_COMPONENT_OVL2)                                            \
+	EXPR(DDP_COMPONENT_OVL2)                                            \
 	EXPR(DDP_COMPONENT_OVL0_2L)                                         \
 	EXPR(DDP_COMPONENT_OVL1_2L)                                         \
 	EXPR(DDP_COMPONENT_OVL2_2L)                                         \
 	EXPR(DDP_COMPONENT_OVL3_2L)                                         \
-/*25*/	EXPR(DDP_COMPONENT_OVL0_2L_VIRTUAL0)                                \
+	EXPR(DDP_COMPONENT_OVL0_2L_VIRTUAL0)                                \
 	EXPR(DDP_COMPONENT_OVL1_2L_VIRTUAL0)                                \
 	EXPR(DDP_COMPONENT_OVL0_VIRTUAL0)                                   \
 	EXPR(DDP_COMPONENT_OVL1_VIRTUAL0)                                   \
 	EXPR(DDP_COMPONENT_OVL0_OVL0_2L_VIRTUAL0)                           \
-/*30*/	EXPR(DDP_COMPONENT_PWM0)                                            \
+	EXPR(DDP_COMPONENT_PWM0)                                            \
 	EXPR(DDP_COMPONENT_PWM1)                                            \
 	EXPR(DDP_COMPONENT_PWM2)                                            \
 	EXPR(DDP_COMPONENT_RDMA0)                                           \
 	EXPR(DDP_COMPONENT_RDMA1)                                           \
-/*35*/	EXPR(DDP_COMPONENT_RDMA2)                                           \
+	EXPR(DDP_COMPONENT_RDMA2)                                           \
 	EXPR(DDP_COMPONENT_RDMA3)                                           \
 	EXPR(DDP_COMPONENT_RDMA4)                                           \
 	EXPR(DDP_COMPONENT_RDMA5)                                           \
 	EXPR(DDP_COMPONENT_RDMA0_VIRTUAL0)                                  \
-/*40*/	EXPR(DDP_COMPONENT_RDMA1_VIRTUAL0)                                  \
+	EXPR(DDP_COMPONENT_RDMA1_VIRTUAL0)                                  \
 	EXPR(DDP_COMPONENT_RDMA2_VIRTUAL0)                                  \
 	EXPR(DDP_COMPONENT_RSZ0)                                            \
 	EXPR(DDP_COMPONENT_RSZ1)                                            \
 	EXPR(DDP_COMPONENT_UFOE)                                            \
-/*45*/	EXPR(DDP_COMPONENT_WDMA0)                                           \
+	EXPR(DDP_COMPONENT_WDMA0)                                           \
 	EXPR(DDP_COMPONENT_WDMA1)                                           \
 	EXPR(DDP_COMPONENT_UFBC_WDMA0)                                      \
 	EXPR(DDP_COMPONENT_WDMA_VIRTUAL0)                                   \
 	EXPR(DDP_COMPONENT_WDMA_VIRTUAL1)                                   \
-/*50*/	EXPR(DDP_COMPONENT_POSTMASK0)                                       \
+	EXPR(DDP_COMPONENT_POSTMASK0)                                       \
 	EXPR(DDP_COMPONENT_POSTMASK1)                                       \
 	EXPR(DDP_COMPONENT_DMDP_RDMA0)                                      \
 	EXPR(DDP_COMPONENT_DMDP_HDR0)                                       \
 	EXPR(DDP_COMPONENT_DMDP_AAL0)                                       \
-/*55*/	EXPR(DDP_COMPONENT_DMDP_RSZ0)                                       \
+	EXPR(DDP_COMPONENT_DMDP_RSZ0)                                       \
 	EXPR(DDP_COMPONENT_DMDP_TDSHP0)                                     \
-	EXPR(DDP_COMPONENT_DMDP_RDMA1)                                      \
-	EXPR(DDP_COMPONENT_DMDP_HDR1)                                       \
-	EXPR(DDP_COMPONENT_DMDP_AAL1)                                       \
-/*60*/	EXPR(DDP_COMPONENT_DMDP_RSZ1)                                       \
-	EXPR(DDP_COMPONENT_DMDP_TDSHP1)                                     \
 	EXPR(DDP_COMPONENT_DSC0)                                            \
 	EXPR(DDP_COMPONENT_MERGE0)                                          \
 	EXPR(DDP_COMPONENT_DPTX)                                            \
-/*65*/	EXPR(DDP_COMPONENT_DP_INTF0)                                        \
+	EXPR(DDP_COMPONENT_DP_INTF0)                                        \
 	EXPR(DDP_COMPONENT_RDMA4_VIRTUAL0)                                  \
 	EXPR(DDP_COMPONENT_RDMA5_VIRTUAL0)                                  \
 	EXPR(DDP_COMPONENT_MERGE1)                                          \
 	EXPR(DDP_COMPONENT_SPR0_VIRTUAL)                                    \
-/*70*/	EXPR(DDP_COMPONENT_CM0)                                          \
+	EXPR(DDP_COMPONENT_CM0)                                          \
 	EXPR(DDP_COMPONENT_SPR0)                                          \
 	EXPR(DDP_COMPONENT_ID_MAX)
 
@@ -247,8 +242,18 @@ enum mtk_ddp_io_cmd {
 	DSI_LFR_SET,
 	DSI_LFR_UPDATE,
 	DSI_LFR_STATUS_CHECK,
-	WDMA_WRITE_DST_ADDR0,
-	WDMA_READ_DST_SIZE,
+	//#ifdef VENDOR_EDIT
+	/** LiPing-M@PSW.MM.Display.LCD.Feature, 2019/11/25* Add for MATE mode switch RGB display*/
+	DSI_READ,
+	LCM_HBM,
+	LCM_CABC,
+	/* Zhijun.Ye@PSW.MM.Display.LCD.Machine 2020/10/23, add for dc cmd timing */
+	DC_BACKLIGHT,
+	//#endif
+#ifdef VENDOR_EDIT
+/*Jinzhu.Han@RM.MM.LCD.Display.Stability, 2020/08/06, add for flicker when close DC */
+	DC_POST_EXIT,
+#endif
 };
 
 struct golden_setting_context {

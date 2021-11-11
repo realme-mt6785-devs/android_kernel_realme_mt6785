@@ -21,6 +21,12 @@
 #include <hal_kpd.h>
 #include <mt-plat/mtk_boot_common.h>
 
+#ifdef CONFIG_MACH_MT6785
+/* Yonghai.Wang@BSP.TP.Misc 2020/9/17 modified for HW reset sarter. */
+#include <soc/oplus/system/oplus_project.h>
+extern int g_cphy_dphy_gpio_value;
+#endif
+
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH
 static int kpd_enable_lprst = 1;
 #endif
@@ -54,6 +60,11 @@ void kpd_get_keymap_state(u16 state[])
 void long_press_reboot_function_setting(void)
 {
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH /*for pmic not ready*/
+#ifdef CONFIG_MACH_MT6785
+/* Yonghai.Wang@BSP.TP.Misc 2020/9/17 modified for MTK HW reset sala. */
+	pr_err("get_project = %d ,get_Operator_Version = %d, g_cphy_dphy_gpio_value = %d\n",get_project(),get_Operator_Version(),g_cphy_dphy_gpio_value);
+	if((get_project() == 19661 || get_project() == 20682) && ((get_Operator_Version() == 111) || (get_Operator_Version() == 112) || (get_Operator_Version() == 113) || (get_Operator_Version() == 114) || (g_cphy_dphy_gpio_value == 1))) {
+#endif
 	if (kpd_enable_lprst && get_boot_mode() == NORMAL_BOOT) {
 		kpd_info("Normal Boot long press reboot selection\n");
 
@@ -66,8 +77,12 @@ void long_press_reboot_function_setting(void)
 		/*PWRKEY + HOMEKEY*/
 		pmic_set_register_value(PMIC_RG_PWRKEY_KEY_MODE, 0x01);
 #endif
-		pmic_set_register_value(PMIC_RG_PWRKEY_RST_TD,
-			CONFIG_KPD_PMIC_LPRST_TD);
+		/* Yonghai.Wang@BSP.TP.Misc 2020/9/17 modified for MTK HW reset sala. */
+		if(get_project() == 20682)
+			pmic_config_interface((MT6359_TOP_RST_MISC),(0),(PMIC_RG_PWRKEY_RST_TD_MASK),(PMIC_RG_PWRKEY_RST_TD_SHIFT));
+		else
+			pmic_set_register_value(PMIC_RG_PWRKEY_RST_TD,
+				CONFIG_KPD_PMIC_LPRST_TD);
 		pmic_set_register_value(PMIC_RG_PWRKEY_RST_EN, 0x01);
 #else
 		kpd_info("disable normal mode LPRST\n");
@@ -86,8 +101,13 @@ void long_press_reboot_function_setting(void)
 			/*PWRKEY + HOMEKEY*/
 			pmic_set_register_value(PMIC_RG_PWRKEY_KEY_MODE, 0x01);
 #endif
-			pmic_set_register_value(PMIC_RG_PWRKEY_RST_TD,
-				CONFIG_KPD_PMIC_LPRST_TD);
+			/* Yonghai.Wang@BSP.TP.Misc 2020/9/17 modified for MTK HW reset sala. */
+			if(get_project() == 20682)
+				pmic_config_interface((MT6359_TOP_RST_MISC),(0),(PMIC_RG_PWRKEY_RST_TD_MASK),(PMIC_RG_PWRKEY_RST_TD_SHIFT));
+			else
+				pmic_set_register_value(PMIC_RG_PWRKEY_RST_TD,
+					CONFIG_KPD_PMIC_LPRST_TD);
+
 			pmic_set_register_value(PMIC_RG_PWRKEY_RST_EN, 0x01);
 #else
 			kpd_info("disable normal mode LPRST\n");
@@ -95,6 +115,10 @@ void long_press_reboot_function_setting(void)
 #endif
 
 	}
+#ifdef CONFIG_MACH_MT6785
+/* Yonghai.Wang@BSP.TP.Misc 2020/9/17 modified for HW reset sala. */
+}
+#endif
 #endif
 }
 
@@ -107,6 +131,9 @@ bool __attribute__ ((weak)) mtk_audio_condition_enter_suspend(void)
 /********************************************************************/
 void kpd_wakeup_src_setting(int enable)
 {
+//ifdef OPLUS_BUG_STABILITY
+/* yulianghan@bootloader.bootflow 2020/10/30, Remove for keypad volume up and volume down */
+#if 0
 	int is_fm_radio_playing = 0;
 
 	/* If FM is playing, keep keypad as wakeup source */
@@ -124,6 +151,15 @@ void kpd_wakeup_src_setting(int enable)
 			enable_kpd(0);
 		}
 	}
+#endif
+	if (enable == 1) {
+		kpd_print("enable kpd work!\n");
+		enable_kpd(1);
+	} else {
+		kpd_print("disable kpd work!\n");
+		enable_kpd(0);
+	}
+//#endif  /*OPLUS_BUG_STABILITY*/
 }
 
 /********************************************************************/
