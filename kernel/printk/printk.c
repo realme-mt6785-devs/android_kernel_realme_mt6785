@@ -454,6 +454,11 @@ static char __log_buf[__LOG_BUF_LEN] __aligned(LOG_ALIGN);
 static char *log_buf = __log_buf;
 static u32 log_buf_len = __LOG_BUF_LEN;
 
+//#ifdef OPLUS_BUG_STABILITY
+/*zhouhengguo@BSP.Kernel.Stability, 2020/10/19, Add for forcing to enable uart */
+int printk_force_uart = 0;
+module_param_named(force_uart, printk_force_uart, int, S_IRUGO | S_IWUSR);
+//#endif /*OPLUS_BUG_STABILITY*/
 
 /* console duration detect */
 #ifdef CONFIG_CONSOLE_LOCK_DURATION_DETECT

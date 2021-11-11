@@ -1810,6 +1810,19 @@ static int prctl_set_mm_exe_file(struct mm_struct *mm, unsigned int fd)
 				goto exit_err;
 		}
 
+#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
+		/* Kui.Zhang@TEC.Kernel.Performance, 2019/03/13
+		 * deal with the reserved area
+		 */
+		for (vma = mm->reserve_mmap; vma; vma = vma->vm_next) {
+			if (!vma->vm_file)
+				continue;
+			if (path_equal(&vma->vm_file->f_path,
+						&exe_file->f_path))
+				goto exit_err;
+		}
+#endif
+
 		up_read(&mm->mmap_sem);
 		fput(exe_file);
 	}
