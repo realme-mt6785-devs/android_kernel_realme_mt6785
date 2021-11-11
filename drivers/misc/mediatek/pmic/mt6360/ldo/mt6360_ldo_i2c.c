@@ -25,7 +25,8 @@
 #include <linux/regulator/machine.h>
 
 #include "../inc/mt6360_ldo.h"
-
+/*Yaqiang.Shi@RM.MM.Display.LCD 20630 ldo5 used for lcd VDDI, need to set sdcard_det_en to false*/
+#include <soc/oppo/oppo_project.h>
 static bool dbg_log_en; /* module param to enable/disable debug log */
 module_param(dbg_log_en, bool, 0644);
 
@@ -328,6 +329,12 @@ static int mt6360_ldo_enable(struct regulator_dev *rdev)
 		dev_err(&rdev->dev, "%s: fail (%d)\n", __func__, ret);
 		return ret;
 	}
+/*Yaqiang.Shi@RM.MM.Display.LCD 20630 ldo5 used for lcd VDDI, need to set sdcard_det_en to false*/
+	if (is_project(20630) || is_project(20631) || is_project(20632) || is_project(20633) || is_project(20633)
+		|| is_project(20634) || is_project(20635) || is_project(0x206B4) || is_project(20637) || is_project(20638)
+			|| is_project(20639) || is_project(0x206B7)) {
+		pdata->sdcard_det_en = false;
+	}
 	/* when LDO5 enable, enable SDCARD_DET */
 	if (id == MT6360_LDO_LDO5 && pdata->sdcard_det_en) {
 		ret = mt6360_ldo_reg_update_bits(mli, MT6360_LDO_LDO5_CTRL0,
@@ -355,6 +362,12 @@ static int mt6360_ldo_disable(struct regulator_dev *rdev)
 		dev_err(&rdev->dev, "%s: fail (%d)\n", __func__, ret);
 		return ret;
 	}
+/*Yaqiang.Shi@RM.MM.Display.LCD 20630 ldo5 used for lcd VDDI, need to set sdcard_det_en to false*/
+        if (is_project(20630) || is_project(20631) || is_project(20632) || is_project(20633) || is_project(20633)
+                || is_project(20634) || is_project(20635) || is_project(0x206B4) || is_project(20637) || is_project(20638)
+                        || is_project(20639) || is_project(0x206B7)) {
+                pdata->sdcard_det_en = false;
+        }
 	/* when LDO5 disable, disable SDCARD_DET */
 	if (id == MT6360_LDO_LDO5 && pdata->sdcard_det_en) {
 		ret = mt6360_ldo_reg_update_bits(mli, MT6360_LDO_LDO5_CTRL0,
@@ -626,13 +639,32 @@ static const struct mt6360_pdata_prop mt6360_pdata_props[] = {
 static int mt6360_ldo_apply_pdata(struct mt6360_ldo_info *mli,
 				  struct mt6360_ldo_platform_data *pdata)
 {
+#ifdef CONFIG_OPLUS_FEATURE_SDCARD
+//WeiZhenXi@BSP.Storage.Sdcard, 2020/09/27, Modify for enable sdcard
+	int i, ret;
+#else  /* OPLUS_FEATURE_SDCARD */
 	int ret;
+#endif /* OPLUS_FEATURE_SDCARD */
 
 	dev_dbg(mli->dev, "%s ++\n", __func__);
 	ret = mt6360_pdata_apply_helper(mli, pdata, mt6360_pdata_props,
 					ARRAY_SIZE(mt6360_pdata_props));
 	if (ret < 0)
 		return ret;
+#ifdef CONFIG_OPLUS_FEATURE_SDCARD
+//WeiZhenXi@BSP.Storage.Sdcard, 2020/09/27, Modify for enable sdcard
+	if (!(is_project(20630) || is_project(20631) || is_project(20632) || is_project(20633) || is_project(20633)
+	|| is_project(20634) || is_project(20635) || is_project(0x206B4) || is_project(20637) || is_project(20638)
+	|| is_project(20639) || is_project(0x206B7))){
+		for (i = 0; i < MT6360_LDO_CTRLS_NUM; i++) {
+			ret = mt6360_ldo_reg_update_bits(mli,
+					 MT6360_LDO_LDO5_EN_CTRL1 + i, ldo_ctrl_mask[i],
+					 pdata->ldo5_ctrls[i]);
+			if (ret < 0)
+				return ret;
+		}
+	}
+#endif /* OPLUS_FEATURE_SDCARD */
 	dev_dbg(mli->dev, "%s --\n", __func__);
 	return 0;
 }
@@ -663,6 +695,14 @@ static int mt6360_ldo_parse_dt_data(struct device *dev,
 	ret = of_irq_to_resource_table(np, res, res_cnt);
 	pdata->irq_res = res;
 	pdata->irq_res_cnt = ret;
+#ifdef CONFIG_OPLUS_FEATURE_SDCARD
+//WeiZhenXi@BSP.Storage.Sdcard, 2020/09/27, Modify for enable sdcard
+	if (!(is_project(20630) || is_project(20631) || is_project(20632) || is_project(20633) || is_project(20633)
+	|| is_project(20634) || is_project(20635) || is_project(0x206B4) || is_project(20637) || is_project(20638)
+	|| is_project(20639) || is_project(0x206B7)))
+	of_property_read_u8_array(np, "ldo5_ctrls",
+				  pdata->ldo5_ctrls, MT6360_LDO_CTRLS_NUM);
+#endif /* OPLUS_FEATURE_SDCARD */
 bypass_irq_res:
 	dev_dbg(dev, "%s --\n", __func__);
 	return 0;

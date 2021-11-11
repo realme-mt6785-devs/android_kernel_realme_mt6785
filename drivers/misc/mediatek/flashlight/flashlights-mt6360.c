@@ -25,6 +25,10 @@
 #include <linux/of.h>
 #include <linux/list.h>
 #include <linux/delay.h>
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*zengzhancheng@Camera.Driver add for rm 5gb & 5gh torch duty */
+#include <soc/oppo/oppo_project.h>
+#endif
 
 #include "richtek/rt-flashlight.h"
 #include "mtk_charger.h"
@@ -103,6 +107,21 @@ static const unsigned char mt6360_torch_level[MT6360_LEVEL_TORCH] = {
 	0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12,
 	0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E
 };
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*zengzhancheng@Camera.Driver add for rm 5gb & 5gh torch duty */
+/* 0x75:25+12.5*n */
+static const unsigned char mt6360_torch_level_rm_6853[MT6360_LEVEL_TORCH] = {
+	0x00, 0x01, 0x02, 0x04, 0x06, 0x0A, 0x06, 0x0E, 0x10, 0x12,
+	0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E
+};
+
+static const unsigned char mt6360_torch_level_rm_6885[MT6360_LEVEL_TORCH] = {
+	0x00, 0x01, 0x02, 0x06, 0x06, 0x0A, 0x06, 0x0E, 0x10, 0x12,
+	0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E
+};
+#endif
+
 
 /* 0x00~0x74 6.25mA/step 0x75~0xB1 12.5mA/step */
 static const unsigned char mt6360_strobe_level[MT6360_LEVEL_FLASH] = {
@@ -297,9 +316,30 @@ static int mt6360_set_level_ch1(int level)
 	}
 
 	/* set brightness level */
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*zengzhancheng@Camera.Driver add for rm 5gb & 5gh torch duty */
+	if (!mt6360_is_torch(level)) {
+		if (is_project(OPPO_20630) || is_project(OPPO_20631) || is_project(OPPO_20632) || is_project(OPPO_206B4)
+			|| is_project(OPPO_20633) || is_project(OPPO_20634) || is_project(OPPO_20635) || is_project(OPPO_20610)
+			|| is_project(OPPO_20611) || is_project(OPPO_20680) || is_project(OPPO_20613) || is_project(OPPO_20686)
+			|| is_project(OPPO_20637) || is_project(OPPO_20638) || is_project(OPPO_20639) || is_project(OPPO_206B7)
+			|| is_project(OPPO_20625) || is_project(OPPO_20626)) {
+			flashlight_set_torch_brightness(
+				flashlight_dev_ch1, mt6360_torch_level_rm_6853[level]);
+		} else if (is_project(OPPO_20601) || is_project(OPPO_20602) || is_project(OPPO_20660)){
+			flashlight_set_torch_brightness(
+				flashlight_dev_ch1, mt6360_torch_level_rm_6885[level]);
+		} else {
+			printk("enter set_torch_brightness");
+			flashlight_set_torch_brightness(
+				flashlight_dev_ch1, mt6360_torch_level[level]);
+		}
+	}
+	#else
 	if (!mt6360_is_torch(level))
 		flashlight_set_torch_brightness(
 				flashlight_dev_ch1, mt6360_torch_level[level]);
+	#endif
 	flashlight_set_strobe_brightness(
 			flashlight_dev_ch1, mt6360_strobe_level[level]);
 

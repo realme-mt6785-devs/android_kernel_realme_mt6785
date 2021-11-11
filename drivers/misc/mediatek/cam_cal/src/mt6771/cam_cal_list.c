@@ -15,9 +15,23 @@
 #include "eeprom_i2c_common_driver.h"
 #include "eeprom_i2c_custom_driver.h"
 #include "kd_imgsensor.h"
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
 
 struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
 	/*Below is commom sensor */
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Longyuan.Yang@Camera.Driver 20190111 modify for sensor eeprom*/
+	{IMX398_SENSOR_ID, 0xA0, Common_read_region},
+	{GC2375H_SENSOR_ID, 0xA0, Common_read_region},
+	/*weiriqin@Camera.Driver, 2019/09/27, add for 18531 sub+main2 otp read eeprom*/
+	{S5K3P9SP_SENSOR_ID, 0xA8, Common_read_region},
+	{S5K3P9SP_SENSOR_ID, 0xA0, Common_read_region},
+	{GC5035_SENSOR_ID, 0xA0, Common_read_region},
+	{S5KGM1SP_SENSOR_ID, 0xA0, Common_read_region},
+        {HI846_SENSOR_ID, 0xA2, Common_read_region, 0x2B00},
+	#else
 	{IMX338_SENSOR_ID, 0xA0, Common_read_region},
 	{S5K4E6_SENSOR_ID, 0xA8, Common_read_region},
 	{IMX386_SENSOR_ID, 0xA0, Common_read_region},
@@ -49,6 +63,7 @@ struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
 	{IMX376_SENSOR_ID, 0xA2, Common_read_region},
 	{IMX214_SENSOR_ID, 0xA0, Common_read_region},
 	{IMX214_MONO_SENSOR_ID, 0xA0, Common_read_region},
+	#endif
 	/*  ADD before this line */
 	{0, 0, 0}	/*end of list */
 };

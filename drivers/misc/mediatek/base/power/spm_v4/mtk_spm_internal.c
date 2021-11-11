@@ -51,6 +51,12 @@
 #include <mt-plat/mtk_meminfo.h>
 #endif
 
+#ifdef OPLUS_FEATURE_POWERINFO_STANDBY
+//fangeqiang@BSP.Power.Basic, 2020/10/21, add for wakeup statics.
+#include "../../../../../../soc/oppo/oppo_wakelock_profiler/oppo_wakelock_profiler_mtk.h"
+static int wakeup_state;
+#endif/*OPLUS_FEATURE_POWERINFO_STANDBY*/
+
 /**************************************
  * Config and Parameter
  **************************************/
@@ -321,6 +327,21 @@ unsigned int __spm_output_wake_reason(const struct wake_status *wakesta,
 		spm_read(SPM_SW_FLAG),
 		spm_read(SPM_SW_RSV_2),
 		spm_read(SPM_SRC_REQ));
+
+
+	#ifdef OPLUS_FEATURE_POWERINFO_STANDBY
+	//fangeqiang@BSP.Power.Basic, 2020/10/21, add for wakeup statics.
+
+	//R12_EINT_EVENT_B wakeup statistics in other place
+	if(suspend==true && (!(wakesta->r12 & R12_EINT_EVENT_B))){
+		pr_info("%s:wakeup_reson=%d scenario=%s wakeupby(buf)=%s",__func__,wr,scenario,buf);
+		wakeup_state=false;
+		wakeup_state=wakeup_reasons_statics(buf, WS_CNT_WLAN|WS_CNT_ADSP|WS_CNT_SENSOR|WS_CNT_MODEM);
+		if((wakeup_state==false)&&(strlen(buf)!=0)){
+			wakeup_reasons_statics("other",WS_CNT_OTHER);
+		}
+	}
+	#endif /* OPLUS_FEATURE_POWERINFO_STANDBY */
 
 	WARN_ON(log_size >= 1024);
 

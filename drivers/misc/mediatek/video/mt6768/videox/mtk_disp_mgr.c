@@ -86,6 +86,13 @@
 
 #define DDP_OUTPUT_LAYID 4
 
+#ifdef OPLUS_BUG_STABILITY
+/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature, 2018/09/10, Add for sau and silence close backlight */
+#include <mt-plat/mtk_boot_common.h>
+extern unsigned long oplus_silence_mode;
+extern unsigned int oplus_fp_silence_mode;
+#endif /* OPLUS_BUG_STABILITY */
+
 #if defined MTK_FB_SHARE_WDMA0_SUPPORT
 static int idle_flag = 1;
 static int smartovl_flag;
@@ -1535,6 +1542,13 @@ long mtk_disp_mgr_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		{
 			return _ioctl_get_display_caps(arg);
 		}
+	#ifdef OPLUS_BUG_STABILITY
+	/* Zhenzhen.Wu@ODM_WT.Tuning.Display.LCD, 2019/12/7, add for multi-lcms */
+	case DISP_IOCTL_GET_LCM_MODULE_INFO:
+		{
+			return _ioctl_get_lcm_module_info(arg);
+		}
+	#endif /* VENDOR_EDIT */
 	case DISP_IOCTL_GET_VSYNC_FPS:
 		{
 			return _ioctl_get_vsync(arg);
@@ -1877,6 +1891,17 @@ static int mtk_disp_mgr_probe(struct platform_device *pdev)
 	    (struct class_device *)device_create(mtk_disp_mgr_class, NULL,
 	    mtk_disp_mgr_devno, NULL,
 						 DISP_SESSION_DEVICE);
+
+	#ifdef OPLUS_BUG_STABILITY
+	/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature, 2018/09/10, Add for sau and silence close backlight */
+	if ((oppo_boot_mode == OPPO_SILENCE_BOOT)
+			||(get_boot_mode() == OPPO_SAU_BOOT)) {
+		printk("%s OPPO_SILENCE_BOOT set oplus_silence_mode to 1\n", __func__);
+		oplus_silence_mode = 1;
+		oplus_fp_silence_mode = 1;
+	}
+	#endif /* OPLUS_BUG_STABILITY */
+
 	disp_sync_init();
 
 	external_display_control_init();

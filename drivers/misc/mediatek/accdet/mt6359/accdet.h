@@ -39,7 +39,8 @@
 
 #include <linux/string.h>
 
-
+#include <soc/oppo/device_info.h>
+#include <soc/oppo/oppo_project.h>
 #define ACCDET_DEVNAME "accdet"
 
 /****** SW ENV define *************************************/

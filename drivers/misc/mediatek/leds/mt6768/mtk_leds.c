@@ -53,6 +53,12 @@
 #include "mtk_leds_hal.h"
 #include "../mtk_leds_drv.h"
 
+#ifdef OPLUS_BUG_STABILITY
+/* LiPing-M@PSW.MultiMedia.Display.LCD.Feature.DD17&DD16, 2017/12/07, Add for sau and silence close backlight */
+#include <mt-plat/mtk_boot_common.h>
+extern unsigned long oplus_silence_mode;
+#endif /* OPLUS_BUG_STABILITY */
+
 /* for LED&Backlight bringup, define the dummy API */
 #ifndef CONFIG_MTK_PMIC_NEW_ARCH
 u16 pmic_set_register_value(u32 flagname, u32 val)
@@ -153,6 +159,9 @@ void mt_leds_wake_lock_init(void)
 	wakeup_source_init(&leds_suspend_lock, "leds wakelock");
 }
 
+#ifdef OPLUS_BUG_COMPATIBILITY
+int led_rm = 0;
+#endif
 struct cust_mt65xx_led *get_cust_led_dtsi(void)
 {
 	struct device_node *led_node = NULL;
@@ -206,6 +215,10 @@ struct cust_mt65xx_led *get_cust_led_dtsi(void)
 				pled_dtsi[i].name);
 			pled_dtsi[i].mode = 0;
 		}
+
+#ifdef OPLUS_BUG_COMPATIBILITY
+		ret = of_property_read_u32(led_node, "led_rm", &led_rm);
+#endif
 
 		ret =
 		    of_property_read_u32(led_node, "data",
@@ -762,6 +775,14 @@ int mt_mt65xx_led_set_cust(struct cust_mt65xx_led *cust, int level)
 #endif
 	static bool button_flag;
 
+	#ifdef OPLUS_BUG_STABILITY
+	/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature.DD17&DD16, 2018/09/10, Add for sau and silence close backlight */
+	if (oplus_silence_mode) {
+		printk("%s oplus_silence_mode is %ld, set backlight to 0\n",__func__, oplus_silence_mode);
+		level = 0;
+	}
+	#endif /* OPLUS_BUG_STABILITY */
+
 	switch (cust->mode) {
 
 	case MT65XX_LED_MODE_PWM:
@@ -856,6 +877,12 @@ void mt_mt65xx_led_work(struct work_struct *work)
 	mutex_unlock(&leds_mutex);
 }
 
+#ifdef OPLUS_BUG_STABILITY
+//Tongxing.Liu@ODM_WT.MM.Display.LCD, 2021/01/25, add LCD gamma control
+extern int primary_display_set_gamma_mode(unsigned int level);
+int gamma_flag = 1;
+#endif
+
 void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 {
 	struct mt65xx_led_data *led_data =
@@ -882,12 +909,44 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 		level = (level * CONFIG_LIGHTNESS_MAPPING_VALUE) / 255;
 
 	backlight_debug_log(led_data->level, level);
+
+	#ifndef OPLUS_FEATURE_MULTIBITS_BL
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, remove for multibits backlight */
 	disp_pq_notify_backlight_changed((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT)
 					    - 1) * level + 127) / 255);
+	#else /* OPLUS_FEATURE_MULTIBITS_BL */
+	disp_pq_notify_backlight_changed(level);
+	#endif /* OPLUS_FEATURE_MULTIBITS_BL */
 #ifdef CONFIG_MTK_AAL_SUPPORT
+	#ifndef OPLUS_FEATURE_MULTIBITS_BL
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, modify for multibits backlight */
 	disp_aal_notify_backlight_changed((((1 <<
 					MT_LED_INTERNAL_LEVEL_BIT_CNT)
 					    - 1) * level + 127) / 255);
+	#else /* OPLUS_FEATURE_MULTIBITS_BL */
+	/*
+	Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature, 2018/09/10,
+	modify for silence mode.
+	*/
+	if (oplus_silence_mode) {
+		printk("%s oplus_silence_mode is %ld, set backlight to 0\n", __func__, oplus_silence_mode);
+		level = 0;
+	}
+//Zhenzhen.Wu@ODM_WT.MM.Display.Lcd, 2020/8/13, dynamic gamma control for lowest light
+	pr_debug("%s gamma=%d\n", __func__, level);
+	if (2 == level) {
+		if (1 == gamma_flag) {
+			primary_display_set_gamma_mode(1);
+			gamma_flag = 0;
+		}
+	} else if (level > 2) {
+		if (0 == gamma_flag) {
+			primary_display_set_gamma_mode(0);
+			gamma_flag = 1;
+		}
+	}
+	disp_aal_notify_backlight_changed(level);
+	#endif /* OPLUS_FEATURE_MULTIBITS_BL */
 #else
 	if (led_data->cust.mode == MT65XX_LED_MODE_CUST_BLS_PWM)
 		mt_mt65xx_led_set_cust(&led_data->cust,

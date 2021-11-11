@@ -49,7 +49,14 @@ typedef int (*cust_set_brightness) (int level);
 /* 10bit backlight level */
 #define LED_INCREASE_LED_LEVEL_MTKPATCH
 #ifdef LED_INCREASE_LED_LEVEL_MTKPATCH
+#ifdef OPLUS_FEATURE_MULTIBITS_BL
+/* Liyan@ODM.HQ.Multimedia.LCM 2019/08/20 modified for 2048 steps backlight */
+#define MT_LED_INTERNAL_LEVEL_BIT_CNT 11
+/* Longyajun@ODM.HQ.Multimedia.LCM 2020/05/06 modified for 4095 steps backlight */
+#define MT_LED_INTERNAL_LEVEL_BIT_CNT_SALA 12
+#else /* OPLUS_FEATURE_MULTIBITS_BL */
 #define MT_LED_INTERNAL_LEVEL_BIT_CNT 10
+#endif /* OPLUS_FEATURE_MULTIBITS_BL */
 #endif
 
 /******************************************************************************

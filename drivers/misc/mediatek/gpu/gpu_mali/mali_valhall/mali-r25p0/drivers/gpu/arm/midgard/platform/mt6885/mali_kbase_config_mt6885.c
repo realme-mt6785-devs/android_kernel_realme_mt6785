@@ -39,6 +39,10 @@
 #include <mtk_gpu_power_sspm_ipi.h>
 #endif
 
+#ifdef CONFIG_OPLUS_FEATURE_MIDAS
+#include "ged_oppo_ex.h"
+#endif
+
 #define MALI_TAG				"[GPU/MALI]"
 #define mali_pr_info(fmt, args...)		pr_info(MALI_TAG"[INFO]"fmt, ##args)
 #define mali_pr_debug(fmt, args...)		pr_debug(MALI_TAG"[DEBUG]"fmt, ##args)
@@ -150,6 +154,9 @@ static void pm_callback_power_off_nolock(struct kbase_device *kbdev)
 
 #ifdef ENABLE_COMMON_DVFS
 	ged_dvfs_gpu_clock_switch_notify(0);
+#ifdef CONFIG_OPLUS_FEATURE_MIDAS
+	oppo_update_opp_cost();
+#endif
 #endif
 
 	gpu_dvfs_status_footprint(GPU_DVFS_STATUS_STEP_7);

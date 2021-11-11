@@ -32,6 +32,7 @@
 #include "mach/mtk_thermal.h"
 #include "mtk_thermal_timer.h"
 #include <mtk_ts_setting.h>
+#include <soc/oplus/system/oppo_project.h>
 
 #if defined(CONFIG_MTK_CLKMGR)
 #include <mach/mtk_clkmgr.h>
@@ -87,10 +88,6 @@
 
 #if !defined(CFG_LVTS_DOMINATOR)
 #define CFG_LVTS_DOMINATOR	0
-#endif
-
-#if !defined(CFG_LVTS_MCU_INTERRUPT_HANDLER)
-#define CFG_LVTS_MCU_INTERRUPT_HANDLER	0
 #endif
 
 #if !defined(CONFIG_LVTS_ERROR_AEE_WARNING)
@@ -1615,13 +1612,18 @@ static void read_all_tc_temperature(void)
 		if (lvts_hw_protect_enabled) {
 			dump_lvts_error_info();
 			tscpu_printk("thermal_hw_protect_en\n");
-			BUG();
+			//Yunqing.Wang@BSP.Kernel.Stability 2020/9/3, if high temp aging version, disable thermal protection
+			if (get_eng_version() != HIGH_TEMP_AGING)
+				BUG();
+			else
+				pr_info("%s should reset but bypass\n", __func__);
 		} else {
 			tscpu_printk("thermal_hw_protect_dis\n");
 		}
 #else
 		dump_lvts_error_info();
-		BUG();
+		if (get_eng_version() != HIGH_TEMP_AGING)
+			BUG();
 #endif
 
 	}
@@ -2718,22 +2720,6 @@ static int tscpu_thermal_probe(struct platform_device *dev)
 
 	if (err)
 		tscpu_warn("tscpu_init IRQ register fail\n");
-
-#if CFG_LVTS_MCU_INTERRUPT_HANDLER
-	err = request_irq(thermal_mcu_irq_number,
-#if CFG_LVTS_DOMINATOR
-#if CFG_THERM_LVTS
-				lvts_tscpu_thermal_all_tc_interrupt_handler,
-#endif /* CFG_THERM_LVTS */
-#else
-				tscpu_thermal_all_tc_interrupt_handler,
-#endif /* CFG_LVTS_DOMINATOR */
-				IRQF_TRIGGER_NONE, THERMAL_NAME, NULL);
-
-	if (err)
-		tscpu_warn("tscpu_init mcu IRQ register fail\n");
-#endif /* CFG_LVTS_MCU_INTERRUPT_HANDLER */
-
 #else
 	err = request_irq(THERM_CTRL_IRQ_BIT_ID,
 #if CFG_LVTS_DOMINATOR

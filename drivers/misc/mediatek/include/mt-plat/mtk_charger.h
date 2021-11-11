@@ -50,6 +50,9 @@ struct charger_consumer {
 	struct notifier_block *pnb;
 	struct list_head list;
 	bool hv_charging_disabled;
+	/* KaiLi.Lu@BSP.CHG.Basic, 2020/08/10, add for tscharger 0.1C precision support*/
+	bool support_ntc_01c_precision;
+	/*end*/
 };
 
 /* ============================================= */
@@ -101,10 +104,6 @@ extern int charger_manager_enable_power_path(
 	struct charger_consumer *consumer,
 	int idx,
 	bool en);
-extern int charger_manager_force_disable_power_path(
-	struct charger_consumer *consumer,
-	int idx,
-	bool disable);
 extern int charger_manager_enable_charging(
 	struct charger_consumer *consumer,
 	int idx,

@@ -55,6 +55,14 @@
 #if defined(CONFIG_MTK_CAM_SECURE_I2C)
 #include "imgsensor_ca.h"
 #endif
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Henry.Chang@Cam.Drv, 20200727, add for allplatform*/
+#include "imgsensor_eeprom.h"
+#include "imgsensor_hwcfg_custom.h"
+#endif
 
 static DEFINE_MUTEX(gimgsensor_mutex);
 static DEFINE_MUTEX(gimgsensor_open_mutex);
@@ -150,6 +158,26 @@ static void imgsensor_mutex_unlock(struct IMGSENSOR_SENSOR_INST *psensor_inst)
 #endif
 }
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+#ifdef SENSOR_PLATFORM_MT6771
+/*weiriqin@Camera.Drv, 2019/08/20, add for wait sem to pull rst*/
+static DEFINE_MUTEX(gi2c_mutex);
+void global_i2c_mutex_lock(void)
+{
+	mutex_lock(&gi2c_mutex);
+	PK_DBG("lock gloable i2c mutex");
+}
+EXPORT_SYMBOL(global_i2c_mutex_lock);
+
+void global_i2c_mutex_unlock(void)
+{
+	mutex_unlock(&gi2c_mutex);
+	PK_DBG("unlock gloable i2c mutex");
+}
+EXPORT_SYMBOL(global_i2c_mutex_unlock);
+#endif
+#endif
+
 MINT32 imgsensor_sensor_open(struct IMGSENSOR_SENSOR *psensor)
 {
 	MINT32 ret = ERROR_NONE;
@@ -173,10 +201,12 @@ MINT32 imgsensor_sensor_open(struct IMGSENSOR_SENSOR *psensor)
 
 		/* turn on power */
 		IMGSENSOR_PROFILE_INIT(&psensor_inst->profile_time);
+		imgsensor_mutex_lock(psensor_inst);
 
 		ret = imgsensor_hw_power(&pimgsensor->hw,
 				psensor,
 				IMGSENSOR_HW_POWER_STATUS_ON);
+		imgsensor_mutex_unlock(psensor_inst);
 
 		if (ret != IMGSENSOR_RETURN_SUCCESS) {
 			PK_PR_ERR("[%s]", __func__);
@@ -212,6 +242,10 @@ MINT32 imgsensor_sensor_open(struct IMGSENSOR_SENSOR *psensor)
 			PK_PR_ERR("SensorOpen fail");
 		} else {
 			psensor_inst->state = IMGSENSOR_STATE_OPEN;
+			#ifdef OPLUS_FEATURE_CAMERA_COMMON
+			/*Henry.Chang@Cam.Drv, 20200917, add for charge status change*/
+			Oplusimgsensor_powerstate_notify(1);
+			#endif
 		}
 
 #ifdef IMGSENSOR_OC_ENABLE
@@ -473,6 +507,10 @@ MINT32 imgsensor_sensor_close(struct IMGSENSOR_SENSOR *psensor)
 				IMGSENSOR_HW_POWER_STATUS_OFF);
 
 			psensor_inst->state = IMGSENSOR_STATE_CLOSE;
+			#ifdef OPLUS_FEATURE_CAMERA_COMMON
+			/*Henry.Chang@Cam.Drv, 20200917, add for charge status change*/
+			Oplusimgsensor_powerstate_notify(0);
+			#endif
 		}
 
 		imgsensor_mutex_unlock(psensor_inst);
@@ -494,7 +532,10 @@ static void imgsensor_init_sensor_list(void)
 	const char *penable_sensor;
 	struct device_node *of_node
 		= of_find_compatible_node(NULL, NULL, "mediatek,imgsensor");
-
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Henry Chang@Camera.Drv add for 20131 20200728*/
+	psensor_list = Oplusimgsensor_Sensorlist();
+	#endif
 	ret = of_property_read_string(of_node, "cust-sensor", &penable_sensor);
 	if (ret < 0) {
 		PK_DBG("Property cust-sensor not defined\n");
@@ -567,9 +608,13 @@ int imgsensor_set_driver(struct IMGSENSOR_SENSOR *psensor)
 	struct IMGSENSOR_SENSOR_INST *psensor_inst = &psensor->inst;
 
 	imgsensor_mutex_init(psensor_inst);
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Henry.Chang@Cam.Drv, 20200728, add for allplatform*/
+	Oplusimgsensor_i2c_init(psensor_inst);
+	#else
 	imgsensor_i2c_init(&psensor_inst->i2c_cfg,
-	imgsensor_custom_config[
-	(unsigned int)psensor_inst->sensor_idx].i2c_dev);
+		imgsensor_custom_config[psensor_inst->sensor_idx].i2c_dev);
+	#endif
 	imgsensor_i2c_filter_msg(&psensor_inst->i2c_cfg, true);
 
 	while (i < MAX_NUM_OF_SUPPORT_SENSOR && pimgsensor->psensor_list[i]) {
@@ -696,7 +741,7 @@ static inline int adopt_CAMERA_HW_GetInfo2(void *pBuf)
 	PK_DBG("[%s]Entry%d\n", __func__, pSensorGetInfo->SensorId);
 
 	for (i = MSDK_SCENARIO_ID_CAMERA_PREVIEW;
-			i < MSDK_SCENARIO_ID_CUSTOM15;
+			i < MSDK_SCENARIO_ID_CUSTOM5;
 			i++) {
 		imgsensor_sensor_get_info(psensor, i, &info, &config);
 
@@ -984,6 +1029,23 @@ static inline int adopt_CAMERA_HW_FeatureControl(void *pBuf)
 
 	/*in case that some structure are passed from user sapce by ptr */
 	switch (pFeatureCtrl->FeatureId) {
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
+	case SENSOR_FEATURE_SET_SENSOR_OTP:
+		ret = imgsensor_sensor_feature_control(psensor,
+					pFeatureCtrl->FeatureId,
+					(unsigned char *)pFeaturePara,
+					(unsigned int *)&FeatureParaLen);
+		break;
+	case SENSOR_FEATURE_GET_EEPROM_COMDATA:
+	case SENSOR_FEATURE_GET_EEPROM_STEREODATA:
+	{
+		enum IMGSENSOR_SENSOR_IDX sensor_idx = psensor->inst.sensor_idx;
+		ret = Eeprom_Control(sensor_idx, pFeatureCtrl->FeatureId,
+						(unsigned char *)pFeaturePara, 0);
+		break;
+	}
+	#endif
 	case SENSOR_FEATURE_SET_MCLK_DRIVE_CURRENT:
 	{
 		MUINT32 __current = (*(MUINT32 *)pFeaturePara);
@@ -1662,7 +1724,6 @@ static inline int adopt_CAMERA_HW_FeatureControl(void *pBuf)
 		}
 		break;
 	case SENSOR_FEATURE_GET_PDAF_DATA:
-	case SENSOR_FEATURE_GET_4CELL_DATA:
 		{
 #define PDAF_DATA_SIZE 4096
 			char *pPdaf_data = NULL;
@@ -1705,6 +1766,52 @@ static inline int adopt_CAMERA_HW_FeatureControl(void *pBuf)
 				PK_DBG("[CAMERA_HW]ERROR: copy_to_user fail\n");
 			}
 			kfree(pPdaf_data);
+			*(pFeaturePara_64 + 1) = (uintptr_t) usr_ptr;
+		}
+		break;
+	/* Shipei.Chen@Cam.Drv, 20201219, modify for gw3 64M remosaic Rotatemirror! */
+	case SENSOR_FEATURE_GET_4CELL_DATA:
+		{
+#define FCELL_DATA_SIZE 8192
+			char *p4cell_data = NULL;
+			unsigned long long *pFeaturePara_64 =
+				(unsigned long long *)pFeaturePara;
+			void *usr_ptr =
+				(void *)(uintptr_t) (*(pFeaturePara_64 + 1));
+			kal_uint32 buf_sz =
+				(kal_uint32) (*(pFeaturePara_64 + 2));
+
+			/* buffer size exam */
+			if (buf_sz > FCELL_DATA_SIZE) {
+				kfree(pFeaturePara);
+				PK_PR_ERR(
+				"buffer size (%u) can't larger than %d bytes\n",
+					  buf_sz, FCELL_DATA_SIZE);
+				return -EINVAL;
+			}
+
+			p4cell_data = kmalloc(
+				sizeof(char) * FCELL_DATA_SIZE, GFP_KERNEL);
+			if (p4cell_data == NULL) {
+				kfree(pFeaturePara);
+				PK_PR_ERR(" ioctl allocate mem failed\n");
+				return -ENOMEM;
+			}
+			memset(p4cell_data, 0xff, sizeof(char) * FCELL_DATA_SIZE);
+
+			if (pFeaturePara_64 != NULL)
+				*(pFeaturePara_64 + 1) = (uintptr_t) p4cell_data;
+
+			ret = imgsensor_sensor_feature_control(psensor,
+					pFeatureCtrl->FeatureId,
+					(unsigned char *)pFeaturePara,
+					(unsigned int *)&FeatureParaLen);
+
+			if (copy_to_user((void __user *)usr_ptr,
+					 (void *)p4cell_data, buf_sz)) {
+				PK_DBG("[CAMERA_HW]ERROR: copy_to_user fail\n");
+			}
+			kfree(p4cell_data);
 			*(pFeaturePara_64 + 1) = (uintptr_t) usr_ptr;
 		}
 		break;
@@ -2195,6 +2302,7 @@ static int imgsensor_probe(struct platform_device *pplatform_device)
 
 	phw->common.pplatform_device = pplatform_device;
 
+	oplus_imgsensor_hwcfg();
 	imgsensor_hw_init(phw);
 	imgsensor_i2c_create();
 	imgsensor_proc_init();

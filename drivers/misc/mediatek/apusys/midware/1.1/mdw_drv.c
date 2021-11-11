@@ -77,7 +77,7 @@ static int mdw_release(struct inode *inode, struct file *filp)
 	struct mdw_usr *u;
 
 	u = filp->private_data;
-	mdw_usr_put(u);
+	mdw_usr_destroy(u);
 
 	return 0;
 }

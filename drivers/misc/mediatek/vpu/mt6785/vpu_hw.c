@@ -97,7 +97,7 @@ struct VPU_OPP_INFO vpu_power_table[VPU_OPP_NUM] = {
 
 #include <linux/ktime.h>
 
-#define CMD_WAIT_TIME_MS    (3 * 1000)
+#define CMD_WAIT_TIME_MS    (18 * 1000)
 #define OPP_WAIT_TIME_MS    (300)
 #define PWR_KEEP_TIME_MS    (2000)
 #define OPP_KEEP_TIME_MS    (3000)
@@ -1050,7 +1050,7 @@ if (vvpu_index == 0xFF) {
 		LOG_ERR("wrong vvpu opp(%d), max(%d)",
 				vvpu_index, opps.count - 1);
 
-	} else if ((vvpu_index < opps.vvpu.index) ||
+	} else if ((vvpu_index <= opps.vvpu.index) ||
 			((vvpu_index > opps.vvpu.index) &&
 				(!opp_keep_flag)) ||
 				(vvpu_index < get_vvpu_opp) ||
@@ -1178,7 +1178,7 @@ if (vvpu_index == 0xFF) {
 	mutex_unlock(&opp_mutex);
 out:
 	LOG_INF("%s(%d)(%d/%d_%d)(%d/%d)(%d.%d.%d.%d)(%d/%d)(%d/%d/%d/%d)%d\n",
-		"opp_check",
+		"opp_check_v1",
 		core,
 		is_power_debug_lock,
 		vvpu_index,

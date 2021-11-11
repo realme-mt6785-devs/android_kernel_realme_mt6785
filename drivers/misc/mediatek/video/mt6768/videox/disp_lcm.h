@@ -51,6 +51,11 @@ int disp_lcm_esd_check(struct disp_lcm_handle *plcm);
 int disp_lcm_esd_recover(struct disp_lcm_handle *plcm);
 int disp_lcm_suspend(struct disp_lcm_handle *plcm);
 int disp_lcm_resume(struct disp_lcm_handle *plcm);
+#ifdef OPLUS_BUG_STABILITY
+int primary_disp_lcm_resume_power(struct disp_lcm_handle *plcm);
+//Tongxing.Liu@ODM_WT.MM.Display.Lcd, 2019/11/26, display timing adaptation
+int disp_lcm_shutdown(struct disp_lcm_handle *plcm);
+#endif /* OPLUS_BUG_STABILITY */
 int disp_lcm_is_support_adjust_fps(struct disp_lcm_handle *plcm);
 int disp_lcm_adjust_fps(void *cmdq, struct disp_lcm_handle *plcm, int fps);
 int disp_lcm_set_backlight(struct disp_lcm_handle *plcm,
@@ -70,4 +75,10 @@ int disp_lcm_is_partial_support(struct disp_lcm_handle *plcm);
 int disp_lcm_validate_roi(struct disp_lcm_handle *plcm,
 	int *x, int *y, int *w, int *h);
 int disp_lcm_aod(struct disp_lcm_handle *plcm, int enter);
+#ifdef OPLUS_BUG_STABILITY
+/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
+int disp_lcm_oplus_set_lcm_cabc_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level);
+//Tongxing.Liu@ODM_WT.MM.Display.Lcd, 2021/01/25 Add gamma write interface,
+int disp_lcm_oplus_set_lcm_gamma_cmd(struct disp_lcm_handle *plcm,void *handle,unsigned int level);
+#endif
 #endif

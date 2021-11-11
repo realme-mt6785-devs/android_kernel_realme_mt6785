@@ -38,16 +38,23 @@ struct REGULATOR_CTRL regulator_control[REGULATOR_TYPE_MAX_NUM] = {
 	{"vcama"},
 	{"vcamd"},
 	{"vcamio"},
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	{"vcamaf"},
+#endif
 };
 
 static const int int_oc_type[REGULATOR_TYPE_MAX_NUM] = {
 	INT_VCAMA1_OC,
 	INT_VCAMD_OC,
 	INT_VCAMIO_OC,
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	INT_VLDO28_OC,
+#endif
 };
 
 
 static struct REGULATOR reg_instance;
+
 
 static void imgsensor_oc_handler1(void)
 {
@@ -256,11 +263,15 @@ static enum IMGSENSOR_RETURN regulator_set(
 	int reg_type_offset;
 	atomic_t	*enable_cnt;
 
-
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	if (pin > IMGSENSOR_HW_PIN_AFVDD   ||
+#else
 	if (pin > IMGSENSOR_HW_PIN_DOVDD   ||
-		pin < IMGSENSOR_HW_PIN_AVDD    ||
-		pin_state < IMGSENSOR_HW_PIN_STATE_LEVEL_0 ||
-		pin_state >= IMGSENSOR_HW_PIN_STATE_LEVEL_HIGH)
+#endif
+	    pin < IMGSENSOR_HW_PIN_AVDD    ||
+	    pin_state < IMGSENSOR_HW_PIN_STATE_LEVEL_0 ||
+	    pin_state >= IMGSENSOR_HW_PIN_STATE_LEVEL_HIGH ||
+	    sensor_idx < 0)
 		return IMGSENSOR_RETURN_ERROR;
 
 	reg_type_offset = REGULATOR_TYPE_VCAMA;

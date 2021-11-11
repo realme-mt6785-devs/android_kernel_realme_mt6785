@@ -159,6 +159,34 @@ struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[] = {
 		},
 	},
 #endif
+#if defined(GC2375H_MIPI_RAW)
+	{
+		SENSOR_DRVNAME_GC2375H_MIPI_RAW,
+		{
+			/*GC2375's PWDN is linked to GPIO RST on 18561 board,
+			so RST is set Vol_High first here*/
+			{RST, Vol_High, 20},
+			{DOVDD, Vol_1800, 5},
+			{AVDD, Vol_2800, 1},
+			{SensorMCLK, Vol_High, 2},
+			{RST, Vol_Low, 2, Vol_High}
+		},
+	},
+#endif
+#if defined(IMX398_MIPI_RAW)
+	{
+		SENSOR_DRVNAME_IMX398_MIPI_RAW,
+		{
+			{RST, Vol_Low, 1},
+			{AVDD, Vol_2800, 0},
+			{DVDD, Vol_1100, 1},
+			{SensorMCLK, Vol_High, 1},
+			{DOVDD, Vol_1800, 0},
+			{AFVDD, Vol_2800, 5},
+			{RST, Vol_High, 2},
+		},
+	},
+#endif
 #if defined(IMX350_MIPI_RAW)
 	{
 		SENSOR_DRVNAME_IMX350_MIPI_RAW,
@@ -171,22 +199,6 @@ struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[] = {
 			{SensorMCLK, Vol_High, 5},
 			{PDN, Vol_High, 0},
 			{RST, Vol_High, 5}
-		},
-	},
-#endif
-#if defined(IMX398_MIPI_RAW)
-	{
-		SENSOR_DRVNAME_IMX398_MIPI_RAW,
-		{
-			{SensorMCLK, Vol_High, 0},
-			{AVDD, Vol_2800, 0},
-			{DOVDD, Vol_1800, 0},
-			{DVDD, Vol_1100, 0},
-			{AFVDD, Vol_2800, 0},
-			{PDN, Vol_Low, 0},
-			{PDN, Vol_High, 0},
-			{RST, Vol_Low, 0},
-			{RST, Vol_High, 1},
 		},
 	},
 #endif

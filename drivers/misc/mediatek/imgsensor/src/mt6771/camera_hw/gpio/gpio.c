@@ -127,10 +127,19 @@ static enum IMGSENSOR_RETURN gpio_set(
 	enum   GPIO_STATE      gpio_state;
 
 	if (pin < IMGSENSOR_HW_PIN_PDN ||
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/* weiriqin@Camera.Driver add for 19531 19391 special mipi switch 20190521 */
 #ifdef MIPI_SWITCH
-	    pin > IMGSENSOR_HW_PIN_MIPI_SWITCH_SEL ||
+            pin > IMGSENSOR_HW_PIN_MIPI_SWITCH_EN ||
 #else
 	   pin > IMGSENSOR_HW_PIN_DOVDD ||
+#endif
+#else
+#ifdef MIPI_SWITCH
+           pin > IMGSENSOR_HW_PIN_MIPI_SWITCH_SEL ||
+#else
+	   pin > IMGSENSOR_HW_PIN_DOVDD ||
+#endif
 #endif
 	   pin_state < IMGSENSOR_HW_PIN_STATE_LEVEL_0 ||
 	   pin_state > IMGSENSOR_HW_PIN_STATE_LEVEL_HIGH)

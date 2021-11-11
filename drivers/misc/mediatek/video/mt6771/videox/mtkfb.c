@@ -97,6 +97,29 @@ static const struct timeval FRAME_INTERVAL = { 0, 30000 };	/* 33ms */
 static bool no_update;
 static struct disp_session_input_config session_input;
 
+#ifdef OPLUS_BUG_STABILITY
+/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
+extern bool oplus_display_backlight_ic_support;
+/*Jian.zhou@MM.Display.LCD.Machine, 2019/09/18, add for himax ic of 18311*/
+extern bool oplus_display_lcm_id_check_support;
+extern int oplus_mtkfb_custom_data_init(struct platform_device *pdev);
+#endif /* OPLUS_BUG_STABILITY */
+
+/* #ifdef OPLUS_FEATURE_AOD */
+/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/10/26, add for aod */
+extern bool oplus_display_aod_support;
+/*
+ * YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,
+ * add for AOD feature
+ */
+static DEFINE_MUTEX(fb_pow_mod_lock);
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/03/30,
+* add resume to doze for tp gesture.
+*/
+void notify_suspend_to_tp(struct fb_info *info, enum mtkfb_aod_power_mode aod_pm);
+/* #endif */ /* OPLUS_FEATURE_AOD */
+
 /* macro definiton */
 #define ALIGN_TO(x, n)  (((x) + ((n) - 1)) & ~((n) - 1))
 #define MTK_FB_XRESV (ALIGN_TO(MTK_FB_XRES, MTK_FB_ALIGNMENT))
@@ -198,6 +221,13 @@ static int _parse_tag_videolfb(void);
 #endif
 static void mtkfb_late_resume(void);
 static void mtkfb_early_suspend(void);
+
+#ifdef OPLUS_BUG_STABILITY
+/* LiPing-m@PSW.MM.Display.LCD.Machine 2017/11/03, Add for support backlight ic */
+extern int is_lm3697;
+/* LiPing-m@PSW.MM.Display.LCD.Machine 2018/06/14, Add for dpt_hx83112a lcm support */
+int is_dpt_hx83112a_lcd = 0;
+#endif /* OPLUS_BUG_STABILITY */
 
 void mtkfb_log_enable(int enable)
 {
@@ -347,10 +377,18 @@ static int mtkfb_blank(int blank_mode, struct fb_info *info)
 			break;
 		}
 
+		/* #ifdef OPLUS_FEATURE_AOD */
+		/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+		mutex_lock(&fb_pow_mod_lock);
+		/* #endif */ /* OPLUS_FEATURE_AOD */
 		primary_display_set_power_mode(FB_SUSPEND);
 		mtkfb_early_suspend();
 
 		debug_print_power_mode_check(prev_pm, FB_SUSPEND);
+		/* #ifdef OPLUS_FEATURE_AOD */
+		/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+		mutex_unlock(&fb_pow_mod_lock);
+		/* #endif */ /* OPLUS_FEATURE_AOD */
 
 		break;
 	default:
@@ -1111,6 +1149,13 @@ static int mtkfb_ioctl(struct fb_info *info, unsigned int cmd,
 					primary_display_get_power_mode();
 
 		aod_pm = (enum mtkfb_aod_power_mode)arg;
+		/* #ifdef OPLUS_FEATURE_AOD */
+		/*
+		* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/03/30,
+		* add resume to doze for tp gesture.
+		*/
+		notify_suspend_to_tp(info,aod_pm);
+		/* #endif */ /* OPLUS_FEATURE_AOD */
 		DISPCHECK("AOD: ioctl: %s\n",
 			  aod_pm ? "AOD_DOZE_SUSPEND" : "AOD_DOZE");
 
@@ -1125,6 +1170,10 @@ static int mtkfb_ioctl(struct fb_info *info, unsigned int cmd,
 			 * LCM(low power mode). Then DOZE_SUSPEND to
 			 * power off dispsys.
 			 */
+			/* #ifdef OPLUS_FEATURE_AOD */
+			/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+			mutex_lock(&fb_pow_mod_lock);
+			/* #endif */ /* OPLUS_FEATURE_AOD */
 			if (primary_display_is_sleepd() &&
 			    primary_display_get_lcm_power_state()) {
 				primary_display_set_power_mode(DOZE);
@@ -1137,11 +1186,23 @@ static int mtkfb_ioctl(struct fb_info *info, unsigned int cmd,
 			stat = primary_display_suspend();
 
 			debug_print_power_mode_check(prev_pm, DOZE_SUSPEND);
+			/* #ifdef OPLUS_FEATURE_AOD */
+			/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+			mutex_unlock(&fb_pow_mod_lock);
+			/* #endif */ /* OPLUS_FEATURE_AOD */
 		} else if (aod_pm == MTKFB_AOD_DOZE) {
+			/* #ifdef OPLUS_FEATURE_AOD */
+			/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+			mutex_lock(&fb_pow_mod_lock);
+			/* #endif */ /* OPLUS_FEATURE_AOD */
 			primary_display_set_power_mode(DOZE);
 			stat = primary_display_resume();
 
 			debug_print_power_mode_check(prev_pm, DOZE);
+			/* #ifdef OPLUS_FEATURE_AOD */
+			/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+			mutex_unlock(&fb_pow_mod_lock);
+			/* #endif */ /* OPLUS_FEATURE_AOD */
 		} else {
 			DDPPR_ERR("AOD: error: unknown AOD power mode %d\n",
 				aod_pm);
@@ -2468,6 +2529,60 @@ static int update_test_kthread(void *data)
 }
 #endif
 
+#ifdef OPLUS_BUG_STABILITY
+/* Guoqiang.jiang@MM.Display.LCD.Machine, 2018/03/13, add for backlight IC KTD3136 */
+void get_backlight_ic(void) {
+	if (strstr(boot_command_line, "is_lm3697=1")) {
+		/* is_lm3697 = 1 means backlight ic is LM3697 */
+		is_lm3697 = 1;
+	}
+	if (strstr(boot_command_line, "is_lm3697=2")) {
+		/* is_lm3697 = 2 means backlight ic is KTD3136 */
+		is_lm3697 = 2;
+	}
+	pr_err("[LCD] func:%s, is_lm3697 = %d \n", __func__, is_lm3697);
+}
+
+/*Jian.zhou@MM.Display.LCD.Machine, 2019/09/18, add for himax ic of 18311*/
+void get_lcm_id(void) {
+	if (oplus_display_lcm_id_check_support) {
+		if (strstr(boot_command_line, "oppo18311_dsjm_himax83112a_1080p_dsi_vdo-2-fps")) {
+			is_dpt_hx83112a_lcd = 2;
+		}
+		if (strstr(boot_command_line, "oppo18311_dsjm_himax83112a_1080p_dsi_vdo-1-fps")) {
+			is_dpt_hx83112a_lcd = 1;
+		}
+		if (strstr(boot_command_line, "oppo18311_dsjm_himax83112a_1080p_dsi_vdo-8-fps")) {
+			is_dpt_hx83112a_lcd = 8;
+		}
+		if (strstr(boot_command_line, "oppo18311_dsjm_himax83112a_1080p_dsi_vdo-7-fps")) {
+			is_dpt_hx83112a_lcd = 7;
+		}
+	}
+	pr_err("[LCD] func:%s, lcm_id = %d \n", __func__, is_dpt_hx83112a_lcd);
+}
+#endif /* OPLUS_BUG_STABILITY */
+
+/* #ifdef OPLUS_FEATURE_AOD */
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/03/30,
+* add resume to doze for tp gesture.
+*/
+void notify_suspend_to_tp(struct fb_info *info, enum mtkfb_aod_power_mode aod_pm) {
+	enum mtkfb_power_mode prev_pm = primary_display_get_power_mode();
+
+	if (aod_pm == MTKFB_AOD_DOZE && prev_pm == FB_RESUME) {
+		int blank_mode = FB_BLANK_POWERDOWN;
+		struct fb_event event;
+
+		event.info  = info;
+		event.data = &blank_mode;
+		pr_info("%s for gesture\n", __func__);
+		fb_notifier_call_chain(FB_EVENT_BLANK, &event);
+	}
+}
+/* #endif */ /* OPLUS_FEATURE_AOD */
+
 #if defined(CONFIG_MTK_DUAL_DISPLAY_SUPPORT) && \
 	(CONFIG_MTK_DUAL_DISPLAY_SUPPORT == 2)
 static struct fb_info *allocate_fb_by_index(struct device *dev)
@@ -2515,6 +2630,28 @@ static int mtkfb_probe(struct platform_device *pdev)
 
 	DISPMSG("%s name [%s] = [%s][%p]\n", __func__,
 		pdev->name, pdev->dev.init_name, (void *)&pdev->dev);
+
+	#ifdef OPLUS_BUG_STABILITY
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
+	oplus_mtkfb_custom_data_init(pdev);
+
+	/* Guoqiang.jiang@MM.Display.LCD.Machine, 2018/03/13, add for backlight IC KTD3136 */
+	if (oplus_display_backlight_ic_support) {
+		get_backlight_ic();
+	}
+
+	/*Jian.zhou@MM.Display.LCD.Machine, 2019/09/18, add for himax ic of 18311*/
+	if (oplus_display_lcm_id_check_support) {
+		get_lcm_id();
+	}
+	#endif /* OPLUS_BUG_STABILITY */
+
+	/* #ifdef OPLUS_FEATURE_AOD */
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/10/26, add for aod */
+	if (oplus_display_aod_support) {
+		disp_helper_set_option(DISP_OPT_AOD, 1);
+	}
+	/* #endif */ /* OPLUS_FEATURE_AOD */
 
 	_parse_tag_videolfb();
 
@@ -2668,6 +2805,8 @@ static int mtkfb_probe(struct platform_device *pdev)
 #endif
 	fbdev->state = MTKFB_ACTIVE;
 
+	#ifndef OPLUS_BUG_STABILITY
+	/* LiPing-m@PSW.MM.Display.LCD.Machine 2018/1/3, Add for lcm ic rf mipi clk change */
 	if (!strcmp(mtkfb_find_lcm_driver(),
 			"oppo17321_tianma_td4310_1080p_dsi_vdo") ||
 	    !strcmp(mtkfb_find_lcm_driver(),
@@ -2675,6 +2814,11 @@ static int mtkfb_probe(struct platform_device *pdev)
 		register_ccci_sys_call_back(MD_SYS1, MD_DISPLAY_DYNAMIC_MIPI,
 				mipi_clk_change);
 	}
+	#else /* OPLUS_BUG_STABILITY */
+	register_ccci_sys_call_back(MD_SYS1, MD_DISPLAY_DYNAMIC_MIPI, mipi_clk_change);
+	pr_info("mtkfb_probe: mipi_clk_change is regist ok\n");
+	#endif /* OPLUS_BUG_STABILITY */
+
 
 	MSG_FUNC_LEAVE();
 	pr_info("disp driver(2) %s end\n", __func__);
@@ -2738,8 +2882,17 @@ static void mtkfb_shutdown(struct platform_device *pdev)
 		MTKFB_LOG("mtkfb has been power off\n");
 		return;
 	}
+
+	/* #ifdef OPLUS_FEATURE_AOD */
+	/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+	mutex_lock(&fb_pow_mod_lock);
+	/* #endif */ /* OPLUS_FEATURE_AOD */
 	primary_display_set_power_mode(FB_SUSPEND);
 	primary_display_suspend();
+	/* #ifdef OPLUS_FEATURE_AOD */
+	/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09,  add for aod feature */
+	mutex_unlock(&fb_pow_mod_lock);
+	/* #endif */ /* OPLUS_FEATURE_AOD */
 	MTKFB_LOG("[FB Driver] leave %s\n", __func__);
 }
 

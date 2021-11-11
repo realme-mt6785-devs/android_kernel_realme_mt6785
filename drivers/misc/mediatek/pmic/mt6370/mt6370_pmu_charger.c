@@ -133,7 +133,14 @@ struct mt6370_pmu_charger_data {
 #else
 	struct work_struct chgdet_work;
 #endif /* CONFIG_TCPC_CLASS */
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
 	struct delayed_work mivr_dwork;
+#endif
+
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+	atomic_t suspended;
+#endif
 };
 
 /* These default values will be used if there's no property in dts */
@@ -160,6 +167,12 @@ static struct mt6370_pmu_charger_desc mt6370_default_chg_desc = {
 	.ls_dev_name = "primary_load_switch",
 };
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+static struct mt6370_pmu_charger_data *oplus_chg_data = NULL;
+extern void oplus_chg_set_otg_online(bool online);
+extern bool oplus_wake_up_usbtemp_thread(void);
+#endif
 
 static const u32 mt6370_otg_oc_threshold[] = {
 	500000, 700000, 1100000, 1300000, 1800000, 2100000, 2400000, 3000000,
@@ -735,11 +748,21 @@ static int mt6370_inform_psy_changed(struct mt6370_pmu_charger_data *chg_data);
 static int mt6370_enable_chgdet_flow(struct mt6370_pmu_charger_data *chg_data,
 	bool en)
 {
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/08/06, sjc Modify for charging */
 	int i, ret = 0;
+#else
+	int ret = 0;
+#endif
 #ifndef CONFIG_TCPC_CLASS
 	int vbus = 0;
 #endif /* !CONFIG_TCPC_CLASS */
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/08/06, sjc Modify for charging */
 	const int max_wait_cnt = 250;
+#else
+	int max_wait_cnt = 350;
+#endif
 #ifndef CONFIG_MT6370_DCDTOUT_SUPPORT
 	bool dcd_en = false;
 #endif /* CONFIG_MT6370_DCDTOUT_SUPPORT */
@@ -753,6 +776,8 @@ static int mt6370_enable_chgdet_flow(struct mt6370_pmu_charger_data *chg_data,
 		return 0;
 	}
 
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/08/06, sjc Modify for charging */
 	if (en) {
 #ifndef CONFIG_MT6370_DCDTOUT_SUPPORT
 		ret = mt6370_is_dcd_tout_enable(chg_data, &dcd_en);
@@ -787,6 +812,45 @@ static int mt6370_enable_chgdet_flow(struct mt6370_pmu_charger_data *chg_data,
 		else
 			dev_info(chg_data->dev, "%s: CDP free\n", __func__);
 	}
+#else /*CONFIG_OPLUS_CHARGER_MTK6771*/
+	if (en) {
+#ifndef CONFIG_MT6370_DCDTOUT_SUPPORT
+		ret = mt6370_is_dcd_tout_enable(chg_data, &dcd_en);
+		if (!dcd_en)
+			msleep(180);
+#endif /* CONFIG_MT6370_DCDTOUT_SUPPORT */
+		/* Workaround for CDP port */
+		if (is_usb_rdy() == false) {
+			dev_info(chg_data->dev, "%s: CDP block\n", __func__);
+			while (is_usb_rdy() == false && max_wait_cnt > 0) {
+#ifndef CONFIG_TCPC_CLASS
+				ret = mt6370_get_adc(chg_data, MT6370_ADC_VBUS_DIV5,
+					&vbus);
+				if (ret >= 0 && vbus < 4300000) {
+					dev_info(chg_data->dev,
+						"%s: plug out, vbus = %dmV\n",
+						__func__, vbus / 1000);
+					return 0;
+				}
+#else
+				if (!atomic_read(&chg_data->tcpc_usb_connected)) {
+					dev_info(chg_data->dev,
+						 "%s: plug out\n", __func__);
+					return 0;
+				}
+#endif /* !CONFIG_TCPC_CLASS */
+				msleep(100);
+				max_wait_cnt--;
+			}
+			if (max_wait_cnt == 0)
+				dev_err(chg_data->dev, "%s: CDP timeout\n", __func__);
+			else
+				dev_info(chg_data->dev, "%s: CDP free, timeout:%d\n", __func__, max_wait_cnt);
+		} else {
+			dev_info(chg_data->dev, "%s: CDP free\n", __func__);
+		}
+	}
+#endif /*CONFIG_OPLUS_CHARGER_MTK6771*/
 
 	mutex_lock(&chg_data->bc12_access_lock);
 	ret = __mt6370_enable_chgdet_flow(chg_data, en);
@@ -896,6 +960,10 @@ static int __mt6370_chgdet_handler(struct mt6370_pmu_charger_data *chg_data)
 	int ret = 0;
 	bool pwr_rdy = false, inform_psy = true;
 	u8 usb_status = 0, chip_vid = chg_data->chip->chip_vid;
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+	u8 dcdt = 0;
+#endif
 
 	dev_info(chg_data->dev, "%s\n", __func__);
 
@@ -957,7 +1025,13 @@ static int __mt6370_chgdet_handler(struct mt6370_pmu_charger_data *chg_data)
 		chg_data->chg_type = NONSTANDARD_CHARGER;
 		break;
 	case MT6370_CHG_TYPE_CDP:
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Modify for charging */
 		chg_data->chg_type = CHARGING_HOST;
+#else
+		dcdt = (ret & MT6370_MASK_DCDT) >> MT6370_SHIFT_DCDT;
+		chg_data->chg_type = dcdt ? STANDARD_CHARGER : CHARGING_HOST;
+#endif
 		break;
 	case MT6370_CHG_TYPE_DCP:
 		chg_data->chg_type = STANDARD_CHARGER;
@@ -2109,6 +2183,12 @@ static int mt6370_set_otg_current_limit(struct charger_device *chg_dev, u32 uA)
 	return ret;
 }
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for compile error */
+#ifndef CONFIG_MTK_USB_IDDIG
+int otg_is_exist = 0;
+#endif
+#endif
 static int mt6370_enable_otg(struct charger_device *chg_dev, bool en)
 {
 	int ret = 0;
@@ -2117,13 +2197,31 @@ static int mt6370_enable_otg(struct charger_device *chg_dev, bool en)
 		dev_get_drvdata(&chg_dev->dev);
 	u8 hidden_val = en ? 0x00 : 0x0F;
 	u8 lg_slew_rate = en ? 0x7C : 0x73;
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/15, sjc Add for OTG */
+	static struct power_supply *battery_psy = NULL;
+	if (!battery_psy) {
+		battery_psy = power_supply_get_by_name("battery");
+		//dev_err(chg_data->dev, "%s: battery_psy null\n", __func__);
+	}
+#endif /*VENDOR_EDIT*/
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/10/15, sjc Add for OTG */
+	/* wdt time out will clear this bit so no 5V on vbus after enable otg */
+	mt6370_pmu_reg_set_bit(chg_data->chip, MT6370_PMU_REG_CHGCTRL2, MT6370_MASK_CFO_EN);
+#endif /*VENDOR_EDIT*/
 	dev_info(chg_data->dev, "%s: en = %d\n", __func__, en);
 
 	mt6370_enable_hidden_mode(chg_data, true);
 
 	/* Set OTG_OC to 500mA */
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/08/05, sjc Modify for OTG */
+	ret = mt6370_set_otg_current_limit(chg_dev, 1100000);
+#else
 	ret = mt6370_set_otg_current_limit(chg_dev, 500000);
+#endif
 	if (ret < 0) {
 		dev_err(chg_data->dev, "%s: set otg oc failed\n", __func__);
 		goto out;
@@ -2204,6 +2302,19 @@ static int mt6370_enable_otg(struct charger_device *chg_dev, bool en)
 			dev_err(chg_data->dev, "%s: disable wdt failed\n",
 				__func__);
 	}
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+#ifndef CONFIG_MTK_USB_IDDIG
+	if (en)
+		otg_is_exist = 1;
+	else
+		otg_is_exist = 0;
+#endif
+	oplus_chg_set_otg_online(en ? true : false);
+	if (en)
+		oplus_wake_up_usbtemp_thread();
+	if (battery_psy)
+		power_supply_changed(battery_psy);
+#endif
 	goto out;
 
 err_en_otg:
@@ -2481,6 +2592,13 @@ static int mt6370_kick_wdt(struct charger_device *chg_dev)
 	struct mt6370_pmu_charger_data *chg_data =
 		dev_get_drvdata(&chg_dev->dev);
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+	if (oplus_chg_data) {
+		if (atomic_read(&oplus_chg_data->suspended) == 1)
+			return -1;
+	}
+#endif
 	ret = mt6370_get_charging_status(chg_data, &chg_status);
 
 	return ret;
@@ -3041,7 +3159,7 @@ static irqreturn_t mt6370_pmu_chg_aicr_irq_handler(int irq, void *data)
 	dev_notice(chg_data->dev, "%s\n", __func__);
 	return IRQ_HANDLED;
 }
-
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
 static void mt6370_pmu_chg_mivr_dwork_handler(struct work_struct *work)
 {
 	struct mt6370_pmu_charger_data *chg_data = container_of(work,
@@ -3049,6 +3167,7 @@ static void mt6370_pmu_chg_mivr_dwork_handler(struct work_struct *work)
 
 	mt6370_enable_irq(chg_data, "chg_mivr", true);
 }
+#endif
 
 static irqreturn_t mt6370_pmu_chg_mivr_irq_handler(int irq, void *data)
 {
@@ -3084,8 +3203,10 @@ static irqreturn_t mt6370_pmu_chg_mivr_irq_handler(int irq, void *data)
 	}
 
 out:
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
 	mt6370_enable_irq(chg_data, "chg_mivr", false);
 	schedule_delayed_work(&chg_data->mivr_dwork, msecs_to_jiffies(500));
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -3384,12 +3505,43 @@ static irqreturn_t mt6370_pmu_bst_vbusovi_irq_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/30, sjc Add for OTG */
+static struct delayed_work mt6370_bst_olpi_work;
+#ifdef CONFIG_TCPC_CLASS
+extern int tcpc_otg_disable(void);
+extern void tcpc_power_work_call(bool enable);
+#else
+static void tcpc_otg_disable(void)
+{
+	return;
+}
+static void tcpc_power_work_call(bool enable)
+{
+	return;
+}
+#endif /*CONFIG_TCPC_CLASS*/
+
+static void mt6370_otg_ocp_work(struct work_struct *data)
+{
+	/*set usb to device mode*/
+	tcpc_otg_disable();
+	/*disable vbus*/
+	tcpc_power_work_call(false);
+}
+#endif /*CONFIG_OPLUS_CHARGER_MTK6771*/
+
 static irqreturn_t mt6370_pmu_bst_olpi_irq_handler(int irq, void *data)
 {
 	struct mt6370_pmu_charger_data *chg_data =
 		(struct mt6370_pmu_charger_data *)data;
 
 	dev_notice(chg_data->dev, "%s\n", __func__);
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/30, sjc Add for OTG */
+	cancel_delayed_work_sync(&mt6370_bst_olpi_work);
+	schedule_delayed_work(&mt6370_bst_olpi_work, 0);
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -3937,6 +4089,12 @@ static int mt6370_chg_init_setting(struct mt6370_pmu_charger_data *chg_data)
 		dev_notice(chg_data->dev, "%s disable dcd fail\n", __func__);
 #endif
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/08/06, sjc Add for charging */
+	/* DCD Timeout: 300ms */
+	ret = mt6370_pmu_reg_update_bits(chg_data->chip, MT6370_PMU_REG_DEVICETYPE,
+			MT6370_MASK_DCD_TIMEOUT, 0x00);
+#endif /*VENDOR_EDIT*/
 	return ret;
 }
 
@@ -4065,6 +4223,198 @@ static ssize_t shipping_mode_store(struct device *dev,
 
 static const DEVICE_ATTR_WO(shipping_mode);
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+bool mt6370_get_vbus_status(void)
+{
+	bool uvp_d = false;
+	bool otg_mode = false;
+	int ret = 0;
+
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return false;
+	}
+
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return false;
+
+	ret = mt6370_pmu_reg_test_bit(oplus_chg_data->chip,
+			MT6370_PMU_REG_OVPCTRLSTAT, MT6370_SHIFT_OVPCTRL_UVP_D_STAT,
+			&uvp_d);
+	if (ret < 0) {
+		printk(KERN_ERR "%s: read uvp_d_stat fail\n", __func__);
+		return false;
+	}
+
+	if (!uvp_d) {
+		ret = mt6370_pmu_reg_test_bit(oplus_chg_data->chip,
+				MT6370_PMU_REG_CHGCTRL1, MT6370_SHIFT_OPA_MODE,
+				&otg_mode);
+		if (ret < 0) {
+			printk(KERN_ERR "%s: read otg mode fail\n", __func__);
+			return false;
+		}
+		if (otg_mode)
+			return false;
+	}
+
+	return !uvp_d;
+}
+EXPORT_SYMBOL(mt6370_get_vbus_status);
+
+int mt6370_chg_enable(bool en)
+{
+	int rc = 0;
+
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return 0;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1) {
+		printk(KERN_ERR "%s in suspended\n", __func__);
+		return 0;
+	}
+
+	rc = mt6370_enable_charging(oplus_chg_data->chg_dev, en);
+	if (rc < 0) {
+		printk(KERN_ERR "%s: en[%d] chg failed\n", __func__, en);
+	}
+
+	return rc;
+}
+EXPORT_SYMBOL(mt6370_chg_enable);
+
+int mt6370_check_charging_enable(void)
+{
+	bool chg_enable = false;
+
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return 0;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return 0;
+	mt6370_is_charging_enable(oplus_chg_data, &chg_enable);
+	return chg_enable ? 1 : 0;
+}
+EXPORT_SYMBOL(mt6370_check_charging_enable);
+
+int mt6370_suspend_charger(bool suspend)
+{
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	//return mt6370_enable_hz(oplus_chg_data, suspend);
+	/*only MT6371 & MT6372*/
+	return mt6370_pmu_reg_update_bits(oplus_chg_data->chip,
+			MT6370_PMU_REG_CHGCTRL1, 0x08, suspend ? 0x08 : 0x0);
+}
+EXPORT_SYMBOL(mt6370_suspend_charger);
+
+int mt6370_set_rechg_voltage(int rechg_mv)
+{
+	unsigned char reg = 0;
+
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (rechg_mv < 200) {
+		reg = 0x0;//100mV
+	} else if (rechg_mv < 300) {
+		reg = 0x1;//200mV
+	} else if (rechg_mv < 400) {
+		reg = 0x2;//300mV
+	} else {
+		reg = 0x3;//400mV
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	return mt6370_pmu_reg_update_bits(oplus_chg_data->chip,
+			MT6370_PMU_REG_CHGCTRL11, 0x03, reg);
+}
+EXPORT_SYMBOL(mt6370_set_rechg_voltage);
+
+int mt6370_reset_charger(void)
+{
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	return mt6370_pmu_reg_update_bits(oplus_chg_data->chip,
+			MT6370_PMU_REG_CORECTRL2, 0x40, 0x40);
+}
+EXPORT_SYMBOL(mt6370_reset_charger);
+
+int mt6370_set_chging_term_disable(bool disable)
+{
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	return mt6370_pmu_reg_update_bits(oplus_chg_data->chip,
+			MT6370_PMU_REG_CHGCTRL9, 0x08, disable ? 0x0 : 0x08);
+}
+EXPORT_SYMBOL(mt6370_set_chging_term_disable);
+
+int mt6370_aicl_enable(bool enable)
+{
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	return mt6370_pmu_reg_update_bits(oplus_chg_data->chip,
+			MT6370_PMU_REG_CHGCTRL6, 0x1, enable ? 1 : 0);
+}
+EXPORT_SYMBOL(mt6370_aicl_enable);
+
+int mt6370_chg_enable_wdt(bool enable)
+{
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	return mt6370_enable_wdt(oplus_chg_data, enable);
+}
+EXPORT_SYMBOL(mt6370_chg_enable_wdt);
+
+int mt6370_set_register(unsigned char addr, unsigned char mask, unsigned char data)
+{
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	return mt6370_pmu_reg_update_bits(oplus_chg_data->chip, addr, mask, data);
+}
+EXPORT_SYMBOL(mt6370_set_register);
+
+int mt6370_set_icl(int val_ma)
+{
+	if (!oplus_chg_data) {
+		printk(KERN_ERR "%s NULL\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&oplus_chg_data->suspended) == 1)
+		return -1;
+	return mt6370_set_aicr(oplus_chg_data->chg_dev, val_ma * 1000);
+}
+EXPORT_SYMBOL(mt6370_set_icl);
+#endif /* CONFIG_OPLUS_CHARGER_MTK6771 */
+
 static int mt6370_pmu_charger_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -4118,8 +4468,10 @@ static int mt6370_pmu_charger_probe(struct platform_device *pdev)
 && !defined(CONFIG_TCPC_CLASS)
 	INIT_WORK(&chg_data->chgdet_work, mt6370_chgdet_work_handler);
 #endif /* CONFIG_MT6370_PMU_CHARGER_TYPE_DETECT && !CONFIG_TCPC_CLASS */
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
 	INIT_DELAYED_WORK(&chg_data->mivr_dwork,
 			  mt6370_pmu_chg_mivr_dwork_handler);
+#endif
 
 	/* Do initial setting */
 	ret = mt6370_chg_init_setting(chg_data);
@@ -4170,6 +4522,13 @@ static int mt6370_pmu_charger_probe(struct platform_device *pdev)
 	schedule_work(&chg_data->chgdet_work);
 #endif /* CONFIG_MT6370_PMU_CHARGER_TYPE_DETECT && !CONFIG_TCPC_CLASS */
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+	oplus_chg_data = chg_data;
+	atomic_set(&oplus_chg_data->suspended, 0);
+	INIT_DELAYED_WORK(&mt6370_bst_olpi_work, mt6370_otg_ocp_work);
+#endif
+
 	dev_info(&pdev->dev, "%s successfully\n", __func__);
 	return 0;
 
@@ -4213,6 +4572,28 @@ static int mt6370_pmu_charger_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+static int mt6370_pmu_chg_resume(struct device *dev)
+{
+	if (oplus_chg_data)
+		atomic_set(&oplus_chg_data->suspended, 0);
+	return 0;
+}
+
+static int mt6370_pmu_chg_suspend(struct device *dev)
+{
+	if (oplus_chg_data)
+		atomic_set(&oplus_chg_data->suspended, 1);
+	return 0;
+}
+
+static const struct dev_pm_ops mt6370_pmu_chg_pm_ops = {
+	.resume		= mt6370_pmu_chg_resume,
+	.suspend		= mt6370_pmu_chg_suspend,
+};
+#endif /* VENDOR_EDIT */
+
 static const struct of_device_id mt_ofid_table[] = {
 	{ .compatible = "mediatek,mt6370_pmu_charger", },
 	{ },
@@ -4230,6 +4611,10 @@ static struct platform_driver mt6370_pmu_charger = {
 		.name = "mt6370_pmu_charger",
 		.owner = THIS_MODULE,
 		.of_match_table = of_match_ptr(mt_ofid_table),
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+		.pm = &mt6370_pmu_chg_pm_ops,
+#endif
 	},
 	.probe = mt6370_pmu_charger_probe,
 	.remove = mt6370_pmu_charger_remove,

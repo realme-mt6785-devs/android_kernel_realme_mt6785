@@ -429,6 +429,12 @@ static void init_md1_section_level(void)
 #if defined(CONFIG_MTK_ECCCI_DRIVER)
 	share_mem =
 		(u32 *)get_smem_start_addr(MD_SYS1, SMEM_USER_RAW_DBM, NULL);
+		//Yunqing.Wang@RM.BSP.Kernel.Stability, 20200709 for NULL point issue
+		if (share_mem == NULL) {
+			pbm_debug("MD1 share_mem is NULL, just return!\n");
+			return;
+		}
+		//Yunqing.Wang@RM.BSP.Kernel.Stability,  20200709 for NULL point issue
 #else
 	return;
 #endif

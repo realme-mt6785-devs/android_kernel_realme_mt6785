@@ -275,6 +275,18 @@ struct display_primary_path_context {
 	enum lcm_power_state lcm_ps;
 };
 
+#define LCM_FPS_ARRAY_SIZE	32
+struct lcm_fps_ctx_t {
+	int is_inited;
+	struct mutex lock;
+	unsigned int dsi_mode;
+	unsigned int head_idx;
+	unsigned int num;
+	unsigned long long last_ns;
+	unsigned long long array[LCM_FPS_ARRAY_SIZE];
+};
+
+
 static inline char *lcm_power_state_to_string(enum lcm_power_state ps)
 {
 	switch (ps) {
@@ -338,6 +350,14 @@ int primary_display_get_corner_pattern_height(void);
 void *primary_display_get_corner_pattern_top_va(void);
 void *primary_display_get_corner_pattern_bottom_va(void);
 #endif
+
+#ifdef OPLUS_BUG_STABILITY
+//Tongxing.Liu@ODM_WT.MM.Display.Lcd, 2019/11/26, display timing adaptation
+int primary_display_shutdown(void);
+//Zhenzhen.Wu@ODM_WT.MM.Display.Lcd, 2019/12/7, add for multi-lcms
+int _ioctl_get_lcm_module_info(unsigned long arg);
+#endif
+
 int primary_display_get_pages(void);
 int primary_display_set_overlay_layer(struct primary_disp_input_config *input);
 int primary_display_is_alive(void);
@@ -408,7 +428,9 @@ int primary_display_get_lcm_refresh_rate(void);
 int _display_set_lcm_refresh_rate(int fps);
 void primary_display_idlemgr_kick(const char *source, int need_lock);
 void primary_display_idlemgr_enter_idle(int need_lock);
-void primary_display_update_present_fence(unsigned int fence_idx);
+void primary_display_update_present_fence(struct cmdqRecStruct *cmdq_handle,
+	unsigned int fence_idx);
+void primary_display_wakeup_pf_thread(void);
 void primary_display_switch_esd_mode(int mode);
 int primary_display_cmdq_set_reg(unsigned int addr, unsigned int val);
 int primary_display_vsync_switch(int method);
@@ -488,4 +510,10 @@ extern unsigned int dump_output;
 extern unsigned int dump_output_comp;
 extern void *composed_buf;
 extern struct completion dump_buf_comp;
+
+extern struct lcm_fps_ctx_t lcm_fps_ctx;
+int lcm_fps_ctx_init(struct lcm_fps_ctx_t *fps_ctx);
+int lcm_fps_ctx_reset(struct lcm_fps_ctx_t *fps_ctx);
+int lcm_fps_ctx_update(struct lcm_fps_ctx_t *fps_ctx,
+				unsigned long long cur_ns);
 #endif

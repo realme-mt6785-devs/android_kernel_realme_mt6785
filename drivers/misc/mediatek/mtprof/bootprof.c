@@ -26,6 +26,10 @@
 #include "internal.h"
 #include "mtk_sched_mon.h"
 
+/* jiang.li@BSP.Kernel.Stability, 2020/10/26,  user build hard reset need disable uart log */
+#include "mt-plat/mtk_printk_ctrl.h"
+/* Add-end */
+
 #define BOOT_STR_SIZE 256
 #define BUF_COUNT 12
 #define LOGS_PER_BUF 80
@@ -210,6 +214,12 @@ void bootprof_pdev_register(unsigned long long ts, struct platform_device *pdev)
 static void bootup_finish(void)
 {
 	initcall_debug = 0;
+/* jiang.li@BSP.Kernel.Stability, 2020/10/26,  user build hard reset need disable uart log */
+#ifdef CONFIG_MTK_PRINTK_UART_CONSOLE
+    mt_disable_uart();
+#endif
+/* Add-end */
+
 #ifdef BOOT_UP_DISABLE_MRDUMPKEY
 	mrdump_key_shutdown(NULL);
 #endif

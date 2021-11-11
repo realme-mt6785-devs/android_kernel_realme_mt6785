@@ -109,6 +109,11 @@ static bool no_update;
 static struct disp_session_input_config session_input;
 long dts_gpio_state;
 
+#ifdef OPLUS_BUG_STABILITY
+/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
+extern int __attribute((weak)) oplus_mtkfb_custom_data_init(struct platform_device *pdev) { return 0; };
+#endif /* OPLUS_BUG_STABILITY */
+
 /* macro definiton */
 #define ALIGN_TO(x, n)  (((x) + ((n) - 1)) & ~((n) - 1))
 #define MTK_FB_XRESV (ALIGN_TO(MTK_FB_XRES, MTK_FB_ALIGNMENT))
@@ -2514,6 +2519,11 @@ static int mtkfb_probe(struct platform_device *pdev)
 		return -EPROBE_DEFER;
 	}
 #endif
+
+	#ifdef OPLUS_BUG_STABILITY
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
+	oplus_mtkfb_custom_data_init(pdev);
+	#endif
 
 	_parse_tag_videolfb();
 
