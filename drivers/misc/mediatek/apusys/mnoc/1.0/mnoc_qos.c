@@ -1012,15 +1012,6 @@ int apu_cmd_qos_end(uint64_t cmd_id, uint64_t sub_cmd_id,
 			update_qos_request(&(engine_pm_qos_counter[i].qos_req),
 				PM_QOS_APU_MEMORY_BANDWIDTH_DEFAULT_VALUE);
 		}
-#if MNOC_QOS_BOOST_ENABLE
-		mutex_lock(&apu_qos_boost_mtx);
-		if (!apu_qos_boost_flag) {
-			apu_bw_vcore_opp = NR_APU_VCORE_OPP - 1;
-			apu_qos_set_vcore(vcore_opp_map[apu_bw_vcore_opp]);
-		}
-		mutex_unlock(&apu_qos_boost_mtx);
-#endif
-
 	}
 #endif
 
@@ -1052,7 +1043,6 @@ void apu_qos_boost_start(void)
 		PM_QOS_DDR_OPP_DEFAULT_VALUE) {
 		apu_qos_boost_ddr_opp = 0;
 		pm_qos_update_request(&apu_qos_ddr_req, 1);
-		pm_qos_update_request(&apu_qos_cpu_dma_req, 2);
 #ifdef APU_QOS_IPUIF_ADJUST
 		apu_bw_vcore_opp = 2;
 		apu_qos_set_vcore(vcore_opp_map[apu_bw_vcore_opp]);

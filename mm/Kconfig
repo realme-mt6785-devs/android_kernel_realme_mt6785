@@ -755,6 +755,55 @@ config DEVICE_PUBLIC
 	  memory; i.e., memory that is accessible from both the device and
 	  the CPU
 
+config PROCESS_RECLAIM
+	bool "Enable process reclaim"
+	depends on PROC_FS
+	default n
+	help
+	 It allows to reclaim pages of the process by /proc/pid/reclaim.
+
+	 (echo file > /proc/PID/reclaim) reclaims file-backed pages only.
+	 (echo anon > /proc/PID/reclaim) reclaims anonymous pages only.
+	 (echo all > /proc/PID/reclaim) reclaims all pages.
+
+	 Any other value is ignored.
+
+#ifdef OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY
+#/* Kui.Zhang@TEC.Kernel.MM, 2019-05-10, add reserved vma for emergency mmap*/
+config VIRTUAL_RESERVE_MEMORY
+	bool "reserved vma for gpu emergency mmap"
+	default y
+	help
+		support reserved vma for gpu emergency mmap.
+#endif /* VENDOR_EDIT */
+
+config ARCH_HAS_PTE_SPECIAL
+	bool
+config FRAME_VECTOR
+	bool
+
+config ARCH_USES_HIGH_VMA_FLAGS
+	bool
+config ARCH_HAS_PKEYS
+	bool
+
+config PERCPU_STATS
+	bool "Collect percpu memory statistics"
+	default n
+	help
+	  This feature collects and exposes statistics via debugfs. The
+	  information includes global and per chunk statistics, which can
+	  be used to help understand percpu memory usage.
+
+config GUP_BENCHMARK
+	bool "Enable infrastructure for get_user_pages_fast() benchmarking"
+	default n
+	help
+	  Provides /sys/kernel/debug/gup_benchmark that helps with testing
+	  performance of get_user_pages_fast().
+
+	  See tools/testing/selftests/vm/gup_benchmark.c
+
 config ARCH_HAS_PTE_SPECIAL
 	bool
 
@@ -800,7 +849,10 @@ config ARCH_USES_HIGH_VMA_FLAGS
 	bool
 config ARCH_HAS_PKEYS
 	bool
-
+#ifdef VENDOR_EDIT
+#/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
+source "mm/oppo_healthinfo/Kconfig"
+#endif /*VENDOR_EDIT*/
 config PERCPU_STATS
 	bool "Collect percpu memory statistics"
 	default n
@@ -808,3 +860,39 @@ config PERCPU_STATS
 	  This feature collects and exposes statistics via debugfs. The
 	  information includes global and per chunk statistics, which can
 	  be used to help understand percpu memory usage.
+
+# if defined(OPLUS_FEATURE_PROCESS_RECLAIM)
+# Kui.Zhang@PSW.BSP.Kernel.Performance, 2018-11-07, Support reclaim process
+# inactive pages only
+	  config PROCESS_RECLAIM_ENHANCE
+	  bool "Enable process reclaim enchance"
+	  depends on PROCESS_RECLAIM
+	  default y
+	  help
+	  It allows to reclaim different type pages of the process by
+	  /proc/process_reclaim.
+
+	  (echo inactive_file > /proc/PID/reclaim) reclaims inactive file-backed
+	  pages only.
+	  (echo inactive_anon > /proc/PID/reclaim) reclaims inactive anonymous
+	  pages only.
+	  (echo inactive > /proc/PID/reclaim) reclaims inactive file-backed and
+	  anonymous pages only.
+	  Any other vaule, please reference PROCESS_RECLAIM.
+# endif
+
+#ifdef OPLUS_FEATURE_MEMLEAK_DETECT
+#/* Kui.Zhang@TEC.Kernel.MM, 2020/06/12, memleak detect of kmalloc/vmalloc/ion */
+source "mm/malloc_track/Kconfig.compat"
+source "mm/task_mem/Kconfig"
+#endif
+
+#ifdef OPLUS_FEATURE_MULTI_FREEAREA
+#/* wangtao5@BSP.Kernel.MM, 2020-04-21, add the feature:physical memory anti-fragmentation*/
+config PHYSICAL_ANTI_FRAGMENTATION
+	bool "Physical memory anti-fragmentation"
+	default y
+	help
+	 Turn on the function of Physical memory anti-fragmentation.
+#endif /* OPLUS_FEATURE_MULTI_FREEAREA */
+

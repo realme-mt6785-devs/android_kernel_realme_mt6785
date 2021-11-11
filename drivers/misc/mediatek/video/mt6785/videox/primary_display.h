@@ -304,16 +304,6 @@ struct display_primary_path_context {
 #endif
 };
 
-#define LCM_FPS_ARRAY_SIZE	32
-struct lcm_fps_ctx_t {
-	int is_inited;
-	struct mutex lock;
-	unsigned int dsi_mode;
-	unsigned int head_idx;
-	unsigned int num;
-	unsigned long long last_ns;
-	unsigned long long array[LCM_FPS_ARRAY_SIZE];
-};
 
 static inline char *lcm_power_state_to_string(enum lcm_power_state ps)
 {
@@ -375,6 +365,12 @@ int primary_display_get_lcm_corner_en(void);
 int primary_display_get_corner_pattern_width(void);
 int primary_display_get_corner_pattern_height(void);
 #endif
+
+#ifdef OPLUS_BUG_STABILITY
+//Zhenzhen.Wu@ODM_WT.MM.Display.Lcd, 2019/12/7, add for multi-lcms
+int _ioctl_get_lcm_module_info(unsigned long arg);
+#endif
+
 int primary_display_get_pages(void);
 int primary_display_set_overlay_layer(struct primary_disp_input_config *input);
 int primary_display_is_alive(void);
@@ -548,12 +544,6 @@ unsigned int primary_display_current_fps(enum arr_fps_type fps_type,
 bool disp_idle_check_rsz(void);
 int primary_display_is_directlink_mode(void);
 bool disp_input_has_yuv(void);
-
-extern struct lcm_fps_ctx_t lcm_fps_ctx;
-int lcm_fps_ctx_init(struct lcm_fps_ctx_t *fps_ctx);
-int lcm_fps_ctx_reset(struct lcm_fps_ctx_t *fps_ctx);
-int lcm_fps_ctx_update(struct lcm_fps_ctx_t *fps_ctx,
-		unsigned long long cur_ns);
 
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 /**************function for DynFPS start************************/

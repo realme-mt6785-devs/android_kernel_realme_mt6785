@@ -82,10 +82,8 @@ enum DISP_PMQOS_SLOT {
 	(DISP_SLOT_CUR_CONFIG_FENCE_BASE + (0x4 * (n)))
 #define DISP_SLOT_PRESENT_FENCE(n)                                          \
 	(DISP_SLOT_CUR_CONFIG_FENCE(OVL_LAYER_NR) + (0x4 * (n)))
-#define DISP_SLOT_SF_PRESENT_FENCE(n)                                          \
-	(DISP_SLOT_PRESENT_FENCE(MAX_CRTC) + (0x4 * (n)))
 #define DISP_SLOT_SUBTRACTOR_WHEN_FREE_BASE                                    \
-	(DISP_SLOT_SF_PRESENT_FENCE(MAX_CRTC) + 0x4)
+	(DISP_SLOT_PRESENT_FENCE(MAX_CRTC) + 0x4)
 #define DISP_SLOT_SUBTRACTOR_WHEN_FREE(n)                                      \
 	(DISP_SLOT_SUBTRACTOR_WHEN_FREE_BASE + (0x4 * (n)))
 #define DISP_SLOT_ESD_READ_BASE DISP_SLOT_SUBTRACTOR_WHEN_FREE(OVL_LAYER_NR)
@@ -111,7 +109,14 @@ enum DISP_PMQOS_SLOT {
 #define DISP_SLOT_READ_DDIC_BASE (DISP_SLOT_TRIG_CNT + 0x4)
 #define DISP_SLOT_READ_DDIC_BASE_END		\
 	(DISP_SLOT_READ_DDIC_BASE + READ_DDIC_SLOT_NUM * 0x4)
+//#ifdef OPLUS_FEATURE_ONSCREENFINGERPRINT
+/* liwei.a@PSW.MM.DisplayDriver.FP, 2019/11/1, add for fingerprint*/
+#define DISP_SLOT_FP0_IDX (DISP_SLOT_OVL_STATUS + 0x4)
+//#define DISP_SLOT_FP1_IDX (DISP_SLOT_FP0_IDX + 0x4)
+//#define DISP_SLOT_CUR_USER_CMD_IDX (DISP_SLOT_FP1_IDX + 0x4)
+//#else
 #define DISP_SLOT_CUR_USER_CMD_IDX (DISP_SLOT_READ_DDIC_BASE_END + 0x4)
+//#endif
 #define DISP_SLOT_CUR_BL_IDX (DISP_SLOT_CUR_USER_CMD_IDX + 0x4)
 
 /* For Dynamic OVL feature */
@@ -352,7 +357,6 @@ enum MTK_CRTC_PROP {
 	CRTC_PROP_OVERLAP_LAYER_NUM,
 	CRTC_PROP_LYE_IDX,
 	CRTC_PROP_PRES_FENCE_IDX,
-	CRTC_PROP_SF_PRES_FENCE_IDX,
 	CRTC_PROP_DOZE_ACTIVE,
 	CRTC_PROP_OUTPUT_ENABLE,
 	CRTC_PROP_OUTPUT_FENCE_IDX,
@@ -472,17 +476,6 @@ enum CRTC_DDP_PATH {
 	DDP_PATH_NR,
 };
 
-/**
- * enum CWB_BUFFER_TYPE - user want to use buffer type
- * @IMAGE_ONLY: u8 *image
- * @CARRY_METADATA: struct user_cwb_buffer
- */
-enum CWB_BUFFER_TYPE {
-	IMAGE_ONLY,
-	CARRY_METADATA,
-	BUFFER_TYPE_NR,
-};
-
 struct mtk_crtc_path_data {
 	const enum mtk_ddp_comp_id *path[DDP_MODE_NR][DDP_PATH_NR];
 	unsigned int path_len[DDP_MODE_NR][DDP_PATH_NR];
@@ -493,7 +486,6 @@ struct mtk_crtc_path_data {
 	//for dual path
 	const enum mtk_ddp_comp_id *dual_path[DDP_PATH_NR];
 	unsigned int dual_path_len[DDP_PATH_NR];
-	const struct mtk_addon_scenario_data *addon_data_dual;
 };
 
 struct mtk_crtc_gce_obj {
@@ -547,72 +539,42 @@ struct disp_ccorr_config {
 	bool featureFlag;
 };
 
-struct user_cwb_image {
+struct image_data {
 	u8 *image;
 	int width, height;
 };
 
-struct user_cwb_metadata {
+struct metadata {
 	unsigned long long timestamp;
 	unsigned int frameIndex;
 };
 
-struct user_cwb_buffer {
-	struct user_cwb_image data;
-	struct user_cwb_metadata meta;
+struct capture_info {
+	struct image_data data;
+	struct metadata meta;
 };
 
-struct mtk_cwb_buffer_info {
+struct mtk_wdma_buffer_info {
+	u64 addr_phy;
+	u64 addr_virt;
 	struct mtk_rect dst_roi;
-	u32 addr_mva;
-	u64 addr_va;
-	struct drm_framebuffer *fb;
 	unsigned long long timestamp;
+	struct drm_framebuffer *fb;
 };
 
-struct mtk_cwb_funcs {
-	/**
-	 * @get_buffer:
-	 *
-	 * This function is optional.
-	 *
-	 * If user hooks this callback, driver will use this first when
-	 * wdma irq is arrived. (capture done)
-	 * User need fill buffer address to *buffer.
-	 *
-	 * If user not hooks this callback driver will confirm whether
-	 * mtk_wdma_capture_info->user_buffer is NULL or not.
-	 * User can use setUserBuffer() assigned this param.
-	 */
-	void (*get_buffer)(void **buffer);
-
-	/**
-	 * @copy_done:
-	 *
-	 * When Buffer copy done will be use this callback to notify user.
-	 */
-	void (*copy_done)(void *buffer, enum CWB_BUFFER_TYPE type);
-};
-
-struct mtk_cwb_info {
+struct mtk_wdma_capture_info {
 	unsigned int enable;
-
+	unsigned int buf_index;
 	struct mtk_rect src_roi;
-	unsigned int count;
+	unsigned int capture_interval;
+	unsigned int capture_count;
+	unsigned int config_count;
 	bool is_sec;
-
-	unsigned int buf_idx;
-	struct mtk_cwb_buffer_info buffer[2];
-	unsigned int copy_w;
-	unsigned int copy_h;
-
+	struct mtk_wdma_buffer_info buffer[2];
+	u8 *user_buffer;
 	enum addon_scenario scn;
-	struct mtk_ddp_comp *comp;
-
-	void *user_buffer;
-	enum CWB_BUFFER_TYPE type;
-	const struct mtk_cwb_funcs *funcs;
 };
+
 
 /**
  * struct mtk_drm_crtc - MediaTek specific crtc structure.
@@ -670,8 +632,6 @@ struct mtk_drm_crtc {
 	struct mtk_drm_esd_ctx *esd_ctx;
 #ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
 	struct mtk_drm_gem_obj *round_corner_gem;
-	struct mtk_drm_gem_obj *round_corner_gem_l;
-	struct mtk_drm_gem_obj *round_corner_gem_r;
 #endif
 	struct mtk_drm_qos_ctx *qos_ctx;
 	bool sec_on;
@@ -713,6 +673,12 @@ struct mtk_drm_crtc {
 	bool layer_rec_en;
 	unsigned int fps_change_index;
 
+	struct mtk_wdma_capture_info *wdma_capture_info;
+	struct task_struct *capt_task;
+	wait_queue_head_t capt_wq;
+	atomic_t capt_task_active;
+	struct capture_info *user_buffer;
+
 	wait_queue_head_t state_wait_queue;
 	bool crtc_blank;
 	struct mutex blank_lock;
@@ -720,17 +686,6 @@ struct mtk_drm_crtc {
 	wait_queue_head_t present_fence_wq;
 	struct task_struct *pf_release_thread;
 	atomic_t pf_event;
-
-	wait_queue_head_t sf_present_fence_wq;
-	struct task_struct *sf_pf_release_thread;
-	atomic_t sf_pf_event;
-
-	/*capture write back ctx*/
-	struct mutex cwb_lock;
-	struct mtk_cwb_info *cwb_info;
-	struct task_struct *cwb_task;
-	wait_queue_head_t cwb_wq;
-	atomic_t cwb_task_active;
 };
 
 struct mtk_crtc_state {
@@ -745,7 +700,6 @@ struct mtk_crtc_state {
 	struct mtk_lye_ddp_state lye_state;
 	struct mtk_rect rsz_src_roi;
 	struct mtk_rect rsz_dst_roi;
-	struct mtk_rsz_param rsz_param[2];
 	atomic_t plane_enabled_num;
 
 	/* property */
@@ -787,11 +741,8 @@ struct mtk_ddp_comp *mtk_ddp_comp_request_output(struct mtk_drm_crtc *mtk_crtc);
 /* get fence */
 int mtk_drm_crtc_getfence_ioctl(struct drm_device *dev, void *data,
 				struct drm_file *file_priv);
-int mtk_drm_crtc_get_sf_fence_ioctl(struct drm_device *dev, void *data,
-				    struct drm_file *file_priv);
 
 long mtk_crtc_wait_status(struct drm_crtc *crtc, bool status, long timeout);
-void mtk_crtc_cwb_path_disconnect(struct drm_crtc *crtc);
 int mtk_crtc_path_switch(struct drm_crtc *crtc, unsigned int path_sel,
 			 int need_lock);
 void mtk_need_vds_path_switch(struct drm_crtc *crtc);
@@ -876,16 +827,20 @@ int mtk_crtc_user_cmd(struct drm_crtc *crtc, struct mtk_ddp_comp *comp,
 unsigned int mtk_drm_dump_wk_lock(struct mtk_drm_private *priv,
 	char *stringbuf, int buf_len);
 char *mtk_crtc_index_spy(int crtc_index);
+struct capture_info *mtk_crtc_get_buffer(struct drm_crtc *crtc);
 bool mtk_drm_get_hdr_property(void);
 int mtk_drm_aod_setbacklight(struct drm_crtc *crtc, unsigned int level);
 
+//#ifdef OPLUS_BUG_STABILITY
+/* liwei.a@PSW.MM.DisplayDriver.Stability, 2019/12/06, modify for cmdq timeout issue*/
+void mtk_drm_send_lcm_cmd_prepare(struct drm_crtc *crtc,
+	struct cmdq_pkt **cmdq_handle);
+void mtk_drm_send_lcm_cmd_flush(struct drm_crtc *crtc,
+	struct cmdq_pkt **cmdq_handle, bool sync);
+//#endif
+
 int mtk_drm_crtc_wait_blank(struct mtk_drm_crtc *mtk_crtc);
-void mtk_drm_crtc_init_para(struct drm_crtc *crtc);
-void mtk_drm_layer_dispatch_to_dual_pipe(
-	struct mtk_plane_state *plane_state,
-	struct mtk_plane_state *plane_state_l,
-	struct mtk_plane_state *plane_state_r,
-	unsigned int w);
+
 /* ********************* Legacy DISP API *************************** */
 unsigned int DISP_GetScreenWidth(void);
 unsigned int DISP_GetScreenHeight(void);

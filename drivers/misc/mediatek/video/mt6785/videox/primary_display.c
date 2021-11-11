@@ -123,6 +123,12 @@ static UINT32 afbc_frame_buf_size;
 #define _DEBUG_DITHER_HANG_
 
 #define FRM_UPDATE_SEQ_CACHE_NUM (DISP_INTERNAL_BUFFER_COUNT+1)
+
+#ifdef OPLUS_BUG_STABILITY
+/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/28, add for cabc */
+extern bool oplus_display_cabc_cmdq_support;
+#endif /* OPLUS_BUG_STABILITY */
+
 #if 0
 static struct disp_internal_buffer_info
 	*decouple_buffer_info[DISP_INTERNAL_BUFFER_COUNT];
@@ -1112,126 +1118,6 @@ static int __maybe_unused fps_monitor_thread(void *data)
 	return 0;
 }
 /************** fps calculate finish ******************/
-
-/************** lcm fps calculate ******************/
-struct lcm_fps_ctx_t lcm_fps_ctx;
-
-int lcm_fps_ctx_init(struct lcm_fps_ctx_t *fps_ctx)
-{
-	if (fps_ctx->is_inited)
-		return 0;
-
-	memset(fps_ctx, 0, sizeof(*fps_ctx));
-	mutex_init(&fps_ctx->lock);
-	fps_ctx->is_inited = 1;
-	if (primary_display_is_video_mode())
-		fps_ctx->dsi_mode = 1;
-	else
-		fps_ctx->dsi_mode = 0;
-
-	DISPINFO("%s done\n", __func__);
-
-	return 0;
-}
-
-int lcm_fps_ctx_reset(struct lcm_fps_ctx_t *fps_ctx)
-{
-	memset(fps_ctx, 0, sizeof(*fps_ctx));
-	mutex_init(&fps_ctx->lock);
-	fps_ctx->is_inited = 1;
-	if (primary_display_is_video_mode())
-		fps_ctx->dsi_mode = 1;
-	else
-		fps_ctx->dsi_mode = 0;
-
-	DISPINFO("%s done\n", __func__);
-
-	return 0;
-}
-
-int lcm_fps_ctx_update(struct lcm_fps_ctx_t *fps_ctx, unsigned long long cur_ns)
-{
-	unsigned int idx;
-	unsigned long long delta;
-
-	if (!fps_ctx->is_inited)
-		lcm_fps_ctx_init(fps_ctx);
-
-	delta = cur_ns - fps_ctx->last_ns;
-	if (delta == 0 || fps_ctx->last_ns == 0) {
-		fps_ctx->last_ns = cur_ns;
-		return 0;
-	}
-
-	if (mutex_trylock(&fps_ctx->lock) == 0) {
-		DISPMSG("%s try lock fail\n", __func__);
-		fps_ctx->last_ns = cur_ns;
-		return 0;
-	}
-	idx = (fps_ctx->head_idx + fps_ctx->num) % LCM_FPS_ARRAY_SIZE;
-	fps_ctx->array[idx] = delta;
-
-	if (fps_ctx->num < LCM_FPS_ARRAY_SIZE)
-		fps_ctx->num++;
-	else
-		fps_ctx->head_idx = (fps_ctx->head_idx + 1) %
-			LCM_FPS_ARRAY_SIZE;
-
-	fps_ctx->last_ns = cur_ns;
-
-	mutex_unlock(&fps_ctx->lock);
-
-	DISPINFO("%s update %lld to index %d\n", __func__, delta, idx);
-
-	return 0;
-}
-
-unsigned int lcm_fps_ctx_get(struct lcm_fps_ctx_t *fps_ctx)
-{
-	unsigned int i;
-	unsigned long long duration_avg = 0;
-	unsigned long long duration_min = (1ULL << 63) - 1ULL;
-	unsigned long long duration_max = 0;
-	unsigned long long duration_sum = 0;
-	unsigned long long fps = 100000000000;
-
-	if (!fps_ctx->is_inited)
-		lcm_fps_ctx_init(fps_ctx);
-
-	if (fps_ctx->num <= 3) {
-		DISPMSG("%s num is %d which is < 3, so return fix fps",
-			__func__, fps_ctx->num);
-		if (primary_display_is_idle() &&
-			fps_ctx->dsi_mode == 1)
-			return 4500;
-		else
-			return 6000;
-	}
-
-	mutex_lock(&fps_ctx->lock);
-
-	for (i = 0; i < fps_ctx->num; i++) {
-		duration_sum += fps_ctx->array[i];
-		duration_min = min(duration_min, fps_ctx->array[i]);
-		duration_max = max(duration_max, fps_ctx->array[i]);
-	}
-	duration_sum -= duration_min + duration_max;
-	duration_avg = duration_sum / (fps_ctx->num - 2);
-	do_div(fps, duration_avg);
-
-	DISPINFO("%s remove max = %lld, min = %lld, sum = %lld, num = %d\n",
-		__func__,
-		duration_max, duration_min, duration_sum, fps_ctx->num);
-
-	DISPINFO("%s fps = %d\n", __func__, (unsigned int)fps);
-
-	mutex_unlock(&fps_ctx->lock);
-	return (unsigned int)fps;
-}
-
-
-/************** lcm fps calculate finish ******************/
-
 
 /************** idle manager **************************/
 int primary_display_get_debug_state(char *stringbuf, int buf_len)
@@ -2940,23 +2826,23 @@ static struct disp_internal_buffer_info *allocat_decouple_buffer(int size)
 		goto err;
 	}
 
-	mm_data.config_buffer_param.kernel_handle = handle;
-	mm_data.mm_cmd = ION_MM_CONFIG_BUFFER;
+	mm_data.mm_cmd = ION_MM_GET_IOVA;
+	mm_data.get_phys_param.kernel_handle = handle;
+	mm_data.get_phys_param.module_id = 0;
+
 	if (ion_kernel_ioctl(client, ION_CMD_MULTIMEDIA,
 			     (unsigned long)&mm_data) < 0) {
 		DISP_PR_ERR("ion_test_drv: Config buffer failed.\n");
 		goto err;
 	}
-
-	ion_phys(client, handle, &buffer_mva, &mva_size);
-	if (buffer_mva == 0) {
+	if (mm_data.get_phys_param.phy_addr == 0) {
 		DISP_PR_ERR("Fatal Error, get mva failed\n");
 		goto err;
 	}
 
 	buf_info->handle = handle;
-	buf_info->mva = (uint32_t)buffer_mva;
-	buf_info->size = mva_size;
+	buf_info->mva = (uint32_t)mm_data.get_phys_param.phy_addr;
+	buf_info->size = mm_data.get_phys_param.len;
 	buf_info->va = buffer_va;
 #endif /* MTK_FB_ION_SUPPORT */
 
@@ -3566,7 +3452,7 @@ static void DC_config_nightlight(struct cmdqRecStruct *cmdq_handle)
 	if (all_zero)
 		DISP_PR_INFO("Night light backup param is zero matrix\n");
 	else
-		disp_ccorr_set_color_matrix(cmdq_handle, ccorr_matrix, mode);
+		disp_ccorr_set_color_matrix(cmdq_handle, ccorr_matrix, false, mode);
 }
 
 static int _decouple_update_rdma_config_nolock(void)
@@ -4294,8 +4180,6 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 	/* update path dst module: for dual dsi */
 	update_primary_intferface_module();
 
-	/* init lcm fps after get lcm mode */
-	lcm_fps_ctx_init(&lcm_fps_ctx);
 
 	/* Part2: CMDQ */
 	if (use_cmdq) {
@@ -5340,6 +5224,29 @@ int primary_display_get_lcm_index(void)
 	DISPDBG("lcm index = %d\n", index);
 	return index;
 }
+#ifdef OPLUS_BUG_STABILITY
+/* Zhenzhen.wu@ODM_WT.MM.Display.Lcd, 2019/12/7, add for multi-lcms */
+int _ioctl_get_lcm_module_info(unsigned long arg)
+{
+	int ret = 0;
+	void __user *argp = (void __user *)arg;
+	LCM_MODULE_INFO info;
+
+	if (copy_from_user(&info, argp, sizeof(info))) {
+		printk("[FB]: copy_from_user failed!\n");
+		return -EFAULT;
+	}
+
+	strcpy(info.name, pgc->plcm->drv->name);
+
+	if (copy_to_user(argp, &info, sizeof(info))) {
+		printk("[FB]: copy_to_user failed!\n");
+		ret = -EFAULT;
+	}
+
+	return ret;
+}
+#endif /* OPLUS_BUG_STABILITY */
 
 static int check_switch_lcm_mode_for_debug(void)
 {
@@ -5760,7 +5667,15 @@ int primary_display_resume(void)
 					       DDP_IRQ_UNKNOWN);
 		}
 	}
-
+#ifdef OPLUS_BUG_STABILITY
+	/* Longyajun@ODM.HQ.Multimedia.LCM 2019/12/04 modified for BL ON delay */
+	if((!strcmp(pgc->plcm->drv->name, "nt36672c_tianma")) \
+		|| (!strcmp(pgc->plcm->drv->name, "nt36672c_jdi_dsjm")) \
+		|| (!strcmp(pgc->plcm->drv->name, "nt36672c_tianma_sala")) \
+		|| (!strcmp(pgc->plcm->drv->name, "nt36672c_jdi_dsjm_sala"))){
+		mdelay(15);
+		}
+#endif /*OPLUS_BUG_STABILITY*/
 done:
 	primary_set_state(DISP_ALIVE);
 #if 0 //def CONFIG_TRUSTONIC_TRUSTED_UI
@@ -5790,7 +5705,6 @@ done:
 
 	disp_tphint_reset_status();
 
-	lcm_fps_ctx_reset(&lcm_fps_ctx);
 
 	return ret;
 }
@@ -7277,10 +7191,12 @@ static int _config_ovl_input(struct disp_frame_cfg_t *cfg,
 			pconfig->read_dum_reg[i] = 0;
 
 			/* full transparent layer */
-			cmdqRecBackupRegisterToSlot(cmdq_handle,
-				pgc->ovl_sbch_info, i,
-				disp_addr_convert
-				(DISP_REG_OVL_SBCH_STS + ovl_base));
+			if (!has_secure_layer(cfg)) {
+				cmdqRecBackupRegisterToSlot(cmdq_handle,
+					pgc->ovl_sbch_info, i,
+					disp_addr_convert
+					(DISP_REG_OVL_SBCH_STS + ovl_base));
+			}
 		}
 	}
 
@@ -7288,8 +7204,10 @@ static int _config_ovl_input(struct disp_frame_cfg_t *cfg,
 	    !primary_display_is_decouple_mode()) {
 		unsigned long ovl_base = ovl_base_addr(DISP_MODULE_OVL0_2L);
 
-		cmdqRecBackupRegisterToSlot(cmdq_handle, pgc->ovl_status_info,
-			0, disp_addr_convert(DISP_REG_OVL_STA + ovl_base));
+		if (!has_secure_layer(cfg)) {
+			cmdqRecBackupRegisterToSlot(cmdq_handle, pgc->ovl_status_info,
+				0, disp_addr_convert(DISP_REG_OVL_STA + ovl_base));
+		}
 	}
 
 done:
@@ -7421,11 +7339,12 @@ static int primary_frame_cfg_input(struct disp_frame_cfg_t *cfg)
 			}
 		}
 		if (all_zero)
-			disp_aee_print("HWC set zero matrix\n");
+			DISP_PR_INFO("HWC set zero matrix\n");
 		else if (!primary_display_is_decouple_mode() &&
 			disp_helper_get_stage() == DISP_HELPER_STAGE_NORMAL) {
 			disp_ccorr_set_color_matrix(cmdq_handle,
 				m_ccorr_config.color_matrix,
+				m_ccorr_config.featureFlag,
 				m_ccorr_config.mode);
 
 			/* backup night params here */
@@ -8195,7 +8114,7 @@ int primary_display_get_info(struct disp_session_info *info)
 	dispif_info->physicalWidthUm = DISP_GetActiveWidthUm();
 	dispif_info->physicalHeightUm = DISP_GetActiveHeightUm();
 
-	dispif_info->vsyncFPS = lcm_fps_ctx_get(&lcm_fps_ctx);
+	dispif_info->vsyncFPS = pgc->lcm_fps;
 
 	dispif_info->isConnected = 1;
 
@@ -8608,7 +8527,7 @@ int _set_backlight_by_cpu(unsigned int level)
 
 int primary_display_setbacklight_nolock(unsigned int level)
 {
-	static unsigned int last_level;
+	static unsigned int last_level = -1;
 
 	DISPFUNC();
 	if (disp_helper_get_stage() != DISP_HELPER_STAGE_NORMAL) {
@@ -8632,7 +8551,12 @@ int primary_display_setbacklight_nolock(unsigned int level)
 				mmprofile_log_ex(
 					ddp_mmp_get_events()->primary_set_bl,
 					MMPROFILE_FLAG_PULSE, 0, 7);
+			#ifndef OPLUS_BUG_STABILITY
+			/* Longyajun@ODM_HQ.MM.Display.LCD.Feature, 2020/01/20 add for 53=24 before 51=00 */
 				disp_lcm_set_backlight(pgc->plcm, NULL, level);
+			#else
+				_set_backlight_by_cmdq(level);
+			#endif /* OPLUS_BUG_STABILITY */
 			} else {
 				_set_backlight_by_cmdq(level);
 			}
@@ -8647,6 +8571,101 @@ int primary_display_setbacklight_nolock(unsigned int level)
 			 MMPROFILE_FLAG_END, 0, 0);
 	return 0;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+/* LiPing-M@PSW.MultiMedia.Display.LCD.Machine.1077038, 2017/12/06, Add for Porting cabc interface */
+int _set_cabc_mode_by_cmdq(unsigned int level)
+{
+	int ret = 0;
+	struct cmdqRecStruct *cmdq_handle_lcm_cmd = NULL;
+
+	mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_PULSE, 1, 1);
+	ret = cmdqRecCreate(CMDQ_SCENARIO_PRIMARY_DISP, &cmdq_handle_lcm_cmd);
+	DISPDBG("_set_cabc_mode_by_cmdq primary set lcm cmd, handle=%p\n", cmdq_handle_lcm_cmd);
+	if (ret) {
+		DISP_PR_ERR("fail to create primary cmdq handle for _set_cabc_mode_by_cmdq\n");
+		return -1;
+	}
+
+	if (primary_display_is_video_mode()) {
+		mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_PULSE, 1, 2);
+		cmdqRecReset(cmdq_handle_lcm_cmd);
+		if(oplus_display_cabc_cmdq_support) {
+			_cmdq_insert_wait_frame_done_token_mira(cmdq_handle_lcm_cmd);
+			disp_lcm_oplus_set_lcm_cabc_cmd(pgc->plcm, cmdq_handle_lcm_cmd, level);
+		}else {
+			disp_lcm_oplus_set_lcm_cabc_cmd(pgc->plcm, NULL, level);
+		}
+		_cmdq_flush_config_handle_mira(cmdq_handle_lcm_cmd, 1);
+		DISPCHECK("[CMD]_set_cabc_mode_by_cmdq is_video_mode ret=%d\n", ret);
+	} else {
+		mmprofile_log_ex(ddp_mmp_get_events()->primary_set_bl, MMPROFILE_FLAG_PULSE, 1, 3);
+		cmdqRecReset(cmdq_handle_lcm_cmd);
+		_cmdq_handle_clear_dirty(cmdq_handle_lcm_cmd);
+		_cmdq_insert_wait_frame_done_token_mira(cmdq_handle_lcm_cmd);
+
+		disp_lcm_oplus_set_lcm_cabc_cmd(pgc->plcm, cmdq_handle_lcm_cmd, level);
+		cmdqRecSetEventToken(cmdq_handle_lcm_cmd, CMDQ_SYNC_TOKEN_CONFIG_DIRTY);
+		mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_PULSE, 1, 4);
+		_cmdq_flush_config_handle_mira(cmdq_handle_lcm_cmd, 1);
+		mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_PULSE, 1, 6);
+		DISPCHECK("[CMD]_set_cabc_mode_by_cmdq is_cmd_mode ret=%d\n", ret);
+	}
+	cmdqRecDestroy(cmdq_handle_lcm_cmd);
+	cmdq_handle_lcm_cmd = NULL;
+	mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_PULSE, 1, 5);
+	return ret;
+}
+
+/* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2019/01/29, add for samsung lcd hbm node and cabc mode */
+extern bool __attribute((weak)) oplus_flag_lcd_off;
+int primary_display_set_cabc_mode(unsigned int level)
+{
+	int ret = 0;
+
+	if (oplus_flag_lcd_off)
+	{
+		pr_err("lcd is off,don't allow to set cabc\n");
+		return 0;
+	}
+
+	DISPFUNC();
+	if (disp_helper_get_stage() != DISP_HELPER_STAGE_NORMAL) {
+		DISPMSG("%s skip due to stage %s\n", __func__, disp_helper_stage_spy());
+		return 0;
+	}
+
+	mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_START, 0, 0);
+
+	_primary_path_switch_dst_lock();
+	_primary_path_lock(__func__);
+
+
+	if (pgc->state == DISP_SLEPT) {
+		DISPCHECK("Sleep State set backlight invalid\n");
+	} else {
+		primary_display_idlemgr_kick(__func__, 0);
+		if (primary_display_cmdq_enabled()) {
+			if (primary_display_is_video_mode()) {
+				mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd,
+						 MMPROFILE_FLAG_PULSE, 0, 7);
+				_set_cabc_mode_by_cmdq(level);
+			} else {
+				_set_cabc_mode_by_cmdq(level);
+			}
+		} else {
+			/* cpu */
+		}
+	}
+
+	_primary_path_unlock(__func__);
+	_primary_path_switch_dst_unlock();
+
+	mmprofile_log_ex(ddp_mmp_get_events()->primary_set_cmd, MMPROFILE_FLAG_END, 0, 0);
+
+	return ret;
+}
+#endif /* OPLUS_BUG_STABILITY */
 
 int _set_lcm_cmd_by_cmdq(unsigned int *lcm_cmd, unsigned int *lcm_count,
 			 unsigned int *lcm_value)
@@ -8782,6 +8801,15 @@ int primary_display_ccci_mipi_callback(int en, unsigned int usrdata)
 	DISPMSG("%s,userdata=%d,en=%d\n", __func__, usrdata, en);
 
 	_primary_path_lock(__func__);
+
+	#ifdef OPLUS_BUG_STABILITY
+	/* Liyan@ODM_HQ.MM.Display.LCD.Feature, 2019/12/13 add for hopping KE issue */
+	if (pgc->state == DISP_SLEPT) {
+		DISP_PR_INFO("Sleep State set mipi clock invalid\n");
+		_primary_path_unlock(__func__);
+		return 0;
+	}
+	#endif
 
 	last_stat = en;
 
@@ -10612,7 +10640,6 @@ unsigned int primary_display_is_support_DynFPS(void)
 {
 
 	if (disp_helper_get_option(DISP_OPT_DYNAMIC_FPS) &&
-		primary_display_is_video_mode() &&
 		disp_lcm_is_dynfps_support(pgc->plcm)) {
 		DISPDBG("%s,support DynFPS\n", __func__);
 		return 1;

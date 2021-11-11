@@ -33,7 +33,12 @@ struct vibrator_hw *pvib_cust;
 void vibr_Enable_HW(void)
 {
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH
+#ifndef VENDOR_EDIT
+/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
 	pmic_set_register_value(PMIC_RG_LDO_VIBR_EN, 1);
+#else
+	pmic_set_register_value_nolock(PMIC_RG_LDO_VIBR_EN, 1);
+#endif /* VENDOR_EDIT */
 	mdelay(OC_INTR_INIT_DELAY);
 	pmic_enable_interrupt(INT_VIBR_OC, 1, "vibr");
 #endif
@@ -43,7 +48,12 @@ void vibr_Disable_HW(void)
 {
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH
 	pmic_enable_interrupt(INT_VIBR_OC, 0, "vibr");
+#ifndef VENDOR_EDIT
+/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/07/17, Modify for vibrator some act abnormal(case:ALPS03078335) */
 	pmic_set_register_value(PMIC_RG_LDO_VIBR_EN, 0);
+#else
+	pmic_set_register_value_nolock(PMIC_RG_LDO_VIBR_EN, 0);
+#endif /* VENDOR_EDIT */
 #endif
 }
 

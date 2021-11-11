@@ -122,6 +122,9 @@ static void phy_efuse_settings(struct mtk_phy_instance *instance)
 	u32 evalue;
 
 	evalue = (get_devinfo_with_index(108) & (0x1f<<0)) >> 0;
+	/*#Dongru.Zhao@BSP.CHG.Basic, 2020/08/10, zdr Add for USB phy_tuning .*/
+	evalue = 0x1E;
+	/*END*/
 	if (evalue) {
 		phy_printk(K_INFO, "RG_USB20_INTR_CAL=0x%x\n",
 			evalue);
@@ -347,9 +350,21 @@ static void phy_savecurrent(struct mtk_phy_instance *instance)
 		FORCE_SUSPENDM, 1);
 	udelay(2000);
 	u3phywrite32(U3D_U2PHYDTM0, RG_DPPULLDOWN_OFST,
+#ifndef OPLUS_FEATURE_CHG_BASIC
+/* LiYue@BSP.CHG.Basic, 2019.12.05, Set internal pull down instead */
 		RG_DPPULLDOWN, 1);
+#else
+		RG_DPPULLDOWN, 0);
+#endif
 	u3phywrite32(U3D_U2PHYDTM0, RG_DMPULLDOWN_OFST,
+#ifndef OPLUS_FEATURE_CHG_BASIC
+/* LiYue@BSP.CHG.Basic, 2019.12.05, Set internal pull down instead */
 		RG_DMPULLDOWN, 1);
+#else
+		RG_DMPULLDOWN, 0);
+	/* set internal pull down*/
+	u3phywrite32(U3D_USBPHYACR6, RG_USB20_PHY_REV_OFST, (0x2 << 24), 0x2);
+#endif
 	u3phywrite32(U3D_U2PHYDTM0, RG_XCVRSEL_OFST,
 		RG_XCVRSEL, 0x1);
 	u3phywrite32(U3D_U2PHYDTM0, RG_TERMSEL_OFST,
@@ -392,15 +407,20 @@ reg_done:
 
 #define VAL_MAX_WIDTH_2	0x3
 #define VAL_MAX_WIDTH_3	0x7
+extern unsigned int usb_mode;
 static void usb_phy_tuning(struct mtk_phy_instance *instance)
 {
 	s32 u2_vrt_ref, u2_term_ref, u2_enhance;
+	s32 host_u2_vrt_ref, host_u2_term_ref, host_u2_enhance;
 	struct device_node *of_node;
 
 	if (!instance->phy_tuning.inited) {
 		instance->phy_tuning.u2_vrt_ref = 6;
 		instance->phy_tuning.u2_term_ref = 6;
 		instance->phy_tuning.u2_enhance = 1;
+		instance->phy_tuning.host_u2_vrt_ref = 6;
+		instance->phy_tuning.host_u2_term_ref = 6;
+		instance->phy_tuning.host_u2_enhance = 1;
 		of_node = of_find_compatible_node(NULL, NULL,
 			instance->phycfg->tuning_node_name);
 		if (of_node) {
@@ -411,13 +431,27 @@ static void usb_phy_tuning(struct mtk_phy_instance *instance)
 				(u32 *) &instance->phy_tuning.u2_term_ref);
 			of_property_read_u32(of_node, "u2_enhance",
 				(u32 *) &instance->phy_tuning.u2_enhance);
+				of_property_read_u32(of_node, "host_u2_vrt_ref",
+					(u32 *) &instance->phy_tuning.host_u2_vrt_ref);
+				of_property_read_u32(of_node, "host_u2_term_ref",
+					(u32 *) &instance->phy_tuning.host_u2_term_ref);
+				of_property_read_u32(of_node, "host_u2_enhance",
+					(u32 *) &instance->phy_tuning.host_u2_enhance);
 		}
 		instance->phy_tuning.inited = true;
+		}
+	if (usb_mode == 0){          //host
+		u3phywrite32(U3D_USBPHYACR6, RG_USB20_DISCTH_OFST,RG_USB20_DISCTH, 0xD);
+		u3phywrite32(U3D_USBPHYACR1, RG_USB20_INTR_CAL_OFST,RG_USB20_INTR_CAL, 0X1E);
+		u2_vrt_ref = instance->phy_tuning.host_u2_vrt_ref;
+		u2_term_ref = instance->phy_tuning.host_u2_term_ref;
+		u2_enhance = instance->phy_tuning.host_u2_enhance;
 	}
-	u2_vrt_ref = instance->phy_tuning.u2_vrt_ref;
-	u2_term_ref = instance->phy_tuning.u2_term_ref;
-	u2_enhance = instance->phy_tuning.u2_enhance;
-
+	else{                        //device
+		u2_vrt_ref = instance->phy_tuning.u2_vrt_ref;
+		u2_term_ref = instance->phy_tuning.u2_term_ref;
+		u2_enhance = instance->phy_tuning.u2_enhance;
+	}
 	if (u2_vrt_ref != -1) {
 		if (u2_vrt_ref <= VAL_MAX_WIDTH_3) {
 			u3phywrite32(U3D_USBPHYACR1,
@@ -490,6 +524,11 @@ static void phy_recover(struct mtk_phy_instance *instance)
 		RG_DPPULLDOWN, 0);
 	u3phywrite32(U3D_U2PHYDTM0, RG_DMPULLDOWN_OFST,
 		RG_DMPULLDOWN, 0);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* LiYue@BSP.CHG.Basic, 2019.12.05, Set internal pull down instead */
+	/* clean internal pull down*/
+	u3phywrite32(U3D_USBPHYACR6, RG_USB20_PHY_REV_OFST, (0x2 << 24), 0x0);
+#endif
 	u3phywrite32(U3D_U2PHYDTM0, RG_XCVRSEL_OFST,
 		RG_XCVRSEL, 0);
 	u3phywrite32(U3D_U2PHYDTM0, RG_TERMSEL_OFST,
@@ -523,8 +562,15 @@ static void phy_recover(struct mtk_phy_instance *instance)
 
 	phy_efuse_settings(instance);
 
+/*#Dongru.Zhao@BSP.CHG.Basic, 2020/08/10, zdr Add for USB phy_tuning .*/
+	u3phywrite32(U3D_USBPHYACR6, RG_USB20_DISCTH_OFST,
+		RG_USB20_DISCTH, 0xD);
+/*ELSE*/
+/*
 	u3phywrite32(U3D_USBPHYACR6, RG_USB20_DISCTH_OFST,
 		RG_USB20_DISCTH, 0x7);
+*/
+/*END*/
 
 	usb_phy_tuning(instance);
 	phy_advance_settings(instance);

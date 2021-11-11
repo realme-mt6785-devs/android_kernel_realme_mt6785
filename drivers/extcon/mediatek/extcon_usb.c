@@ -23,6 +23,9 @@
 
 #include "extcon_usb.h"
 
+/* LiYue@BSP.CHG.Basic, 2019/09/13, Add for OTG */
+extern void oplus_chg_set_otg_online(bool online);
+/*END VENDOR_EDIT*/
 struct usb_extcon_info {
 	struct device *dev;
 	struct extcon_dev *edev;
@@ -163,6 +166,9 @@ void mt_usbhost_connect(void)
 	mt_usb_dual_role_to_host();
 #endif
 #endif
+/* LiYue@BSP.CHG.Basic, 2019/09/13, Add for OTG */
+	oplus_chg_set_otg_online(true);
+/*END VENDOR_EDIT*/
 
 	pr_info("%s\n", __func__);
 	issue_connection_work(DUAL_PROP_DR_HOST);
@@ -176,7 +182,10 @@ void mt_usbhost_disconnect(void)
 	mt_usb_dual_role_to_none();
 #endif
 #endif
+/* LiYue@BSP.CHG.Basic, 2019/09/13, Add for OTG */
 
+	oplus_chg_set_otg_online(false);
+/*END VENDOR_EDIT*/
 	pr_info("%s\n", __func__);
 	issue_connection_work(DUAL_PROP_DR_NONE);
 }

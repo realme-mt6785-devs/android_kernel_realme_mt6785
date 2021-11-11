@@ -16,6 +16,12 @@
 #include "../../codecs/mt6358.h"
 #include "../common/mtk-sp-spk-amp.h"
 
+#if defined(CONFIG_SND_SIA81XX_PA)
+//Zengchao.Duan@ODM_WT.MM.AudioDriver.Machine 2019/10/19, MonetX audio sia8108 bringup
+#include "../sia81xx/sia81xx_aux_dev_if.h"
+#endif
+
+
 /*
  * if need additional control for the ext spk amp that is connected
  * after Lineout Buffer / HP Buffer on the codec, put the control in
@@ -842,6 +848,14 @@ static int mt6768_mt6358_dev_probe(struct platform_device *pdev)
 	}
 
 	card->dev = &pdev->dev;
+
+#if defined(CONFIG_SND_SIA81XX_PA)
+//Zengchao.Duan@ODM_WT.MM.AudioDriver.Machine 2019/10/19, MonetX audio sia8108 bringup
+	ret = soc_aux_init_only_sia81xx(pdev, card);
+	if (ret)
+		dev_err(&pdev->dev, "%s soc_aux_init_only_sia8108 fail %d\n",
+			__func__, ret);
+#endif
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret)

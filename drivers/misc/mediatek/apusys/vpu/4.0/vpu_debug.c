@@ -24,6 +24,26 @@
 #include "vpu_cmd.h"
 #include "apu_tags.h"
 
+#define MAX_USER_SETTING_VPU_LATENCY_MS (3000)
+
+enum message_level {
+	VPU_DBG_MSG_LEVEL_NONE,
+	VPU_DBG_MSG_LEVEL_CTRL,
+	VPU_DBG_MSG_LEVEL_CTX,
+	VPU_DBG_MSG_LEVEL_INFO,
+	VPU_DBG_MSG_LEVEL_DEBUG,
+	VPU_DBG_MSG_LEVEL_TOTAL,
+};
+
+struct vpu_message_ctrl {
+	unsigned int mutex;
+	int head;
+	int tail;
+	int buf_size;
+	unsigned int level_mask;
+	unsigned int data;
+};
+
 u32 vpu_klog;
 
 const char *g_vpu_prop_type_names[VPU_NUM_PROP_TYPES] = {
@@ -186,6 +206,26 @@ static void *vpu_mesg_pa_to_va(struct vpu_mem *work_buf, unsigned int phys_addr)
 	ret = work_buf->va + offset;
 
 	return (void *)(ret);
+}
+
+static struct vpu_message_ctrl *vpu_mesg(struct vpu_device *vd)
+{
+	if (!vd || !vd->iova_work.m.va)
+		return NULL;
+
+	return (struct vpu_message_ctrl *)(vd->iova_work.m.va +
+		VPU_LOG_OFFSET + VPU_LOG_HEADER_SIZE);
+}
+
+static void vpu_mesg_init(struct vpu_device *vd)
+{
+	struct vpu_message_ctrl *msg = vpu_mesg(vd);
+
+	if (!msg)
+		return;
+	memset(msg, 0, vd->wb_log_data);
+	msg->level_mask = (1 << VPU_DBG_MSG_LEVEL_CTRL);
+	vpu_iova_sync_for_device(vd->dev, &vd->iova_work);
 }
 
 static void vpu_mesg_clr(struct vpu_device *vd)
@@ -790,6 +830,32 @@ static int vpu_debug_info(struct seq_file *s)
 
 	return 0;
 }
+
+#ifdef OPLUS_FEATURE_MIDAS
+int set_all_vpu_power_off_latency(uint64_t pw_off_latency) {
+	struct vpu_device *vd;
+	struct list_head *ptr, *tmp;
+
+	pr_info("set_all_vpu_power_off_latency cmd:%llu\n", pw_off_latency);
+	if (pw_off_latency > MAX_USER_SETTING_VPU_LATENCY_MS) {
+		pr_err("ERROR: Cannot set the pw_off_latency greater than 3000ms\n");
+		return -1;
+	}
+
+	mutex_lock(&vpu_drv->lock);
+	list_for_each_safe(ptr, tmp, &vpu_drv->devs) {
+		vd = list_entry(ptr, struct vpu_device, list);
+		if (NULL != vd) {
+			vd->pw_off_latency = pw_off_latency;
+			pr_info("set %s pw_off_latency:%d\n", vd->name, vd->pw_off_latency);
+		}
+	}
+	mutex_unlock(&vpu_drv->lock);
+
+	return 0;
+}
+EXPORT_SYMBOL(set_all_vpu_power_off_latency);
+#endif
 
 #define VPU_DEBUGFS_FOP_DEF(name) \
 static struct dentry *vpu_d##name; \

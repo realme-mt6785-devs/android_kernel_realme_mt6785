@@ -47,7 +47,7 @@ bool vpu_is_disabled(struct vpu_device *vd);
 
 /* Time Constrains */
 #define VPU_CMD_TIMEOUT  (9000)
-#define VPU_PWR_OFF_LATENCY (3000)
+#define VPU_PWR_OFF_LATENCY (500)
 #define WAIT_CMD_LATENCY_US (2000)
 #define WAIT_CMD_RETRY  (5)
 #define WAIT_XOS_LATENCY_US (500)

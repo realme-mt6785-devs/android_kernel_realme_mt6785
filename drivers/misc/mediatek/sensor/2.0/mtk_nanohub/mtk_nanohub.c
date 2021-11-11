@@ -37,6 +37,11 @@
 #include "sensor_list.h"
 #include "mtk_nanohub_ipi.h"
 
+#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+/*Fei.Mo@PSW.BSP.Sensor, 2017/12/17, Add for get sensor_devinfo*/
+#include "../oppo_sensor_devinfo/sensor_devinfo.h"
+#endif
+
 /* ALGIN TO SCP SENSOR_IPI_SIZE AT FILE CONTEXTHUB_FW.H, ALGIN
  * TO SCP_SENSOR_HUB_DATA UNION, ALGIN TO STRUCT DATA_UNIT_T
  * SIZEOF(STRUCT DATA_UNIT_T) = SCP_SENSOR_HUB_DATA = SENSOR_IPI_SIZE
@@ -91,7 +96,7 @@ struct mtk_nanohub_device {
 	int32_t gyro_config_data[12];
 	int32_t mag_config_data[9];
 	int32_t light_config_data[1];
-	int32_t proximity_config_data[2];
+	int32_t proximity_config_data[3];
 	int32_t pressure_config_data[2];
 	int32_t sar_config_data[4];
 	int32_t ois_config_data[2];
@@ -119,6 +124,11 @@ static int mtk_nanohub_send_timestamp_to_hub(void);
 static int mtk_nanohub_server_dispatch_data(uint32_t *currWp);
 static int mtk_nanohub_report_to_manager(struct data_unit_t *data);
 static int mtk_nanohub_create_manager(void);
+
+#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+extern void oppo_init_sensor_state(struct SensorState *mSensorState);
+extern void virtual_sensor_report_data(struct data_unit_t *data,int handle);
+#endif /*OPLUS_FEATURE_SENSOR_ALGORITHM*/
 
 enum scp_ipi_status __attribute__((weak)) scp_ipi_registration(enum ipi_id id,
 	void (*ipi_handler)(int id, void *data, unsigned int len),
@@ -331,6 +341,16 @@ static void mtk_nanohub_common_cmd(union SCP_SENSOR_HUB_DATA *rsp,
 	mtk_nanohub_ipi_complete((unsigned char *)rsp, rx_len);
 }
 
+//#ifdef OPLUS_FEATURE_SENSOR
+/*Fei.Mo@PSW.BSP.Sensor, 2020/04/23, Add oppo device info msg*/
+static void
+SCP_sensorHub_set_oppo_cmd(union SCP_SENSOR_HUB_DATA *rsp,
+					int rx_len)
+{
+	mtk_nanohub_ipi_complete((unsigned char *)rsp, rx_len);
+}
+//#endif
+
 static void mtk_nanohub_moving_average(union SCP_SENSOR_HUB_DATA *rsp)
 {
 	uint64_t ap_now_time = 0, arch_counter = 0;
@@ -424,11 +444,22 @@ static void mtk_nanohub_ipi_handler(int id,
 	/*pr_err("sensorType:%d, action=%d event:%d len:%d\n",
 	 * rsp->rsp.sensorType, rsp->rsp.action, rsp->notify_rsp.event, len);
 	 */
-	cmd = mtk_nanohub_find_cmd(rsp->rsp.action);
+	//#ifndef OPLUS_FEATURE_SENSOR
+	/*Fei.Mo@PSW.BSP.Sensor, 2020/04/23, Add oppo device info msg*/
+	/*cmd = mtk_nanohub_find_cmd(rsp->rsp.action);
 	if (cmd != NULL)
 		cmd->handler(rsp, len);
 	else
-		pr_err("cannot find cmd!\n");
+		pr_err("cannot find cmd!\n");*/
+	//#else
+	cmd = mtk_nanohub_find_cmd(rsp->rsp.action);
+	if (cmd != NULL)
+		cmd->handler(rsp, len);
+	else {
+		pr_err("cannot find cmd! try to find oppo cmd\n");
+		SCP_sensorHub_set_oppo_cmd(rsp,len);
+	}
+	//#endif
 }
 
 static void mtk_nanohub_get_sensor_info(void)
@@ -675,7 +706,18 @@ static void mtk_nanohub_init_sensor_info(void)
 	p->gain = 1000000;
 	strlcpy(p->name, "ois", sizeof(p->name));
 	strlcpy(p->vendor, "mtk", sizeof(p->vendor));
-
+	#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+	//Chao.Zeng@PSW.BSP.Sensor add for ai shutter 2020/9/28
+	p = &sensor_state[SENSOR_TYPE_AI_SHUTTER];
+	p->sensorType = SENSOR_TYPE_AI_SHUTTER;
+	p->gain = 1;
+	p->rate = SENSOR_RATE_ONCHANGE;
+	strlcpy(p->name, "ai_shutter", sizeof(p->name));
+	strlcpy(p->vendor, "oplus", sizeof(p->vendor));
+	#endif
+	#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+	oppo_init_sensor_state(sensor_state);
+	#endif
 }
 
 static void init_sensor_config_cmd(struct ConfigCmd *cmd,
@@ -954,7 +996,7 @@ int mtk_nanohub_enable_to_hub(uint8_t sensor_id, int enabledisable)
 	struct ConfigCmd cmd;
 	int ret = 0;
 
-	if (enabledisable == 1 && (READ_ONCE(scp_system_ready)))
+	if (enabledisable == 1)
 		scp_register_feature(SENS_FEATURE_ID);
 	mutex_lock(&sensor_state_mtx);
 	if (sensor_id >= ID_SENSOR_MAX) {
@@ -1743,7 +1785,11 @@ static void mtk_nanohub_restoring_config(void)
 		spin_lock(&config_data_lock);
 		memcpy(data, device->proximity_config_data, length);
 		spin_unlock(&config_data_lock);
-		mtk_nanohub_cfg_to_hub(ID_PROXIMITY, data, length);
+		#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+		if (!is_support_new_arch_func()) {
+		    mtk_nanohub_cfg_to_hub(ID_PROXIMITY, data, length);
+		}
+		#endif
 		vfree(data);
 	}
 
@@ -2111,6 +2157,13 @@ static int mtk_nanohub_report_to_manager(struct data_unit_t *data)
 		return 0;
 
 	memset(&event, 0, sizeof(struct hf_manager_event));
+	#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+	/*xiebaixue@PSW.BSP.Sensor, 2020/04/13, Add for oppo algo*/
+	if(data->sensor_type >= ID_OPLUS_VIRTUAL_SENSOR_START) {
+		virtual_sensor_report_data(data,data->sensor_type);
+		return 0;
+	}
+	#endif /*OPLUS_FEATURE_SENSOR_ALGORITHM*/
 	if (data->flush_action == DATA_ACTION) {
 		switch (data->sensor_type) {
 		case ID_ACCELEROMETER:

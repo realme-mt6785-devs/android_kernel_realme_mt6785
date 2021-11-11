@@ -13,6 +13,10 @@
 
 #include "flashlight-core.h"
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 #if defined(mt6739)
 #if defined(CONFIG_MTK_FLASHLIGHT_LED191)
 	const struct flashlight_device_id flashlight_id[] = {
@@ -67,6 +71,16 @@ const struct flashlight_device_id flashlight_id[] = {
 	{0, 0, 0, "flashlights-mt6370", 0, 0},
 	{0, 1, 0, "flashlights-mt6370", 1, 0},
 };
+#elif defined(mt6768)
+const struct flashlight_device_id flashlight_id[] = {
+	/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
+	/*pascalA flashlight*/
+	{0, 0, 0, "flashlights_pascal", 0, 1},
+	{0, 0, 0, "flashlights_monet", 0, 1},
+	{0, 1, 0, "flashlights-none", -1, 0},
+	{1, 0, 0, "flashlights-none", -1, 0},
+	{1, 1, 0, "flashlights-none", -1, 0},
+};
 #elif defined(mt6799)
 const struct flashlight_device_id flashlight_id[] = {
 	/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
@@ -78,9 +92,23 @@ const struct flashlight_device_id flashlight_id[] = {
 	/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
 	{0, 0, 0, "flashlights-lm3642", 0, 0},
 };
+#elif defined(mt6785)
+const struct flashlight_device_id flashlight_id[] = {
+	/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
+	{0, 0, 0, "flashlights-mt6360", 0, 1},
+};
 #else
 const struct flashlight_device_id flashlight_id[] = {
 	/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Feng.Hu@Camera.Driver 20171121 add for lm3642, mp3331*/
+	#ifndef CONFIG_MTK_FLASHLIGHT_MT6370
+	/*weiriqin@camera.driver on 20190516, debug flashlight use mt6370 pmic first time*/
+	{0, 0, 0, "flashlights-lm3642", 0, 0},
+	{0, 0, 1, "flashlights-aw3642", 0, 0},
+	{0, 0, 0, "flashlights-mp3331", 0, 0},
+	#endif
+	#endif
 	{0, 0, 0, "flashlights-none", -1, 0},
 	{0, 1, 0, "flashlights-none", -1, 0},
 	{1, 0, 0, "flashlights-none", -1, 0},

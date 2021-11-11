@@ -113,6 +113,15 @@ static atomic_t esd_ext_te_1_event = ATOMIC_INIT(0);
 static unsigned int extd_esd_check_mode;
 static unsigned int extd_esd_check_enable;
 #endif
+#ifdef OPLUS_BUG_STABILITY
+/*Yongpeng.Yi@PSW.MM.Display.LCD.Stability 2017/12/29, Add for lcm ic esd recovery backlight */
+extern unsigned int esd_recovery_backlight_level;
+extern bool oplus_display_bl_set_on_lcd_esd_recovery;
+extern bool oplus_display_bl_set_cmdq_on_lcd_esd_recovery;
+extern u32 oplus_display_esd_try_count;
+/*Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/07/04, add for hx83112a lcd esd read reg*/
+static atomic_t oplus_enable_lcm_recovery = ATOMIC_INIT(0);
+#endif /* OPLUS_BUG_STABILITY */
 
 unsigned int get_esd_check_mode(void)
 {
@@ -446,6 +455,19 @@ done:
 	return ret;
 }
 
+#ifdef OPLUS_BUG_STABILITY
+/*Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/07/04, add for hx83112a lcd esd read reg*/
+int oplus_display_esd_recovery_lcm(void)
+{
+	if (atomic_read(&oplus_enable_lcm_recovery)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+EXPORT_SYMBOL(oplus_display_esd_recovery_lcm);
+#endif /* OPLUS_BUG_STABILITY */
+
 static int primary_display_check_recovery_worker_kthread(void *data)
 {
 	struct sched_param param = { .sched_priority = 87 };
@@ -457,8 +479,23 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 	DISPFUNC();
 	sched_setscheduler(current, SCHED_RR, &param);
 
+	#ifdef OPLUS_BUG_STABILITY
+	/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2019/01/26, add for esd test */
+	if (oplus_display_esd_try_count) {
+		esd_try_cnt = oplus_display_esd_try_count;
+	}
+	#endif /* OPLUS_BUG_STABILITY */
+
 	while (1) {
+		#ifndef OPLUS_BUG_STABILITY
+		/*
+		* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/01/25,
+		* add for esd recovery
+		*/
 		msleep(2000); /* 2s */
+		#else /* OPLUS_BUG_STABILITY */
+		msleep(5000);
+		#endif /* OPLUS_BUG_STABILITY */
 		ret = wait_event_interruptible(_check_task_wq,
 					atomic_read(&_check_task_wakeup));
 		if (ret < 0) {
@@ -479,10 +516,26 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 			ret = primary_display_esd_check();
 			if (!ret) /* 0:success */
 				break;
-
+			#ifdef OPLUS_BUG_STABILITY
+			/* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/07/04, add for hx83112a lcd esd read reg*/
+			DDPPR_ERR("[ESD] name:%s\n", primary_get_lcm()->drv->name);
+			if (!strcmp(primary_get_lcm()->drv->name,"oppo18311_dsjm_himax83112a_1080p_dsi_vdo")
+			|| !strcmp(primary_get_lcm()->drv->name,"oppo18311_truly_td4320_1080p_dsi_vdo")
+			|| !strcmp(primary_get_lcm()->drv->name,"oppo18561_dsjm_jdi_himax83112a_1080p_dsi_vdo")
+			|| !strcmp(primary_get_lcm()->drv->name,"oppo18561_tianma_himax83112a_1080p_dsi_vdo")) {
+				atomic_set(&oplus_enable_lcm_recovery, 1);
+			}
+			#endif /* OPLUS_BUG_STABILITY */
 			DDPPR_ERR("[ESD]esd check fail, will do esd recovery. try=%d\n",
 				i);
 			primary_display_esd_recovery();
+			#ifdef OPLUS_BUG_STABILITY
+			/*
+			* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/01/12,
+			* add for esd recovery
+			*/
+			msleep(2000);
+			#endif /* OPLUS_BUG_STABILITY */
 			recovery_done = 1;
 		} while (++i < esd_try_cnt);
 
@@ -490,8 +543,16 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 			DDPPR_ERR("[ESD]LCM recover fail. Try time:%d. Disable esd check\n",
 				esd_try_cnt);
 			primary_display_esd_check_enable(0);
+			#ifdef OPLUS_BUG_STABILITY
+			/* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/07/04, add for hx83112a lcd esd read reg*/
+			atomic_set(&oplus_enable_lcm_recovery, 0);
+			#endif /* OPLUS_BUG_STABILITY */
 		} else if (recovery_done == 1) {
 			DISPCHECK("[ESD]esd recovery success\n");
+			#ifdef OPLUS_BUG_STABILITY
+			/* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/07/04, add for hx83112a lcd esd read reg*/
+			atomic_set(&oplus_enable_lcm_recovery, 0);
+			#endif /* OPLUS_BUG_STABILITY */
 			recovery_done = 0;
 		}
 
@@ -564,6 +625,13 @@ int primary_display_esd_recovery(void)
 	/* after dsi_stop, we should enable the dsi basic irq. */
 	dsi_basic_irq_enable(DISP_MODULE_DSI0, NULL);
 	disp_lcm_suspend(primary_get_lcm());
+	#ifdef OPLUS_BUG_STABILITY
+	/*
+	* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/01/05,
+	* add power seq api for ulps
+	*/
+	disp_lcm_poweroff_after_ulps(primary_get_lcm());
+	#endif /* OPLUS_BUG_STABILITY */
 	DISPCHECK("[POWER]lcm suspend[end]\n");
 
 	mmprofile_log_ex(mmp_r, MMPROFILE_FLAG_PULSE, 0, 7);
@@ -577,6 +645,14 @@ int primary_display_esd_recovery(void)
 	DISPCHECK("[ESD]dsi power reset[end]\n");
 
 	DISPDBG("[ESD]lcm recover[begin]\n");
+	#ifdef OPLUS_BUG_STABILITY
+	/*
+	* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2018/01/05,
+	* add power seq api for ulps
+	*/
+	msleep(80);
+	disp_lcm_poweron_before_ulps(primary_get_lcm());
+	#endif /* OPLUS_BUG_STABILITY */
 	disp_lcm_esd_recover(primary_get_lcm());
 	DISPCHECK("[ESD]lcm recover[end]\n");
 	mmprofile_log_ex(mmp_r, MMPROFILE_FLAG_PULSE, 0, 8);
@@ -629,6 +705,16 @@ int primary_display_esd_recovery(void)
 
 done:
 	primary_display_manual_unlock();
+
+	#ifdef OPLUS_BUG_STABILITY
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/29, add for lcd */
+	if (oplus_display_bl_set_on_lcd_esd_recovery) {
+		disp_lcm_set_backlight(primary_get_lcm(),NULL,esd_recovery_backlight_level);
+	} else if (oplus_display_bl_set_cmdq_on_lcd_esd_recovery) {
+		disp_lcm_set_backlight(primary_get_lcm(),primary_get_dpmgr_handle(),esd_recovery_backlight_level);
+	}
+	#endif /* OPLUS_BUG_STABILITY */
+
 	DISPCHECK("[ESD]ESD recovery end\n");
 	mmprofile_log_ex(mmp_r, MMPROFILE_FLAG_END, 0, 0);
 	dprec_logger_done(DPREC_LOGGER_ESD_RECOVERY, 0, 0);

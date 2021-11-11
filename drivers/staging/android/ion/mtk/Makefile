@@ -30,6 +30,8 @@ ccflags-y += -DION_HISTORY_RECORD
 obj-$(CONFIG_MTK_ION) += ion_history.o
 obj-$(CONFIG_MTK_ION) += ion_comm.o
 
+obj-$(CONFIG_OPLUS_ION_BOOSTPOOL) += oplus_ion_boost_pool.o
+
 ifeq ($(CONFIG_MTK_ENG_BUILD), y)
 ccflags-y += -DION_RUNTIME_DEBUGGER=1
 else

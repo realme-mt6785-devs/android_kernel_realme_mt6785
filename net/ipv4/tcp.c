@@ -302,6 +302,12 @@ EXPORT_SYMBOL(sysctl_tcp_wmem);
 atomic_long_t tcp_memory_allocated;	/* Current allocated memory. */
 EXPORT_SYMBOL(tcp_memory_allocated);
 
+#ifdef OPLUS_BUG_STABILITY
+//ZhaoMengqing@CONNECTIVITY.WIFI.INTERNET.1394484, 2019/04/02,add for: When find TCP SYN-ACK Timestamp value error, just do not use Timestamp
+int sysctl_tcp_ts_control[2] __read_mostly = {0,0};
+EXPORT_SYMBOL(sysctl_tcp_ts_control);
+#endif /* OPLUS_BUG_STABILITY */
+
 /*
  * Current number of TCP sockets.
  */

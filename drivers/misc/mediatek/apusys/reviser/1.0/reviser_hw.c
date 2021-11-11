@@ -18,7 +18,6 @@
 #include <linux/io.h>
 #include <linux/platform_device.h>
 
-
 #include "apusys_device.h"
 #include "reviser_cmn.h"
 #include "reviser_drv.h"
@@ -27,7 +26,6 @@
 #include "reviser_mem.h"
 #include "reviser_secure.h"
 #include "apusys_power.h"
-#include "reviser_aee.h"
 
 #define FAKE_CONTEX_REG_NUM 9
 //#define FAKE_REMAP_REG_NUM 13
@@ -1111,8 +1109,7 @@ int reviser_dram_remap_init(void *drvinfo)
 	reviser_device = (struct reviser_dev_info *)drvinfo;
 
 	//g_mem_sys.size = REMAP_DRAM_SIZE;
-	//Reserve memory for IP device + Preemption device
-	g_mem_sys.size = VLM_SIZE * VLM_CTXT_CTX_ID_COUNT * 2;
+	g_mem_sys.size = VLM_SIZE * VLM_CTXT_CTX_ID_COUNT;
 	if (reviser_mem_alloc(reviser_device->dev, &g_mem_sys)) {
 		LOG_ERR("alloc fail\n");
 		return -ENOMEM;
@@ -1278,18 +1275,12 @@ int reviser_power_off(void *drvinfo)
 	mutex_lock(&reviser_device->mutex_power);
 	reviser_device->power_count--;
 
-	if (reviser_device->power_count < 0) {
-		LOG_ERR("Power count invalid (%d)\n", reviser_device->power_count);
-		ret = -EINVAL;
-		mutex_unlock(&reviser_device->mutex_power);
-		if (ret)
-			reviser_aee_print("count_invalid");
-		return ret;
-	} else if (reviser_device->power_count == 0) {
+	if (reviser_device->power_count == 0) {
 
 		ret = apu_device_power_off(REVISER);
 		if (ret < 0)
 			LOG_ERR("PowerON Fail (%d)\n", ret);
+
 	}
 	mutex_unlock(&reviser_device->mutex_power);
 

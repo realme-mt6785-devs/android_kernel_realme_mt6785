@@ -1101,6 +1101,11 @@ static ssize_t clk_buf_show_status_info_internal(char *buf)
 
 u8 clk_buf_get_xo_en_sta(enum xo_id id)
 {
+	if (id < 0 || id >= XO_NUMBER)
+		return 0;
+
+	clk_buf_get_xo_en();
+
 	return xo_en_stat[id];
 }
 
@@ -1486,11 +1491,14 @@ void clk_buf_post_init(void)
 	CLK_BUF7_STATUS = CLOCK_BUFFER_DISABLE;
 #endif
 
-#ifndef CONFIG_NFC_CHIP_SUPPORT
-	/* no need to use XO_NFC if no NFC */
-	clk_buf_ctrl_internal(CLK_BUF_NFC, CLK_BUF_FORCE_OFF);
-	CLK_BUF3_STATUS = CLOCK_BUFFER_DISABLE;
-#endif
+//#ifdef OPLUS_FEATURE_NFC_BRINGUP
+//LinJunBin@CONNECTIVITY.NFC.BASIC , 2020/09/21, remove for : adaption nfc
+//#ifndef CONFIG_NFC_CHIP_SUPPORT
+//	/* no need to use XO_NFC if no NFC */
+//	clk_buf_ctrl_internal(CLK_BUF_NFC, CLK_BUF_FORCE_OFF);
+//	CLK_BUF3_STATUS = CLOCK_BUFFER_DISABLE;
+//#endif
+//#endif /* OPLUS_FEATURE_NFC_BRINGUP */
 #ifdef CLKBUF_USE_BBLPM
 	if (bblpm_switch == 2) {
 		clk_buf_ctrl_bblpm_mask(CLK_BUF_BB_MD, true);

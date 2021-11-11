@@ -114,6 +114,11 @@
 			cc_open_sel = <3>;
 			i2c_cc_open_tsel = <1>;
 			ldo5_otp_en = <0>;
+//#ifdef OPLUS_FEATURE_CHG_BASIC
+/* Gang.Yan@CHG.BSP.BASIC, 2020/10/20, add for i2c of mt6360  */
+			sda_sizesel = <3>;
+			sda_drvsrsel = <1>;
+//#endif
 		};
 	};
 
@@ -190,8 +195,8 @@
 		mt_pmic_vmch_ldo_reg: ldo5 {
 			regulator-compatible = "LDO5";
 			regulator-name = "VMCH";
-			regulator-min-microvolt = <2700000>;
-			regulator-max-microvolt = <3600000>;
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
 		};
 	};
 };

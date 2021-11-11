@@ -31,12 +31,22 @@
 #include "flashlight-core.h"
 #include "flashlight-dt.h"
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 /* device tree should be defined in flashlight-dt.h */
 #ifndef LM3642_DTNAME
 #define LM3642_DTNAME "mediatek,flashlights_lm3642"
 #endif
+
 #ifndef LM3642_DTNAME_I2C
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Feng.Hu@Camera.Driver 20171121 modify for i2c probe*/
+#define LM3642_DTNAME_I2C "mediatek,strobe_main"
+#else
 #define LM3642_DTNAME_I2C "mediatek,flashlights_lm3642_i2c"
+#endif
 #endif
 
 #define LM3642_NAME "flashlights-lm3642"
@@ -60,7 +70,13 @@
 
 /* define level */
 #define LM3642_LEVEL_NUM 18
+
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+/*Feng.Hu@Camera.Driver 20171227 modify for torch current start from 100ma*/
 #define LM3642_LEVEL_TORCH 4
+#else
+#define LM3642_LEVEL_TORCH 3
+#endif
 #define LM3642_HW_TIMEOUT 800 /* ms */
 
 /* define mutex and work queue */
@@ -93,6 +109,7 @@ struct lm3642_chip_data {
 /******************************************************************************
  * lm3642 operations
  *****************************************************************************/
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
 static const int lm3642_current[LM3642_LEVEL_NUM] = {
 	 48,  93,  141,  188,  281,  375,  469,  563, 656, 750,
 	844, 938, 1031, 1125, 1219, 1313, 1406, 1500
@@ -102,6 +119,18 @@ static const unsigned char lm3642_flash_level[LM3642_LEVEL_NUM] = {
 	0x00, 0x10, 0x20, 0x30, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 	0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
 };
+#else
+/*Feng.Hu@Camera.Driver 20171227 modify for torch current start from 100ma*/
+static const int lm3642_current[LM3642_LEVEL_NUM] = {
+	 48,  94,  141,  188,  281,  375,  469,  563, 656, 750,
+	844, 938, 1031, 1125, 1219, 1313, 1406, 1500
+};
+
+static const unsigned char lm3642_flash_level[LM3642_LEVEL_NUM] = {
+	0x00, 0x10, 0x20, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+	0x08, 0x09, 0x0B, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+};
+#endif
 
 static const unsigned char lm3642lt_flash_level[LM3642_LEVEL_NUM] = {
 	0x10, 0x30, 0x50, 0x70, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
@@ -156,10 +185,30 @@ static int lm3642_read_reg(struct i2c_client *client, u8 reg)
 	return val;
 }
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+int lm3642_readReg(int reg)
+{
+	int val = 0xff;
+	if(!lm3642_i2c_client)
+		return val;
+
+	val = lm3642_read_reg(lm3642_i2c_client, reg);
+	pr_err("lm3642_readReg val = %d \n", val);
+	return (int)val;
+}
+#endif
+
+
 /* flashlight enable function */
 static int lm3642_enable(void)
 {
 	unsigned char reg, val;
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Yijun.Tan@Camera add for reset flag register 20171223*/
+	int temp1 = 0;
+	int temp2 = 0;
+	int ret = 0;
+	#endif
 
 	reg = LM3642_REG_ENABLE;
 	if (!lm3642_is_torch(lm3642_level)) {
@@ -170,7 +219,17 @@ static int lm3642_enable(void)
 		val = LM3642_ENABLE_FLASH;
 	}
 
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 	return lm3642_write_reg(lm3642_i2c_client, reg, val);
+	#else
+	/*Yijun.Tan@Camera modify for reset flag register 20171223*/
+	temp1 = lm3642_read_reg(lm3642_i2c_client, 0x0B);
+	pr_debug(" lm3642_enable line=%d, flags value is 0x%x\n", __LINE__, temp1);
+	ret = lm3642_write_reg(lm3642_i2c_client, reg, val);
+	temp2 = lm3642_read_reg(lm3642_i2c_client, 0x0A);
+	pr_debug(" lm3642_enable line=%d, reg0x0A value is 0x%x\n", __LINE__, temp2);
+	return ret;
+	#endif
 }
 
 /* flashlight disable function */
@@ -188,6 +247,11 @@ static int lm3642_disable(void)
 static int lm3642_set_level(int level)
 {
 	unsigned char reg, val;
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Yijun.Tan@Camera add for reset flag register 20171223*/
+	int temp1 = 0;
+	int ret = 0;
+	#endif
 
 	level = lm3642_verify_level(level);
 	lm3642_level = level;
@@ -198,7 +262,16 @@ static int lm3642_set_level(int level)
 	else
 		val = lm3642_flash_level[level];
 
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 	return lm3642_write_reg(lm3642_i2c_client, reg, val);
+	#else
+	/*Yijun.Tan@Camera modify for reset flag register 20171223*/
+	ret = lm3642_write_reg(lm3642_i2c_client, reg, val);;
+	mdelay(5);
+	temp1 = lm3642_read_reg(lm3642_i2c_client, 0x0B);
+	pr_debug(" lm3642_set_level_ch1 line=%d, flags value is 0x%x\n", __LINE__, temp1);
+	return ret;
+	#endif
 }
 
 static int lm3642_get_flag(void)
@@ -214,6 +287,10 @@ int lm3642_init(void)
 	/* get silicon revision */
 	is_lm3642lt = lm3642_read_reg(
 			lm3642_i2c_client, LM3642_REG_SILICON_REVISION);
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Feng.Hu@Camera.Driver 20180131 add as we never use lm3642lt, avoid use wrong IC*/
+	is_lm3642lt = 0;
+	#endif
 	pr_info("LM3642(LT) revision(%d).\n", is_lm3642lt);
 
 	/* disable */
@@ -358,7 +435,14 @@ static int lm3642_set_driver(int set)
 	if (set) {
 		if (!use_count)
 			ret = lm3642_init();
+		#ifndef OPLUS_FEATURE_CAMERA_COMMON
 		use_count++;
+		#else
+		/*Feng.Hu@Camera.Driver modify as when init failed, don't increase users*/
+		if (ret >= 0) {
+			use_count++;
+		}
+		#endif
 		pr_debug("Set driver: %d\n", use_count);
 	} else {
 		use_count--;
@@ -466,10 +550,18 @@ err_node_put:
 static int lm3642_i2c_probe(
 		struct i2c_client *client, const struct i2c_device_id *id)
 {
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	struct lm3642_platform_data *pdata = dev_get_platdata(&client->dev);
+	int i;
+	#endif
 	struct lm3642_chip_data *chip;
 	int err;
 
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 	pr_debug("i2c probe start.\n");
+	#else
+	pr_debug("Probe start.\n");
+	#endif
 
 	/* check i2c */
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
@@ -486,30 +578,96 @@ static int lm3642_i2c_probe(
 	}
 	chip->client = client;
 
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* init platform data */
+	if (!pdata) {
+		pdata = devm_kzalloc(&client->dev, sizeof(*pdata), GFP_KERNEL);
+		if (!pdata) {
+			err = -ENOMEM;
+			goto err_free;
+		}
+		client->dev.platform_data = pdata;
+		err = lm3642_parse_dt(&client->dev, pdata);
+		if (err)
+			goto err_free;
+	}
+	chip->pdata = pdata;
+	#endif
 	i2c_set_clientdata(client, chip);
 	lm3642_i2c_client = client;
 
 	/* init mutex and spinlock */
 	mutex_init(&chip->lock);
 
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* init work queue */
+	INIT_WORK(&lm3642_work, lm3642_work_disable);
+
+	/* init timer */
+	hrtimer_init(&lm3642_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	lm3642_timer.function = lm3642_timer_func;
+	lm3642_timeout_ms = 800;
+	#endif
+
 	/* init chip hw */
 	lm3642_chip_init(chip);
 
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 	pr_debug("i2c probe done.\n");
+	#else
+	/* clear usage count */
+	use_count = 0;
+
+	/* register flashlight device */
+	if (pdata->channel_num) {
+		for (i = 0; i < pdata->channel_num; i++)
+			if (flashlight_dev_register_by_device_id(&pdata->dev_id[i], &lm3642_ops)) {
+				err = -EFAULT;
+				goto err_free;
+			}
+	} else {
+		if (flashlight_dev_register(LM3642_NAME, &lm3642_ops)) {
+			err = -EFAULT;
+			goto err_free;
+		}
+	}
+	pr_debug("Probe done.\n");
+	#endif
 
 	return 0;
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+err_free:
+	i2c_set_clientdata(client, NULL);
+	kfree(chip);
+#endif
 err_out:
 	return err;
 }
 
 static int lm3642_i2c_remove(struct i2c_client *client)
 {
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	struct lm3642_platform_data *pdata = dev_get_platdata(&client->dev);
+	int i;
+	#endif
 	struct lm3642_chip_data *chip = i2c_get_clientdata(client);
 
 	pr_debug("Remove start.\n");
 
 	client->dev.platform_data = NULL;
+
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* unregister flashlight device */
+	if (pdata && pdata->channel_num)
+		for (i = 0; i < pdata->channel_num; i++)
+			flashlight_dev_unregister_by_device_id(&pdata->dev_id[i]);
+	else
+		flashlight_dev_unregister(LM3642_NAME);
+
+	/* flush work queue */
+	flush_work(&lm3642_work);
+	#endif
 
 	/* free resource */
 	kfree(chip);
@@ -536,6 +694,9 @@ MODULE_DEVICE_TABLE(of, lm3642_i2c_of_match);
 static struct i2c_driver lm3642_i2c_driver = {
 	.driver = {
 		.name = LM3642_NAME,
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		.owner = THIS_MODULE,
+		#endif
 #ifdef CONFIG_OF
 		.of_match_table = lm3642_i2c_of_match,
 #endif
@@ -545,6 +706,11 @@ static struct i2c_driver lm3642_i2c_driver = {
 	.id_table = lm3642_i2c_id,
 };
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+module_i2c_driver(lm3642_i2c_driver);
+#endif
+
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
 /******************************************************************************
  * Platform device and driver
  *****************************************************************************/
@@ -705,6 +871,7 @@ static void __exit flashlight_lm3642_exit(void)
 
 module_init(flashlight_lm3642_init);
 module_exit(flashlight_lm3642_exit);
+#endif
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Xi Chen <xixi.chen@mediatek.com>");

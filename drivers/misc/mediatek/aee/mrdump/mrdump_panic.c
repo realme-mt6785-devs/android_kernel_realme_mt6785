@@ -34,6 +34,12 @@
 #include "mrdump_mini.h"
 #include <mt-plat/mtk_ram_console.h>
 
+#ifdef OPLUS_FEATURE_PERFORMANCE
+//ZuoTong@ANDROID.PERFORMANCE, 2020/06/28,Add for flushing device cache before goto dump mode!
+extern bool is_triggering_panic;
+extern void flush_cache_on_panic(void);
+#endif  /*OPLUS_FEATURE_PERFORMANCE*/
+
 static char mrdump_lk[12];
 bool mrdump_ddr_reserve_ready;
 
@@ -152,9 +158,41 @@ __weak void aee_wdt_zap_locks(void)
 	pr_notice("%s:weak function\n", __func__);
 }
 
+#ifdef OPLUS_FEATURE_PHOENIX
+//Kun.Hu@PSW.TECH.RELIABILTY, 2019/03/03, Add for project phoenix
+extern void deal_fatal_err(void);
+extern int kernel_panic_happened;
+extern int hwt_happened;
+#endif /* OPLUS_FEATURE_PHOENIX */
+
 int mrdump_common_die(int fiq_step, int reboot_reason, const char *msg,
 		      struct pt_regs *regs)
 {
+
+#ifdef OPLUS_FEATURE_PHOENIX
+	//Kun.Hu@PSW.TECH.RELIABILTY, 2019/03/03, Add for project phoenix
+	if((AEE_REBOOT_MODE_KERNEL_OOPS == reboot_reason || AEE_REBOOT_MODE_KERNEL_PANIC == reboot_reason)
+		&& !kernel_panic_happened)
+	{
+		kernel_panic_happened = 1;
+		deal_fatal_err();
+	}
+	else if (AEE_REBOOT_MODE_WDT == reboot_reason && !hwt_happened)
+	{
+		hwt_happened = 1;
+		deal_fatal_err();
+	}
+#endif /* OPLUS_FEATURE_PHOENIX */
+
+#ifdef OPLUS_FEATURE_PERFORMANCE
+//ZuoTong@ANDROID.PERFORMANCE, 2020/06/28,Add for flushing device cache before go to dump mode!
+    if(!is_triggering_panic)
+    {
+        is_triggering_panic = true;
+        pr_notice("is_triggering_panic : true\n");
+        flush_cache_on_panic();
+    }
+#endif // OPLUS_FEATURE_PERFORMANCE
 	bust_spinlocks(1);
 	aee_disable_api();
 
@@ -274,21 +312,6 @@ static __init int mrdump_parse_chosen(void)
 	return -1;
 }
 
-#ifdef CONFIG_MODULES
-/* Module notifier call back, update module info list */
-static int mrdump_module_callback(struct notifier_block *nb,
-				  unsigned long val, void *data)
-{
-	if (val == MODULE_STATE_LIVE)
-		mrdump_modules_info(NULL, -1);
-	return NOTIFY_DONE;
-}
-
-static struct notifier_block mrdump_module_nb = {
-	.notifier_call = mrdump_module_callback,
-};
-#endif
-
 static int __init mrdump_panic_init(void)
 {
 	mrdump_parse_chosen();
@@ -313,9 +336,6 @@ static int __init mrdump_panic_init(void)
 
 	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
 	register_die_notifier(&die_blk);
-#ifdef CONFIG_MODULES
-	register_module_notifier(&mrdump_module_nb);
-#endif
 	pr_debug("ipanic: startup\n");
 	return 0;
 }

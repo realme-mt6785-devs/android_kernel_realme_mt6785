@@ -53,6 +53,14 @@
 #include "mtk_leds_hal.h"
 #include "../mtk_leds_drv.h"
 
+#ifdef OPLUS_FEATURE_MULTIBITS_BL
+/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, remove for multibits backlight */
+extern bool __attribute((weak)) oplus_display_twelvebits_support;
+/* LiPing-M@PSW.MultiMedia.Display.LCD.Feature.DD17&DD16, 2017/12/07, Add for sau and silence close backlight */
+#include <mt-plat/mtk_boot_common.h>
+extern unsigned long oplus_silence_mode;
+#endif
+
 /* for LED&Backlight bringup, define the dummy API */
 #ifndef CONFIG_MTK_PMIC_NEW_ARCH
 u16 pmic_set_register_value(u32 flagname, u32 val)
@@ -762,6 +770,14 @@ int mt_mt65xx_led_set_cust(struct cust_mt65xx_led *cust, int level)
 #endif
 	static bool button_flag;
 
+	#ifdef OPLUS_BUG_STABILITY
+	/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature.DD17&DD16, 2018/09/10, Add for sau and silence close backlight */
+	if (oplus_silence_mode) {
+		printk("%s oplus_silence_mode is %ld, set backlight to 0\n",__func__, oplus_silence_mode);
+		level = 0;
+	}
+	#endif /* OPLUS_BUG_STABILITY */
+
 	switch (cust->mode) {
 
 	case MT65XX_LED_MODE_PWM:
@@ -882,19 +898,59 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 		level = (level * CONFIG_LIGHTNESS_MAPPING_VALUE) / 255;
 
 	backlight_debug_log(led_data->level, level);
+
+	#ifndef OPLUS_FEATURE_MULTIBITS_BL
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, remove for multibits backlight */
 	disp_pq_notify_backlight_changed((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT)
 					    - 1) * level + 127) / 255);
+	#else /* OPLUS_FEATURE_MULTIBITS_BL */
+	/* Longyajun@ODM.HQ.Multimedia.LCM 2020/05/06 modified for 4095 steps backlight */
+	if(oplus_display_twelvebits_support){
+		disp_pq_notify_backlight_changed((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT_SALA)
+							- 1) * level + 127) / 255);
+	}else{
+		disp_pq_notify_backlight_changed((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT)
+					    - 1) * level + 127) / 255);
+	}
+	#endif /* OPLUS_FEATURE_MULTIBITS_BL */
 #ifdef CONFIG_MTK_AAL_SUPPORT
+	#ifndef OPLUS_FEATURE_MULTIBITS_BL
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, modify for multibits backlight */
 	disp_aal_notify_backlight_changed((((1 <<
 					MT_LED_INTERNAL_LEVEL_BIT_CNT)
 					    - 1) * level + 127) / 255);
+	#else /* OPLUS_FEATURE_MULTIBITS_BL */
+	/*
+	Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature, 2018/09/10,
+	modify for silence mode.
+	*/
+	if (oplus_silence_mode) {
+		printk("%s oplus_silence_mode is %ld, set backlight to 0\n", __func__, oplus_silence_mode);
+		level = 0;
+	}
+	/* Liyan@ODM_HQ.MultiMedia.Display.LCD.Feature, 2019/10/26, modify for backlight. */
+	disp_aal_notify_backlight_changed(level);
+	#endif /* OPLUS_FEATURE_MULTIBITS_BL */
 #else
-	if (led_data->cust.mode == MT65XX_LED_MODE_CUST_BLS_PWM)
-		mt_mt65xx_led_set_cust(&led_data->cust,
-			((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT)
-				- 1) * level + 127) / 255));
-	else
-		mt_mt65xx_led_set_cust(&led_data->cust, level);
+	#ifdef OPLUS_FEATURE_MULTIBITS_BL
+	/* Longyajun@ODM.HQ.Multimedia.LCM 2020/05/06 modified for 4095 steps backlight */
+		if(oplus_display_twelvebits_support){
+			if (led_data->cust.mode == MT65XX_LED_MODE_CUST_BLS_PWM)
+				mt_mt65xx_led_set_cust(&led_data->cust,
+					((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT_SALA)
+						- 1) * level + 127) / 255));
+			else
+				mt_mt65xx_led_set_cust(&led_data->cust, level);
+
+		}else{
+			if (led_data->cust.mode == MT65XX_LED_MODE_CUST_BLS_PWM)
+				mt_mt65xx_led_set_cust(&led_data->cust,
+					((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT)
+						- 1) * level + 127) / 255));
+			else
+				mt_mt65xx_led_set_cust(&led_data->cust, level);
+		}
+	#endif
 #endif
 }
 

@@ -34,7 +34,7 @@ struct CcuMemInfo {
 	unsigned int mva;
 	unsigned int size;
 	unsigned int occupiedSize;
-	unsigned int cached;
+	bool cached;
 	bool ion_log;
 };
 

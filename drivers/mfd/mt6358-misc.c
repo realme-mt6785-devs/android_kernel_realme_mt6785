@@ -163,6 +163,31 @@ enum rtc_spare_enum {
 	RTC_32K_LESS,
 	RTC_LP_DET,
 	RTC_FG_INIT,
+	#ifdef VENDOR_EDIT
+	/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24,, Add for /panic mode/silence mode/meta mode/SAU mode */
+	RTC_REBOOT_KERNEL, // 15
+	RTC_SILENCE_BOOT,//16
+	RTC_META_BOOT,//17
+	RTC_SAU_BOOT,//18
+	#endif /* VENDOR_EDIT */
+	#ifdef VENDOR_EDIT
+	/* Qiao.Hu@EXP.BSP.BaseDrv.CHG.Basic, 2017/08/02, Add for charger memory electricity */
+	RTC_OPPO_BATTERY,//19
+	#endif /* VENDOR_EDIT */
+#ifdef VENDOR_EDIT
+/* Fuchun.Liao@BSP.CHG.Basic 2018/02/12 modify for factory mode */
+	RTC_FACTORY_BOOT,
+#endif /* VENDOR_EDIT */
+#ifdef VENDOR_EDIT
+/* Fuchun.Liao@BSP.CHG.Basic 2018/08/08 modify for sensor i2c err workaround */
+	RTC_SENSOR_CAUSE_PANIC,
+#endif /* VENDOR_EDIT */
+/*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
+	RTC_SAFE_BOOT,
+/*xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest*/
+#ifdef OPLUS_FEATURE_AGINGTEST
+	RTC_AGINGTEST_BOOT,
+#endif /*OPLUS_FEATURE_AGINGTEST */
 	RTC_SPAR_NUM
 };
 
@@ -187,7 +212,34 @@ u16 rtc_spare_reg[RTC_SPAR_NUM][3] = {
 	{RTC_PDN2, 0x1, 15},
 	{RTC_SPAR0, 0x1, 6},
 	{RTC_SPAR0, 0x1, 7},
-	{RTC_AL_HOU, 0xff, 8}
+	{RTC_AL_HOU, 0xff, 8},
+#ifdef VENDOR_EDIT
+/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24,, Add for /panic mode/silence mode/meta mode/SAU mode */
+	{RTC_SPAR0, 0x1, 8},
+	{RTC_SPAR0, 0x1, 9},
+	{RTC_SPAR0, 0x1, 10},
+	{RTC_SPAR0, 0x1, 11},
+#endif /* VENDOR_EDIT */
+	#ifdef VENDOR_EDIT
+	/* Qiao.Hu@EXP.BSP.BaseDrv.CHG.Basic, 2017/08/02, Add for charger memory electricity */
+	{RTC_AL_DOW, 0xff, 8},//battery electricity
+	#endif /* VENDOR_EDIT */
+#ifdef VENDOR_EDIT
+/* Fuchun.Liao@BSP.CHG.Basic 2018/02/12 modify for factory mode */
+	{RTC_SPAR0, 0x1, 12},
+#endif /* VENDOR_EDIT */
+#ifdef VENDOR_EDIT
+/* Fuchun.Liao@BSP.CHG.Basic 2018/02/12 modify for sensor i2c err workaround */
+	{RTC_SPAR0, 0x1, 13},
+#endif /* VENDOR_EDIT */
+#ifdef VENDOR_EDIT
+/*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
+	{RTC_SPAR0, 0x1, 15},
+/*xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest*/
+#ifdef OPLUS_FEATURE_AGINGTEST
+	{RTC_SPAR0, 0x01, 14},
+#endif /*OPLUS_FEATURE_AGINGTEST */
+#endif /* VENDOR_EDIT */
 };
 
 /*
@@ -693,6 +745,140 @@ void rtc_mark_fast(void)
 	mtk_rtc_set_spare_register(RTC_FAST_BOOT, 0x1);
 	spin_unlock_irqrestore(&rtc_misc->lock, flags);
 }
+
+#ifdef VENDOR_EDIT
+/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24,, Add for /panic mode/silence mode/meta mode/SAU mode */
+void oppo_rtc_mark_reboot_kernel(void)
+{
+	unsigned long flags;
+
+	pr_notice("oppo_rtc_mark_reboot_kernel\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_REBOOT_KERNEL, 0x1);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+
+void oppo_rtc_mark_silence(void)
+{
+	unsigned long flags;
+
+	pr_notice("oppo_rtc_mark_silence\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_SILENCE_BOOT, 0x1);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+void oppo_rtc_mark_meta(void)
+{
+	unsigned long flags;
+
+	pr_notice("oppo_rtc_mark_meta\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_META_BOOT, 0x1);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+void oppo_rtc_mark_sau(void)
+{
+	unsigned long flags;
+
+	pr_notice("rtc_mark_sau\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_SAU_BOOT, 0x1);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+//xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest
+#ifdef OPLUS_FEATURE_AGINGTEST
+void oppo_rtc_mark_agingtest(void)
+{
+	unsigned long flags;
+
+	pr_notice("rtc_mark_agingtest\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_AGINGTEST_BOOT, 0x01);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+#endif /*OPLUS_FEATURE_AGINGTEST */
+
+void oppo_rtc_mark_factory(void)
+{
+	unsigned long flags;
+
+	pr_notice("rtc_mark_factory\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_FACTORY_BOOT, 0x1);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+/*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
+void oppo_rtc_mark_safe(void)
+{
+	unsigned long flags;
+
+	pr_notice("rtc_mark_safe\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_SAFE_BOOT, 0x01);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+/* Fuchun.Liao@BSP.CHG.Basic 2018/08/08 modify for sensor i2c workaround*/
+void oppo_rtc_mark_sensor_cause_panic(void)
+{
+	unsigned long flags;
+
+	pr_notice("rtc mark sensor i2c cause panic\n");
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_SENSOR_CAUSE_PANIC, 0x1);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+int oppo_get_rtc_sensor_cause_panic_value(void)
+{
+	u16 temp;
+	unsigned long flags;
+
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	temp = mtk_rtc_get_spare_register(RTC_SENSOR_CAUSE_PANIC);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+
+	return temp;
+}
+
+void oppo_clear_rtc_sensor_cause_panic(void)
+{
+	unsigned long flags = 0;
+
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_SENSOR_CAUSE_PANIC, 0x0);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+
+u16  is_kernel_panic_reboot(void)
+{
+	/* RTC_SPAR0 bit8 */
+	u16 temp;
+	unsigned long flags;
+
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	temp = mtk_rtc_get_spare_register(RTC_REBOOT_KERNEL);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+
+	if(temp != 0)
+	 	return 1;
+	else
+		return 0;
+}
+void  hal_rtc_clear_spar0_bit8(void)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&rtc_misc->lock, flags);
+	mtk_rtc_set_spare_register(RTC_REBOOT_KERNEL, 0x0);
+	spin_unlock_irqrestore(&rtc_misc->lock, flags);
+}
+#endif/* VENDOR_EDIT */
 
 static int pmic_config_interface(unsigned int RegNum, unsigned int val,
 			    unsigned int MASK, unsigned int SHIFT)

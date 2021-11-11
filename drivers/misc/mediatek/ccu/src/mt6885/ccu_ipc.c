@@ -93,7 +93,7 @@ bool ccu_ipc_getIObuffer(void **ipcInDataPtr, void **ipcOutDataPtr,
 int ccu_ipc_send(struct ccu_msg *msg)
 {
 	uint32_t loopCount = 0;
-	uint32_t  ackValue = 0;
+	bool ackValue = 0;
 	bool timeout = false;
 	uint32_t write_cnt = 0;
 	uint32_t read_cnt = 0;
@@ -204,15 +204,9 @@ bool _resolveCmdIOBuf(struct CcuIOBufInfo *inDataBufInfo,
 	struct CcuIOBufInfo *outDataBufInfo,
 	uint32_t inDataSize, uint32_t outDataSize)
 {
-	bool ret;
-
-	ret = ccu_ipc_getIObuffer((void **)&inDataBufInfo->addr_ap,
+	ccu_ipc_getIObuffer((void **)&inDataBufInfo->addr_ap,
 		(void **)&outDataBufInfo->addr_ap,
 		&inDataBufInfo->addr_ccu, &outDataBufInfo->addr_ccu);
-	if (!ret) {
-		LOG_ERR("IPC not initialized");
-		return false;
-	}
 
 	LOG_DBG("inDataSize(%d), sramInBufCapacity(%d)",
 		inDataSize, CCU_IPC_IBUF_CAPACITY);
@@ -255,8 +249,8 @@ bool ccuControl(
 	uint32_t msgId, void *inDataPtr,
 	uint32_t inDataSize, void *outDataPtr, uint32_t outDataSize)
 {
-	struct CcuIOBufInfo inDataBufInfo = {0};
-	struct CcuIOBufInfo outDataBufInfo = {0};
+	struct CcuIOBufInfo inDataBufInfo;
+	struct CcuIOBufInfo outDataBufInfo;
 	struct ccu_msg msg = {featureType, msgId, inDataBufInfo.addr_ccu,
 		outDataBufInfo.addr_ccu, CCU_CAM_TG_NONE, sensorIdx};
 	uint32_t ret;

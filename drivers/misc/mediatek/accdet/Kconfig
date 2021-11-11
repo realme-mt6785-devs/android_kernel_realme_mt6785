@@ -120,3 +120,8 @@ config TS3A225E_ACCDET
 	  If you want to use TS3A225E
 	  say Y.
 	  If unsure, say N.
+
+#Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/09/27, add for SIA PA ALGO
+config HSKEY_BLOCK
+	bool "Block hskey for 1s"
+	default n

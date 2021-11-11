@@ -67,6 +67,11 @@
 #include "mmc/host/cmdq_hci.h"
 #endif
 
+//#if OPLUS_BUG_COMPATIBILITY
+//2020/10/30 reocvery mode open cmdq function for reocvery FBE failed
+#include <soc/oplus/system/oplus_project.h>
+//#endif /*OPLUS_BUG_COMPATIBILITY*/
+
 #include "dbg.h"
 
 #define CAPACITY_2G             (2 * 1024 * 1024 * 1024ULL)
@@ -1169,10 +1174,24 @@ static int check_enable_cqe(void)
 	 * Device will return switch error if flush cache
 	 * with cache disabled.
 	 */
-	if ((mode == RECOVERY_BOOT) ||
-		(mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
-		(mode == LOW_POWER_OFF_CHARGING_BOOT))
-		return 0;
+//#if OPLUS_BUG_COMPATIBILITY
+//2020/10/30 reocvery mode open cmdq function for reocvery FBE failed
+    if((get_project() == 0x206AC) || (get_project() == 19741) || (get_project() == 19747)){
+		if ((mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
+			(mode == LOW_POWER_OFF_CHARGING_BOOT))
+			return 0;
+	}else{
+		if ((mode == RECOVERY_BOOT) ||
+			(mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
+			(mode == LOW_POWER_OFF_CHARGING_BOOT))
+			return 0;
+	}
+//#else
+//	if ((mode == RECOVERY_BOOT) ||
+//		(mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
+//		(mode == LOW_POWER_OFF_CHARGING_BOOT))
+//		return 0;
+//#endif /*OPLUS_BUG_COMPATIBILITY*/
 
 	return 1;
 #else
@@ -1193,13 +1212,33 @@ static int msdc_cache_onoff(struct mmc_data *data)
 	 * disable cache in recovery and charger modes
 	 */
 	mode = get_boot_mode();
-	if ((mode == RECOVERY_BOOT) ||
-		(mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
-		(mode == LOW_POWER_OFF_CHARGING_BOOT)) {
+//#if OPLUS_BUG_COMPATIBILITY
+//2020/10/30 reocvery mode open cmdq function for reocvery FBE failed
+    if((get_project() == 0x206AC) || (get_project() == 19741) || (get_project() == 19747)){
+	    if ((mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
+		    (mode == LOW_POWER_OFF_CHARGING_BOOT)) {
 		/* Set cache_size as 0 so that mmc layer won't enable cache */
-		*(ptr + 252) = *(ptr + 251) = *(ptr + 250) = *(ptr + 249) = 0;
-		return 0;
+		    *(ptr + 252) = *(ptr + 251) = *(ptr + 250) = *(ptr + 249) = 0;
+		    return 0;
+	    }
+	}else{
+	    if ((mode == RECOVERY_BOOT) ||
+		    (mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
+		    (mode == LOW_POWER_OFF_CHARGING_BOOT)) {
+		/* Set cache_size as 0 so that mmc layer won't enable cache */
+		    *(ptr + 252) = *(ptr + 251) = *(ptr + 250) = *(ptr + 249) = 0;
+		    return 0;
+	    }
 	}
+//#else
+//	if ((mode == RECOVERY_BOOT) ||
+//		(mode == KERNEL_POWER_OFF_CHARGING_BOOT) ||
+//		(mode == LOW_POWER_OFF_CHARGING_BOOT)) {
+//		/* Set cache_size as 0 so that mmc layer won't enable cache */
+//		*(ptr + 252) = *(ptr + 251) = *(ptr + 250) = *(ptr + 249) = 0;
+//		return 0;
+//	}
+//#endif /*OPLUS_BUG_COMPATIBILITY*/
 	/*
 	 * Enable cache by eMMC vendor
 	 * disable emmc cache if eMMC vendor is in emmc_cache_quirk[]

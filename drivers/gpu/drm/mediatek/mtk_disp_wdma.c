@@ -210,9 +210,8 @@ static irqreturn_t mtk_wdma_irq_handler(int irq, void *dev_id)
 {
 	struct mtk_disp_wdma *priv = dev_id;
 	struct mtk_ddp_comp *wdma = &priv->ddp_comp;
-	struct mtk_cwb_info *cwb_info;
-	struct mtk_drm_private *drm_priv;
-	unsigned int buf_idx;
+	struct mtk_wdma_capture_info *wdma_capt_info;
+	unsigned int buf_index;
 	unsigned int val = 0;
 	unsigned int ret = 0;
 
@@ -244,15 +243,16 @@ static irqreturn_t mtk_wdma_irq_handler(int irq, void *dev_id)
 
 		DDPIRQ("[IRQ] %s: frame complete!\n",
 			mtk_dump_comp_str(wdma));
-		drm_priv = mtk_crtc->base.dev->dev_private;
-		cwb_info = mtk_crtc->cwb_info;
-		if (cwb_info && cwb_info->enable &&
-			cwb_info->comp->id == wdma->id &&
-			!drm_priv->cwb_is_preempted) {
-			buf_idx = cwb_info->buf_idx;
-			cwb_info->buffer[buf_idx].timestamp = 100;
-			atomic_set(&mtk_crtc->cwb_task_active, 1);
-			wake_up_interruptible(&mtk_crtc->cwb_wq);
+		DDPMSG("[capture][IRQ] %s: frame complete!\n",
+			mtk_dump_comp_str(wdma));
+		if (mtk_crtc->wdma_capture_info &&
+			mtk_crtc->wdma_capture_info->enable) {
+			wdma_capt_info = mtk_crtc->wdma_capture_info;
+			buf_index = wdma_capt_info->buf_index;
+			//need modify
+			wdma_capt_info->buffer[buf_index].timestamp = 100;
+			atomic_set(&mtk_crtc->capt_task_active, 1);
+			wake_up_interruptible(&mtk_crtc->capt_wq);
 		}
 		if (mtk_crtc->dc_main_path_commit_task) {
 			atomic_set(
@@ -309,6 +309,7 @@ static void mtk_wdma_stop(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle)
 	if (data && data->sodi_config)
 		data->sodi_config(comp->mtk_crtc->base.dev,
 			comp->id, handle, &en);
+
 	mtk_ddp_write(comp, 0x01, DISP_REG_WDMA_RST, handle);
 	mtk_ddp_write(comp, 0x00, DISP_REG_WDMA_RST, handle);
 }
@@ -386,7 +387,7 @@ static void mtk_wdma_calc_golden_setting(struct golden_setting_context *gsc,
 	unsigned int factor2 = 4;
 	unsigned int tmp;
 
-	frame_rate = 60;
+	frame_rate = gsc->vrefresh;
 	res = gsc->dst_width * gsc->dst_height;
 
 	consume_rate = res * frame_rate;
@@ -593,14 +594,21 @@ static void mtk_wdma_calc_golden_setting(struct golden_setting_context *gsc,
 }
 
 static void mtk_wdma_golden_setting(struct mtk_ddp_comp *comp,
-				    struct golden_setting_context *gsc,
+				    union mtk_addon_config *addon_config,
+				    struct mtk_ddp_config *cfg,
 				    struct cmdq_pkt *handle)
 {
+	struct golden_setting_context *gsc;
 	unsigned int gs[GS_WDMA_FLD_NUM];
 	unsigned int value = 0;
 
+	if (addon_config != NULL)
+		gsc = addon_config->addon_wdma_config.p_golden_setting_context;
+	else
+		gsc = cfg->p_golden_setting_context;
+
 	if (!gsc) {
-		DDPPR_ERR("golden setting is null, %s,%d\n", __FILE__,
+		DDPMSG("[ERR]golden setting is null, %s,%d\n", __FILE__,
 			  __LINE__);
 		return;
 	}
@@ -857,7 +865,6 @@ static void mtk_wdma_config(struct mtk_ddp_comp *comp,
 	struct mtk_wdma_cfg_info *cfg_info = &wdma->cfg_info;
 	int crtc_idx = drm_crtc_index(&comp->mtk_crtc->base);
 	int clip_w, clip_h;
-	struct golden_setting_context *gsc;
 	u32 sec, buffer_size;
 
 	if (!comp->fb) {
@@ -923,6 +930,7 @@ static void mtk_wdma_config(struct mtk_ddp_comp *comp,
 
 	mtk_ddp_write(comp, comp->fb->pitches[0],
 		DISP_REG_WDMA_DST_WIN_BYTE, handle);
+
 	if (!sec) {
 		mtk_ddp_write(comp, addr & 0xFFFFFFFFU,
 				DISP_REG_WDMA_DST_ADDR0, handle);
@@ -935,9 +943,7 @@ static void mtk_wdma_config(struct mtk_ddp_comp *comp,
 				0, buffer_size, 0);
 #endif
 	}
-
-	gsc = cfg->p_golden_setting_context;
-	mtk_wdma_golden_setting(comp, gsc, handle);
+	mtk_wdma_golden_setting(comp, NULL, cfg, handle);
 
 	cfg_info->addr = addr;
 	cfg_info->width = cfg->w;
@@ -954,35 +960,47 @@ static void mtk_wdma_addon_config(struct mtk_ddp_comp *comp,
 	unsigned int size = 0;
 	unsigned int con = 0;
 	unsigned int addr = 0;
+	unsigned int buf_index;
 	struct mtk_disp_wdma *wdma = comp_to_wdma(comp);
 	struct mtk_wdma_cfg_info *cfg_info = &wdma->cfg_info;
+	struct mtk_drm_crtc *mtk_crtc = comp->mtk_crtc;
+	struct mtk_wdma_capture_info *wdma_capt_inf =
+					mtk_crtc->wdma_capture_info;
 	int crtc_idx = drm_crtc_index(&comp->mtk_crtc->base);
-	int src_w, src_h, clip_w, clip_h, clip_x, clip_y;
-	struct golden_setting_context *gsc;
+	int clip_w, clip_h, src_w, src_h, clip_x, clip_y;
 
-	comp->fb = addon_config->addon_wdma_config.fb;
+	buf_index = addon_config->addon_wdma_config.buf_index;
+
+	DDPMSG("[capture] config buf_idx:%d", buf_index);
+	comp->fb = wdma_capt_inf->buffer[buf_index].fb;
 	if (!comp->fb) {
-		DDPPR_ERR("%s fb is empty, CRTC%d\n", __func__, crtc_idx);
+		DDPMSG("[ERR]%s fb is empty, CRTC%d\n", __func__, crtc_idx);
 		return;
 	}
 
+	addr = wdma_capt_inf->buffer[buf_index].addr_phy;
+	if (!addr) {
+		DDPMSG("[ERR]%s:%d C%d no dma_buf\n", __func__, __LINE__,
+				crtc_idx);
+		return;
+	}
+	addr += comp->fb->offsets[0];
+	wdma_capt_inf->buffer[buf_index].addr_phy = addr;
 	con = wdma_fmt_convert(comp->fb->format->format);
 
-	addr = addon_config->addon_wdma_config.addr;
 	if (!addr) {
-		DDPPR_ERR("%s:%d C%d no dma_buf\n", __func__,
-				__LINE__, crtc_idx);
+		DDPMSG("[ERR]%s wdma dst addr is zero\n", __func__);
 		return;
 	}
+
 	cfg_info->addr = addr;
 	mtk_ddp_write(comp, addr & 0xFFFFFFFFU,
-		DISP_REG_WDMA_DST_ADDR0, handle);
+			DISP_REG_WDMA_DST_ADDR0, handle);
+	clip_w = addon_config->addon_wdma_config.wdma_dst_roi.width;
+	clip_h = addon_config->addon_wdma_config.wdma_dst_roi.height;
 
 	src_w = addon_config->addon_wdma_config.wdma_src_roi.width;
 	src_h = addon_config->addon_wdma_config.wdma_src_roi.height;
-
-	clip_w = addon_config->addon_wdma_config.wdma_dst_roi.width;
-	clip_h = addon_config->addon_wdma_config.wdma_dst_roi.height;
 	clip_x = addon_config->addon_wdma_config.wdma_dst_roi.x;
 	clip_y = addon_config->addon_wdma_config.wdma_dst_roi.y;
 
@@ -1000,16 +1018,12 @@ static void mtk_wdma_addon_config(struct mtk_ddp_comp *comp,
 	mtk_ddp_write_mask(comp, 0,
 			DISP_REG_WDMA_CFG, WDMA_CT_EN, handle);
 
-	mtk_ddp_write(comp, clip_w * 3,
+	mtk_ddp_write(comp, comp->fb->pitches[0],
 		DISP_REG_WDMA_DST_WIN_BYTE, handle);
+	mtk_wdma_golden_setting(comp, addon_config, NULL, handle);
 
-	gsc = addon_config->addon_wdma_config.p_golden_setting_context;
-	mtk_wdma_golden_setting(comp, gsc, handle);
-
-	DDPMSG("[capture] config addr:0x%x, roi:(%d,%d,%d,%d)\n",
-		addr, clip_x, clip_y, clip_w, clip_h);
-	cfg_info->width = clip_w;
-	cfg_info->height = clip_h;
+	cfg_info->width = src_w;
+	cfg_info->height = src_h;
 	cfg_info->fmt = comp->fb->format->format;
 }
 
@@ -1020,10 +1034,6 @@ void mtk_wdma_dump_golden_setting(struct mtk_ddp_comp *comp)
 	int i;
 
 	DDPDUMP("-- %s Golden Setting --\n", mtk_dump_comp_str(comp));
-	if (comp->mtk_crtc->sec_on) {
-		DDPDUMP("Skip dump secure wdma!\n");
-		return;
-	}
 	DDPDUMP("0x%03x:0x%08x 0x%03x:0x%08x\n",
 		0x10, readl(DISP_REG_WDMA_SMI_CON + baddr),
 		0x38, readl(DISP_REG_WDMA_BUF_CON1 + baddr));
@@ -1172,10 +1182,6 @@ int mtk_wdma_dump(struct mtk_ddp_comp *comp)
 	void __iomem *baddr = comp->regs;
 
 	DDPDUMP("== %s REGS ==\n", mtk_dump_comp_str(comp));
-	if (comp->mtk_crtc->sec_on) {
-		DDPDUMP("Skip dump secure wdma!\n");
-		return 0;
-	}
 	if (mtk_ddp_comp_helper_get_opt(comp,
 					MTK_DRM_OPT_REG_PARSER_RAW_DUMP)) {
 		unsigned int i = 0;
@@ -1259,10 +1265,6 @@ int mtk_wdma_analysis(struct mtk_ddp_comp *comp)
 	void __iomem *baddr = comp->regs;
 
 	DDPDUMP("== DISP %s ANALYSIS ==\n", mtk_dump_comp_str(comp));
-	if (comp->mtk_crtc->sec_on) {
-		DDPDUMP("Skip dump secure wdma!\n");
-		return 0;
-	}
 	DDPDUMP("en=%d,src(%dx%d),clip=(%d,%d,%dx%d)\n",
 		readl(baddr + DISP_REG_WDMA_EN) & 0x01,
 		readl(baddr + DISP_REG_WDMA_SRC_SIZE) & 0x3fff,
@@ -1312,55 +1314,6 @@ int MMPathTraceWDMA(struct mtk_ddp_comp *ddp_comp, char *str,
 	return n;
 }
 
-static int mtk_wdma_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
-			  enum mtk_ddp_io_cmd cmd, void *params)
-{
-	struct mtk_disp_wdma *wdma = container_of(comp, struct mtk_disp_wdma, ddp_comp);
-
-	switch (cmd) {
-	case WDMA_WRITE_DST_ADDR0:
-	{
-		unsigned int addr = *(unsigned int *)params;
-
-		mtk_ddp_write(comp, addr & 0xFFFFFFFFU,
-			DISP_REG_WDMA_DST_ADDR0, handle);
-		DDPMSG("[capture] update addr:0x%x\n", addr);
-		wdma->cfg_info.addr = addr;
-	}
-		break;
-	case IRQ_LEVEL_IDLE: {
-		mtk_ddp_write(comp, 0x0, DISP_REG_WDMA_INTEN, handle);
-		break;
-	}
-	case IRQ_LEVEL_ALL: {
-		unsigned int inten;
-
-		inten = REG_FLD_VAL(INTEN_FLD_FME_CPL_INTEN, 1) |
-			REG_FLD_VAL(INTEN_FLD_FME_UND_INTEN, 1);
-
-		mtk_ddp_write(comp, inten, DISP_REG_WDMA_INTEN, handle);
-		break;
-	}
-	case WDMA_READ_DST_SIZE:
-	{
-		unsigned int val, w, h;
-		struct mtk_cwb_info *cwb_info = (struct mtk_cwb_info *)params;
-
-		val = readl(comp->regs + DISP_REG_WDMA_CLIP_SIZE);
-		w = val & 0x3fff;
-		h = (val >> 16) & 0x3fff;
-		cwb_info->copy_w = w;
-		cwb_info->copy_h = h;
-		DDPDBG("[capture] sof get (w,h)=(%d,%d)\n", w, h);
-	}
-		break;
-	default:
-		break;
-	}
-
-	return 0;
-}
-
 static const struct mtk_ddp_comp_funcs mtk_disp_wdma_funcs = {
 	.config = mtk_wdma_config,
 	.addon_config = mtk_wdma_addon_config,
@@ -1369,7 +1322,6 @@ static const struct mtk_ddp_comp_funcs mtk_disp_wdma_funcs = {
 	.prepare = mtk_wdma_prepare,
 	.unprepare = mtk_wdma_unprepare,
 	.is_busy = mtk_wdma_is_busy,
-	.io_cmd = mtk_wdma_io_cmd,
 };
 
 static int mtk_disp_wdma_bind(struct device *dev, struct device *master,

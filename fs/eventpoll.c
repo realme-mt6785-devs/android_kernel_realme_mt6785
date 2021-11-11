@@ -1827,9 +1827,21 @@ fetch_events:
 			}
 
 			spin_unlock_irqrestore(&ep->lock, flags);
+#ifdef OPLUS_FEATURE_HEALTHINFO
+// Liujie.Xie@TECH.Kernel.Sched, 2019/08/29, add for jank monitor
+#ifdef CONFIG_OPPO_JANK_INFO
+			current->in_epoll = 1;
+#endif
+#endif /* OPLUS_FEATURE_HEALTHINFO */
 			if (!freezable_schedule_hrtimeout_range(to, slack,
 								HRTIMER_MODE_ABS))
 				timed_out = 1;
+#ifdef OPLUS_FEATURE_HEALTHINFO
+// Liujie.Xie@TECH.Kernel.Sched, 2019/08/29, add for jank monitor
+#ifdef CONFIG_OPPO_JANK_INFO
+			current->in_epoll = 0;
+#endif
+#endif /* OPLUS_FEATURE_HEALTHINFO */
 
 			spin_lock_irqsave(&ep->lock, flags);
 		}
@@ -1902,11 +1914,9 @@ static int ep_loop_check_proc(void *priv, void *cookie, int call_nests)
 			 * not already there, and calling reverse_path_check()
 			 * during ep_insert().
 			 */
-			if (list_empty(&epi->ffd.file->f_tfile_llink)) {
-				get_file(epi->ffd.file);
+			if (list_empty(&epi->ffd.file->f_tfile_llink))
 				list_add(&epi->ffd.file->f_tfile_llink,
 					 &tfile_check_list);
-			}
 		}
 	}
 	mutex_unlock(&ep->mtx);
@@ -1950,7 +1960,6 @@ static void clear_tfile_check_list(void)
 		file = list_first_entry(&tfile_check_list, struct file,
 					f_tfile_llink);
 		list_del_init(&file->f_tfile_llink);
-		fput(file);
 	}
 	INIT_LIST_HEAD(&tfile_check_list);
 }
@@ -2101,13 +2110,13 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 			mutex_lock(&epmutex);
 			if (is_file_epoll(tf.file)) {
 				error = -ELOOP;
-				if (ep_loop_check(ep, tf.file) != 0)
+				if (ep_loop_check(ep, tf.file) != 0) {
+					clear_tfile_check_list();
 					goto error_tgt_fput;
-			} else {
-				get_file(tf.file);
+				}
+			} else
 				list_add(&tf.file->f_tfile_llink,
 							&tfile_check_list);
-			}
 			mutex_lock_nested(&ep->mtx, 0);
 			if (is_file_epoll(tf.file)) {
 				tep = tf.file->private_data;
@@ -2131,6 +2140,8 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 			error = ep_insert(ep, &epds, tf.file, fd, full_check);
 		} else
 			error = -EEXIST;
+		if (full_check)
+			clear_tfile_check_list();
 		break;
 	case EPOLL_CTL_DEL:
 		if (epi)
@@ -2153,10 +2164,8 @@ SYSCALL_DEFINE4(epoll_ctl, int, epfd, int, op, int, fd,
 	mutex_unlock(&ep->mtx);
 
 error_tgt_fput:
-	if (full_check) {
-		clear_tfile_check_list();
+	if (full_check)
 		mutex_unlock(&epmutex);
-	}
 
 	fdput(tf);
 error_fput:

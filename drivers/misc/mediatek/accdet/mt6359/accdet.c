@@ -130,6 +130,18 @@ static struct workqueue_struct *accdet_workqueue;
 static struct work_struct eint_work;
 static struct workqueue_struct *eint_workqueue;
 
+#ifdef OPLUS_BUG_COMPATIBILITY
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
+ * add for hp delay detection */
+struct delayed_work hp_detect_work;
+#ifdef CONFIG_HSKEY_BLOCK
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2020/04/12,
+ * add for hs key blocking for 1s after insterting */
+struct delayed_work hskey_block_work;
+bool g_hskey_block_flag;
+#endif /* CONFIG_HSKEY_BLOCK */
+#endif /* OPLUS_BUG_COMPATIBILITY */
+
 /* micbias_timer: disable micbias if no accdet irq after eint,
  * timeout: 6 seconds
  * timerHandler: dis_micbias_timerhandler()
@@ -235,6 +247,12 @@ static void accdet_init_debounce(void);
 static void mini_dump_register(void);
 static void accdet_modify_vref_volt_self(void);
 /*******************global function declaration*****************/
+
+#ifdef OPLUS_FEATURE_TP_BASIC
+/* shifan@BSP.TP.FUNCTION, 2020.0210,
+ * add to enable tp headset mode when plug in  */
+void __attribute__((weak)) switch_headset_state(int headset_state) {return;}
+#endif /* OPLUS_FEATURE_TP_BASIC */
 
 #if !defined CONFIG_MTK_PMIC_NEW_ARCH
 enum PMIC_FAKE_IRQ_ENUM {
@@ -1034,6 +1052,27 @@ static u32 key_check(u32 v)
 #if PMIC_ACCDET_KERNEL
 static void send_key_event(u32 keycode, u32 flag)
 {
+#ifdef OPLUS_BUG_COMPATIBILITY
+#ifdef CONFIG_HSKEY_BLOCK
+	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2020/04/12,
+	 * add for hs key blocking for 1s after insterting */
+	pr_info("[accdet][send_key_event]g_hskey_block_flag = %d\n", g_hskey_block_flag);
+	if (g_hskey_block_flag) {
+		pr_info("[accdet][send_key_event]No key event in 1s after inserting 4-pole headsets\n");
+		return;
+	}
+#endif /* CONFIG_HSKEY_BLOCK */
+	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1223267, 2019/03/27,
+	 * add for not sending hook key release when plugging out */
+	pr_info("[accdet][send_key_event]eint_accdet_sync_flag = %d, cur_eint_state = %d\n",
+		eint_accdet_sync_flag, cur_eint_state);
+	if (((eint_accdet_sync_flag && (cur_eint_state == EINT_PIN_PLUG_OUT))
+		|| (!eint_accdet_sync_flag))
+		&& (keycode == MD_KEY)) {
+		pr_info("[accdet][send_key_event]No hook key release when plugging out\n");
+		return;
+	}
+#endif /* OPLUS_BUG_COMPATIBILITY */
 	switch (keycode) {
 	case DW_KEY:
 		input_report_key(accdet_input_dev, KEY_VOLUMEDOWN, flag);
@@ -1855,7 +1894,12 @@ static void eint_work_callback(void)
 		eint_accdet_sync_flag = false;
 		accdet_thing_in_flag = false;
 		mutex_unlock(&accdet_eint_irq_sync_mutex);
+#ifndef OPLUS_BUG_COMPATIBILITY
+		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/02/14,
+		 * modified for waiting for 6s before disabling micbias,
+		 * delete timer when plug out 3-pole headset */
 		if (accdet_dts.moisture_detect_mode != 0x5)
+#endif /* OPLUS_BUG_COMPATIBILITY */
 			del_timer_sync(&micbias_timer);
 
 		/* disable accdet_sw_en=0
@@ -2139,7 +2183,15 @@ static int pmic_eint_queue_work(int eintID)
 			__func__);
 		cur_eint_state = EINT_PIN_PLUG_OUT;
 #if PMIC_ACCDET_KERNEL
+#ifdef OPLUS_BUG_COMPATIBILITY
+		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
+		 * add for hp delay detection */
+		pr_info("%s water in no delayed work scheduled when plugging out\n", __func__);
+		cancel_delayed_work_sync(&hp_detect_work);
+		schedule_delayed_work(&hp_detect_work, 0);
+#else /* OPLUS_BUG_COMPATIBILITY */
 		ret = queue_work(eint_workqueue, &eint_work);
+#endif /* OPLUS_BUG_COMPATIBILITY */
 #else
 		eint_work_callback();
 #endif /* end of #if PMIC_ACCDET_KERNEL */
@@ -2154,15 +2206,60 @@ static int pmic_eint_queue_work(int eintID)
 		} else {
 			if (gmoistureID != M_PLUG_OUT) {
 				cur_eint_state = EINT_PIN_PLUG_IN;
-
+#ifdef OPLUS_BUG_COMPATIBILITY
+				/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/03/12,
+				 * modified for waiting for 6s before disabling micbias */
+				pr_info("%s delay work to disable micbias after 6s\n", __func__);
+				mod_timer(&micbias_timer,
+					jiffies + MICBIAS_DISABLE_TIMER);
+#else /* OPLUS_BUG_COMPATIBILITY */
 				if (accdet_dts.moisture_detect_mode != 0x5) {
 					mod_timer(&micbias_timer,
 					jiffies + MICBIAS_DISABLE_TIMER);
 				}
+#endif /* OPLUS_BUG_COMPATIBILITY */
 			}
 		}
 #if PMIC_ACCDET_KERNEL
+#ifdef OPLUS_BUG_COMPATIBILITY
+		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
+		 * add for hp delay detection */
+		if (cur_eint_state == EINT_PIN_PLUG_IN) {
+#ifdef CONFIG_HSKEY_BLOCK
+			/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2020/04/12,
+			 * add for hs key blocking for 1s after insterting */
+			g_hskey_block_flag = true;
+			schedule_delayed_work(&hskey_block_work, msecs_to_jiffies(1500));
+#endif /* CONFIG_HSKEY_BLOCK */
+			pr_info("%s delayed work 500ms scheduled when plugging in\n", __func__);
+                        if(is_project(20631) || is_project(20630) || is_project(20632) || is_project(20633) || is_project(20634) || is_project(20635) || is_project(0x206B4)){
+			schedule_delayed_work(&hp_detect_work, 0);
+			} else {
+			schedule_delayed_work(&hp_detect_work, msecs_to_jiffies(500));
+			}
+#ifdef OPLUS_FEATURE_TP_BASIC
+//shifan@bsp.tp 2020/0227 add for notifying touchpanel switch headset mode when detected plug in
+			pr_info("[TP] going to switch headset mode [%d] \n", 1);
+			switch_headset_state(1);
+#endif/*OPLUS_FEATURE_TP_BASIC*/
+		} else {
+#ifdef OPLUS_FEATURE_TP_BASIC
+//shifan@bsp.tp 2020/0227 add for notifying touchpanel switch headset mode when detected plug in
+			pr_info("[TP] going to switch headset mode [%d] \n", 0);
+			switch_headset_state(0);
+#endif/*OPLUS_FEATURE_TP_BASIC*/
+#ifdef CONFIG_HSKEY_BLOCK
+			/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2020/04/12,
+			 * add for hs key blocking for 1s after insterting */
+			cancel_delayed_work_sync(&hskey_block_work);
+#endif /* CONFIG_HSKEY_BLOCK */
+			pr_info("%s no delayed work scheduled when plugging out\n", __func__);
+			cancel_delayed_work_sync(&hp_detect_work);
+			schedule_delayed_work(&hp_detect_work, 0);
+		}
+#else /* OPLUS_BUG_COMPATIBILITY */
 		ret = queue_work(eint_workqueue, &eint_work);
+#endif /* OPLUS_BUG_COMPATIBILITY */
 #else
 		eint_work_callback();
 #endif /* end of #if PMIC_ACCDET_KERNEL */
@@ -2406,6 +2503,16 @@ static void accdet_eint_handler(void)
 	pr_info("%s() exit\n", __func__);
 }
 #endif
+
+#ifdef CONFIG_HSKEY_BLOCK
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2020/04/12,
+ * add for hs key blocking for 1s after insterting */
+static void disable_hskey_block_callback(struct work_struct *work)
+{
+	pr_info("[accdet][disable_hskey_block_callback]:\n");
+	g_hskey_block_flag = false;
+}
+#endif /* CONFIG_HSKEY_BLOCK */
 
 #ifdef CONFIG_ACCDET_EINT
 static irqreturn_t ex_eint_handler(int irq, void *data)
@@ -3179,9 +3286,17 @@ void accdet_modify_vref_volt(void)
 
 static void accdet_modify_vref_volt_self(void)
 {
+#ifndef OPLUS_BUG_COMPATIBILITY
+	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/03/12,
+	 * modified for waiting for 6s before disabling micbias */
+	/* make sure seq is disable micbias then connect vref2 */
 	u32 cur_AB, eintID;
+#endif /* OPLUS_BUG_COMPATIBILITY */
 
 	if (accdet_dts.moisture_detect_mode == 0x5) {
+#ifndef OPLUS_BUG_COMPATIBILITY
+		/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2019/03/12,
+		 * modified for waiting for 6s before disabling micbias */
 		/* make sure seq is disable micbias then connect vref2 */
 
 		/* check EINT0 status, if plug out,
@@ -3216,6 +3331,7 @@ cur_AB = pmic_read(PMIC_ACCDET_MEM_IN_ADDR) >> ACCDET_STATE_MEM_IN_OFFSET;
 				__func__, cur_AB, cable_type);
 			dis_micbias_done = true;
 		}
+#endif /* OPLUS_BUG_COMPATIBILITY */
 		/* disable comp1 delay window */
 		pmic_write_set(PMIC_RG_EINT0NOHYS_ADDR,
 			PMIC_RG_EINT0NOHYS_SHIFT);
@@ -3388,6 +3504,17 @@ int mt_accdet_probe(struct platform_device *dev)
 		pr_notice("%s create eint workqueue fail.\n", __func__);
 		goto err_create_workqueue;
 	}
+
+#ifdef OPLUS_BUG_COMPATIBILITY
+	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet.1222012, 2019/03/25,
+	 * add for hp delay detection */
+	INIT_DELAYED_WORK(&hp_detect_work, eint_work_callback);
+#ifdef CONFIG_HSKEY_BLOCK
+	/* Yongzhi.Zhang@PSW.MM.AudioDriver.HeadsetDet, 2020/04/12,
+	 * add for hs key blocking for 1s after insterting */
+	INIT_DELAYED_WORK(&hskey_block_work, disable_hskey_block_callback);
+#endif /* CONFIG_HSKEY_BLOCK */
+#endif /* VENDOR_EDIT */
 
 #ifdef CONFIG_ACCDET_EINT
 	ret = ext_eint_setup(dev);

@@ -77,7 +77,7 @@
 
 #define CCU_DEV_NAME            "ccu"
 
-#define CCU_CLK_NUM 3 /* [0]: Camsys, [1]: Mmsys */
+#define CCU_CLK_NUM 2 /* [0]: Camsys, [1]: Mmsys */
 struct clk *ccu_clk_ctrl[CCU_CLK_NUM];
 
 struct ccu_device_s *g_ccu_device;
@@ -578,28 +578,21 @@ int ccu_clock_enable(void)
 {
 	int ret;
 
-	LOG_DBG_MUST("%s+\n", __func__);
+	LOG_DBG_MUST("%s.\n", __func__);
 	ccu_qos_init();
 
-	ret = clk_prepare_enable(ccu_clk_ctrl[0]);
+	ret = (clk_prepare_enable(ccu_clk_ctrl[0]) |
+		clk_prepare_enable(ccu_clk_ctrl[1]));
 	if (ret)
-		LOG_ERR("CCU_CLK_MMSYS_CCU enable fail.\n");
-	ret = clk_prepare_enable(ccu_clk_ctrl[1]);
-	if (ret)
-		LOG_ERR("CAM_PWR enable fail.\n");
-	ret = clk_prepare_enable(ccu_clk_ctrl[2]);
-	if (ret)
-		LOG_ERR("CCU_CLK_CAM_CCU enable fail.\n");
-
+		LOG_ERR("clock enable fail.\n");
 	return ret;
 }
 
 void ccu_clock_disable(void)
 {
 	LOG_DBG_MUST("%s.\n", __func__);
-	clk_disable_unprepare(ccu_clk_ctrl[2]);
-	clk_disable_unprepare(ccu_clk_ctrl[1]);
 	clk_disable_unprepare(ccu_clk_ctrl[0]);
+	clk_disable_unprepare(ccu_clk_ctrl[1]);
 
 	ccu_qos_uninit();
 }
@@ -763,6 +756,21 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd, unsigned long arg)
 			LOG_ERR("copy_from_user failed\n");
 			ret = -EFAULT;
 		}
+		break;
+	}
+	case CCU_IOCTL_SEND_CMD:	/*--todo: not used for now, remove it*/
+	{
+		struct ccu_cmd_s cmd;
+
+		ret = copy_from_user(&cmd, (void *)arg,
+			sizeof(struct ccu_cmd_s));
+		if (ret != 0) {
+			LOG_ERR(
+			"[CCU_IOCTL_SEND_CMD] copy_from_user failed, ret=%d\n",
+			ret);
+			return -EFAULT;
+		}
+		ccu_send_command(&cmd);
 		break;
 	}
 	case CCU_IOCTL_FLUSH_LOG:
@@ -1155,19 +1163,13 @@ static int ccu_probe(struct platform_device *pdev)
 /* get Clock control from device tree.  */
 	{
 		ccu_clk_ctrl[0] =
-		devm_clk_get(g_ccu_device->dev, "CCU_CLK_MMSYS_CCU");
-		if (ccu_clk_ctrl[0] == NULL)
-			LOG_ERR("Get CCU_CLK_MMSYS_CCU fail.\n");
-
-		ccu_clk_ctrl[1] =
-		devm_clk_get(g_ccu_device->dev, "CAM_PWR");
-		if (ccu_clk_ctrl[1] == NULL)
-			LOG_ERR("Get CAM_PWR fail.\n");
-
-		ccu_clk_ctrl[2] =
 		devm_clk_get(g_ccu_device->dev, "CCU_CLK_CAM_CCU");
-		if (ccu_clk_ctrl[2] == NULL)
-			LOG_ERR("Get CCU_CLK_CAM_CCU fail.\n");
+		if (ccu_clk_ctrl[0] == NULL)
+			LOG_ERR("Get ccu clock ctrl camsys fail.\n");
+		ccu_clk_ctrl[1] =
+		devm_clk_get(g_ccu_device->dev, "CCU_CLK_MMSYS_CCU");
+		if (ccu_clk_ctrl[1] == NULL)
+			LOG_ERR("Get ccu clock ctrl mmsys fail.\n");
 	}
 	/**/
 	g_ccu_device->irq_num = irq_of_parse_and_map(node, 0);

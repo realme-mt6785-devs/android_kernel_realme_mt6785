@@ -371,9 +371,16 @@ static void usb_phy_tuning(struct mtk_phy_instance *instance)
 	struct device_node *of_node;
 
 	if (!instance->phy_tuning.inited) {
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* Yang.Jiao@CM.CHG.BSP.BASIC, 2020/12/02, modify usb eye driver*/
+		instance->phy_tuning.u2_vrt_ref = 7;
+		instance->phy_tuning.u2_term_ref = 7;
+		instance->phy_tuning.u2_enhance = 2;
+#else
 		instance->phy_tuning.u2_vrt_ref = 6;
 		instance->phy_tuning.u2_term_ref = 6;
 		instance->phy_tuning.u2_enhance = 1;
+#endif
 		of_node = of_find_compatible_node(NULL, NULL,
 			instance->phycfg->tuning_node_name);
 		if (of_node) {

@@ -37,6 +37,16 @@ config MTK_LENS_BU63165AF_SUPPORT
 	  lens driver for the camera sensor module
 	  Set as y if the driver is used in this project
 
+#/* Shipei.Chen@Cam.Drv, 20200513,  s5kgm1st af Porting!*/
+config MTK_LENS_B0954P65AF_SUPPORT
+    bool "B0954P65AF Lens Driver"
+    default n
+    help
+      B0954P65AF Lens Driver
+      This config is used to enable the corresponding
+      lens driver for the camera sensor module
+      Set as y if the driver is used in this project
+
 config MTK_LENS_BU63169AF_SUPPORT
 	bool "BU63169AF Lens Driver"
 	default n
@@ -91,6 +101,15 @@ config MTK_LENS_AK7371AF_SUPPORT
 	  lens driver for the camera sensor module
 	  Set as y if the driver is used in this project
 
+config MTK_LENS_AK7374AF_SUPPORT
+	bool "AK7374AF Lens Driver"
+	default n
+	help
+	  AK7374AF Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project
+
 config MTK_LENS_BU6424AF_SUPPORT
 	bool "BU6424AF Lens Driver"
 	default n
@@ -105,6 +124,15 @@ config MTK_LENS_BU6429AF_SUPPORT
 	default n
 	help
 	  BU6429AF Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project
+
+config MTK_LENS_BU64253AF_SUPPORT
+	bool "BU64253AF Lens Driver"
+	default n
+	help
+	  BU64253AF Lens Driver
 	  This config is used to enable the corresponding
 	  lens driver for the camera sensor module
 	  Set as y if the driver is used in this project
@@ -231,6 +259,15 @@ config MTK_LENS_FP5510E2AF_SUPPORT
 	default n
 	help
 	  FM50AF Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project
+
+config MTK_LENS_FP5516AF_SUPPORT
+	bool "FP5516AF Lens Driver"
+	default n
+	help
+	  FP5516AF Lens Driver
 	  This config is used to enable the corresponding
 	  lens driver for the camera sensor module
 	  Set as y if the driver is used in this project

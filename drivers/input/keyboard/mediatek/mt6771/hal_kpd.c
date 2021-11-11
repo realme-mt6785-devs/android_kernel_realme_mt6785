@@ -21,6 +21,11 @@
 #include <hal_kpd.h>
 #include <mt-plat/mtk_boot_common.h>
 
+//#ifdef OPLUS_BUG_STABILITY
+//zhouhengguo@BSP.Kernel.Stability, 2020/10/19, 18161 using pmic hw reset, other using hw gpio
+#include <soc/oppo/oppo_project.h>
+//#endif /*OPLUS_BUG_STABILITY*/
+
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH /*for pmic not ready*/
 static int kpd_enable_lprst = 1;
 #endif
@@ -55,6 +60,10 @@ void kpd_get_keymap_state(u16 state[])
 void long_press_reboot_function_setting(void)
 {
 #ifdef CONFIG_MTK_PMIC_NEW_ARCH /*for pmic not ready*/
+//#ifdef OPLUS_BUG_STABILITY
+//zhouhengguo@BSP.Kernel.Stability, 2020/10/19, 18161 using pmic hw reset, other using hw gpio
+	if (OPPO_18161 == get_project()) {
+//#endif /*OPLUS_BUG_STABILITY*/
 	if (kpd_enable_lprst && get_boot_mode() == NORMAL_BOOT) {
 		kpd_info("Normal Boot long press reboot selection\n");
 #ifdef CONFIG_KPD_PMIC_LPRST_TD
@@ -101,26 +110,34 @@ void long_press_reboot_function_setting(void)
 		pmic_set_register_value(PMIC_RG_HOMEKEY_RST_EN, 0x00);
 #endif
 	}
+//#ifdef OPLUS_BUG_STABILITY
+//zhouhengguo@BSP.Kernel.Stability, 2020/10/19, 18161 using pmic hw reset, other using hw gpio
+	}
+//#endif /*OPLUS_BUG_STABILITY*/
 #endif
 }
 
 /* FM@suspend */
+/* add for Unable to handle kernel paging request at virtual address temporary*/
+/*
 bool __attribute__ ((weak)) ConditionEnterSuspend(void)
 {
 	return true;
 }
-
+*/
 /********************************************************************/
 void kpd_wakeup_src_setting(int enable)
 {
 	int is_fm_radio_playing = 0;
 
 	/* If FM is playing, keep keypad as wakeup source */
+/* add for Unable to handle kernel paging request at virtual address temporary*/
+/*
 	if (ConditionEnterSuspend() == true)
 		is_fm_radio_playing = 0;
 	else
 		is_fm_radio_playing = 1;
-
+*/
 	if (is_fm_radio_playing == 0) {
 		if (enable == 1) {
 			kpd_print("enable kpd work!\n");

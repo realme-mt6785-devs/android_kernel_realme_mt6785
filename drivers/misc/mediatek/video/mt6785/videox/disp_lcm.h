@@ -73,6 +73,11 @@ int disp_lcm_aod(struct disp_lcm_handle *plcm, int enter);
 
 int disp_lcm_is_arr_support(struct disp_lcm_handle *plcm);
 
+#ifdef OPLUS_BUG_STABILITY
+/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
+int disp_lcm_oplus_set_lcm_cabc_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level);
+#endif
+
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 /*-----------------------DynFPS start-----------------------------------*/
 int disp_lcm_is_dynfps_support(struct disp_lcm_handle *plcm);

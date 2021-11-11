@@ -22,7 +22,13 @@ extern int cpu_eff_tp;
 
 inline bool system_overutilized(int cpu);
 
+#ifdef OPLUS_FEATURE_SPECIALOPT
+// caichen@TECH.Kernel.Sched, 2020/09/26, add for heavy load task
+inline unsigned long task_util(struct task_struct *p);
+#else
 static inline unsigned long task_util(struct task_struct *p);
+#endif
+
 bool is_intra_domain(int prev, int target);
 static int select_max_spare_capacity(struct task_struct *p, int target);
 static int init_cpu_info(void);
@@ -160,4 +166,3 @@ static int check_freq_turning(void);
 struct rq *__migrate_task(struct rq *rq, struct rq_flags *rf,
 				struct task_struct *p, int dest_cpu);
 
-int sched_forked_ramup_factor(void);

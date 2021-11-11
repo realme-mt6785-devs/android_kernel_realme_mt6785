@@ -265,6 +265,10 @@
 #define MT6370_MASK_CDP		(1 << MT6370_SHIFT_CDP)
 #define MT6370_MASK_SDP		(1 << MT6370_SHIFT_SDP)
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@PSW.BSP.CHG.Basic, 2019/08/06, sjc Add for charging */
+#define MT6370_MASK_DCD_TIMEOUT	(0x30)
+#endif
 /* ========== QCCTRL2 0x24 ============ */
 #define MT6370_SHIFT_EN_DCP	1
 
@@ -276,6 +280,10 @@
 
 #define MT6370_MASK_FAST_UNKNOWN_TA_DECT	(0x80)
 #define MT6370_MASK_USB_STATUS	0x70
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/06/10, sjc Add for charging */
+#define MT6370_MASK_DCDT	0x04
+#endif
 
 /* ========== QCSTATUS1 0x28 ============= */
 #define MT6370_SHIFT_VLGC_DISABLE	(7)

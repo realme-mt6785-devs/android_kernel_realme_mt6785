@@ -18,7 +18,10 @@
 
 #include <linux/ioctl.h>
 #include <linux/atomic.h>
-
+#include <linux/init.h>
+#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+#include <opposensor.h>
+#endif /*OPLUS_FEATURE_SENSOR_ALGORITHM*/
 #if defined(CONFIG_MTK_SCP_SENSORHUB_V1)
 #error CONFIG_MTK_SCP_SENSORHUB_V1 should not configed
 #elif defined(CONFIG_NANOHUB)
@@ -267,6 +270,10 @@ struct data_unit_t {
 		struct geofence_event_t geofence_data_t;
 		struct sar_event_t sar_event;
 		int32_t data[8];
+		#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+		/*QZL@PSW.BSP.Sensor, 2018/12/24, Add for oppo algo*/
+		union oppo_data_unit_t oppo_data_t;
+		#endif /*OPLUS_FEATURE_SENSOR_ALGORITHM*/
 	};
 } __packed;
 

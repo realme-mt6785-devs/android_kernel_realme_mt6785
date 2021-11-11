@@ -54,7 +54,17 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 	for (i = 0; i < IMGSENSOR_SENSOR_IDX_MAX_NUM; i++) {
 		psensor_pwr = &phw->sensor_pwr[i];
 
-		pcust_pwr_cfg = imgsensor_custom_config;
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		if (pascal_project() == 4) {
+			pcust_pwr_cfg =imgsensor_custom_config;
+		} else if ((pascal_project() == 5) || (pascal_project() == 6) || (pascal_project() == 7)) {
+			pcust_pwr_cfg =imgsensor_custom_config_monetx;
+		} else if (pascal_project() == 8) {
+			pcust_pwr_cfg =imgsensor_custom_config_pascalC;
+		} else {
+			pcust_pwr_cfg = imgsensor_custom_config;
+		}
+		#endif
 		while (pcust_pwr_cfg->sensor_idx != i &&
 		       pcust_pwr_cfg->sensor_idx != IMGSENSOR_SENSOR_IDX_NONE)
 			pcust_pwr_cfg++;
@@ -106,7 +116,7 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 	struct IMGSENSOR_HW_DEVICE       *pdev;
 	int                               pin_cnt = 0;
 
-/*	while (ppwr_seq < ppower_sequence + IMGSENSOR_HW_SENSOR_MAX_NUM &&
+	while (ppwr_seq < ppower_sequence + IMGSENSOR_HW_SENSOR_MAX_NUM &&
 		ppwr_seq->name != NULL) {
 		if (!strcmp(ppwr_seq->name, PLATFORM_POWER_SEQ_NAME)) {
 			if (sensor_idx == ppwr_seq->_idx)
@@ -120,7 +130,6 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 
 	if (ppwr_seq->name == NULL)
 		return IMGSENSOR_RETURN_ERROR;
-*/
 
 	ppwr_info = ppwr_seq->pwr_info;
 

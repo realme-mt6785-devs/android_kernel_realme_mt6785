@@ -59,7 +59,12 @@
 			pd,source-pdo-size = <1>;
 			pd,source-pdo-data = <0x00019096>; /* 5V, 1500 mA */
 			pd,sink-pdo-size = <1>;
-			pd,sink-pdo-data = <0x000190c8>;
+//#ifndef CONFIG_OPLUS_CHARGER_MTK6771 
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/31, sjc Modify for PD */
+			//pd,sink-pdo-data = <0x000190c8 0xC0761E3C>;
+//#else
+			pd,sink-pdo-data = <0x000190c8 0x0001912c>;
+//#endif
 
 			/*
 			 * No DP, host + device

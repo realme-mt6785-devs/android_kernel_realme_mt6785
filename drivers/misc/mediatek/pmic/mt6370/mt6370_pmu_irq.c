@@ -24,6 +24,21 @@
 
 #include "inc/mt6370_pmu.h"
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/08, sjc Add for charging */
+extern bool mt6370_get_vbus_status(void);
+extern int mt6370_chg_enable(bool en);
+extern int mt6370_chg_enable_wdt(bool enable);
+extern bool oplus_vooc_get_fastchg_started(void);
+extern int oplus_vooc_get_adapter_update_status(void);
+extern void oplus_chg_set_chargerid_switch_val(int);
+extern bool oplus_vooc_get_fastchg_to_normal(void);
+extern bool oplus_vooc_get_fastchg_to_warm(void);
+int __attribute__((weak)) oplus_chg_get_mmi_status(void)
+{
+	return 1;
+}
+#endif
 #define MT6370_PMU_IRQ_EVT_MAX (128)
 
 struct irq_mapping_tbl {
@@ -59,6 +74,10 @@ static const struct irq_mapping_tbl mt6370_pmu_irq_mapping_tbl[] = {
 	MT6370_PMU_IRQ_MAPPING(chg_rechgi, 37),
 	MT6370_PMU_IRQ_MAPPING(chg_termi, 38),
 	MT6370_PMU_IRQ_MAPPING(chg_ieoci, 39),
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/30, sjc Add for OTG */
+	MT6370_PMU_IRQ_MAPPING(bst_olpi, 47),
+#endif
 	MT6370_PMU_IRQ_MAPPING(attachi, 48),
 	MT6370_PMU_IRQ_MAPPING(detachi, 49),
 	MT6370_PMU_IRQ_MAPPING(qc30stpdone, 51),
@@ -208,7 +227,11 @@ static irqreturn_t mt6370_pmu_irq_handler(int irq, void *priv)
 	0};
 	u8 valid_chg[16] = { 0 };
 	int i = 0, j = 0, ret = 0;
-
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/08, sjc Add for charging */
+	bool vbus_status = false;
+	static bool pre_vbus_status = false;
+#endif
 	pr_info_ratelimited("%s\n", __func__);
 	pm_runtime_get_sync(chip->dev);
 	ret = mt6370_pmu_reg_write(chip, MT6370_PMU_REG_IRQMASK, 0xFE);
@@ -231,6 +254,8 @@ static irqreturn_t mt6370_pmu_irq_handler(int irq, void *priv)
 		goto out_irq_handler;
 	}
 	/* workaround for irq, divided irq event into upper and lower */
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/30, sjc Modify for OTG */
 	ret = mt6370_pmu_reg_block_read(chip, MT6370_PMU_REG_CHGIRQ1, 5, data);
 	if (ret < 0) {
 		dev_err(chip->dev, "read upper irq event fail\n");
@@ -242,6 +267,12 @@ static irqreturn_t mt6370_pmu_irq_handler(int irq, void *priv)
 		dev_err(chip->dev, "read lower irq event fail\n");
 		goto out_irq_handler;
 	}
+#else
+	ret = mt6370_pmu_reg_block_read(chip, MT6370_PMU_REG_CHGIRQ1, 16, data);
+	if (ret < 0) {
+		dev_err(chip->dev, "read irq event fail\n");
+	}
+#endif /*CONFIG_OPLUS_CHARGER_MTK6771*/
 
 	/* read stat after reading irq evt */
 	ret = mt6370_pmu_reg_block_read(chip, MT6370_PMU_REG_CHGSTAT1, 16,
@@ -276,6 +307,36 @@ static irqreturn_t mt6370_pmu_irq_handler(int irq, void *priv)
 				dev_info_ratelimited(chip->dev,
 				"%s: handler irq_domain = (%d, %d)\n",
 				__func__, i, j);
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Jianchao.Shi@BSP.CHG.Basic, 2019/07/08, sjc Add for charging */
+				if (i == 8 && j == 4) {
+					vbus_status = mt6370_get_vbus_status();
+					if (vbus_status ^ pre_vbus_status) {
+						pre_vbus_status = vbus_status;
+						printk(KERN_ERR "!!!!! mt6370_pmu_irq_handler: [%d]\n", vbus_status);
+						mt6370_chg_enable_wdt(vbus_status);
+						if (oplus_vooc_get_fastchg_started() == true
+								&& oplus_vooc_get_adapter_update_status() != 1) {
+							printk(KERN_ERR "[OPLUS_CHG] %s oplus_vooc_get_fastchg_started = true!\n", __func__);
+							if (vbus_status) {
+								/*vooc adapters MCU vbus reset time is about 800ms(default standard),
+								 * but some adapters reset time is about 350ms, so when vbus plugin irq
+								 * was trigger, fastchg_started is true(default standard is false).
+								 */
+								mt6370_chg_enable(false);
+							}
+						} else {
+							if (vbus_status) {
+								if ((oplus_vooc_get_fastchg_to_normal() == true)
+										|| (oplus_vooc_get_fastchg_to_warm() == true)
+										|| (oplus_chg_get_mmi_status() == 0)) {
+									mt6370_chg_enable(false);
+								}
+							}
+						}
+					}
+				}
+#endif /*CONFIG_OPLUS_CHARGER_MTK6771*/
 				handle_nested_irq(ret);
 			} else
 				dev_err(chip->dev, "unmapped %d %d\n", i, j);

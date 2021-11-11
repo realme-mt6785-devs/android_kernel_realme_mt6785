@@ -858,6 +858,28 @@ static int show_smap(struct seq_file *m, void *v)
 
 	smap_gather_stats(vma, &mss);
 
+	#ifdef VENDOR_EDIT //yixue.ge@bsp.drv modify for android.bg get pss too slow
+	if (strcmp(current->comm, "android.bg") == 0) {
+		if ((unsigned long)(mss.pss >> (10 + PSS_SHIFT)) > 0) {
+			seq_printf(m,
+				"Pss:            %8lu kB\n",
+			(	unsigned long)(mss.pss >> (10 + PSS_SHIFT)));
+		}
+		if ((mss.private_clean >> 10) > 0) {
+			seq_printf(m,
+				"Private_Clean:  %8lu kB\n",
+				mss.private_clean >> 10);
+		}
+		if ((mss.private_dirty >> 10) > 0) {
+			seq_printf(m,
+				"Private_Dirty:  %8lu kB\n",
+				mss.private_dirty >> 10);
+		}
+		m_cache_vma(m, vma);
+		return 0;
+	}
+	#endif /*VENDOR_EDIT*/
+
 	show_map_vma(m, vma);
 	if (vma_get_anon_name(vma)) {
 		seq_puts(m, "Name:           ");
@@ -1046,6 +1068,10 @@ const struct file_operations proc_pid_smaps_rollup_operations = {
 	.llseek		= seq_lseek,
 	.release	= smaps_rollup_release,
 };
+
+#if defined(OPLUS_FEATURE_VIRTUAL_RESERVE_MEMORY) && defined(CONFIG_VIRTUAL_RESERVE_MEMORY)
+#include "reserve_mmap.c"
+#endif
 
 enum clear_refs_types {
 	CLEAR_REFS_ALL = 1,
@@ -1639,11 +1665,11 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
 
 	src = *ppos;
 	svpfn = src / PM_ENTRY_BYTES;
-	start_vaddr = untagged_addr(svpfn << PAGE_SHIFT);
+	start_vaddr = svpfn << PAGE_SHIFT;
 	end_vaddr = mm->task_size;
 
 	/* watch out for wraparound */
-	if (start_vaddr > mm->task_size)
+	if (svpfn > mm->task_size >> PAGE_SHIFT)
 		start_vaddr = end_vaddr;
 
 	/*
@@ -1801,7 +1827,11 @@ cont:
 			break;
 	}
 	pte_unmap_unlock(pte - 1, ptl);
+#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
+	(void)reclaim_pages_from_list(&page_list, vma, NULL);
+#else
 	reclaim_pages_from_list(&page_list, vma);
+#endif
 	if (addr != end)
 		goto cont;
 

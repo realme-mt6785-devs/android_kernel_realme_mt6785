@@ -11,6 +11,10 @@
  * GNU General Public License for more details.
  */
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 #ifndef _FLASHLIGHT_H
 #define _FLASHLIGHT_H
 
@@ -56,6 +60,19 @@ struct flashlight_user_arg {
 	int ct_id;
 	int arg;
 };
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/* flash type enum */
+typedef enum {
+	FLASHLIGHT_NONE = 0,
+	FLASHLIGHT_LED_ONOFF,    /* LED always on/off */
+	FLASHLIGHT_LED_CONSTANT, /* CONSTANT type LED */
+	FLASHLIGHT_LED_PEAK,     /* peak strobe type LED */
+	FLASHLIGHT_LED_TORCH,    /* LED turn on when switch FLASH_ON */
+	FLASHLIGHT_XENON_SCR,    /* SCR strobe type Xenon */
+	FLASHLIGHT_XENON_IGBT    /* IGBT strobe type Xenon */
+} FLASHLIGHT_TYPE_ENUM;
+#endif
 
 /* ioctl magic number */
 #define FLASHLIGHT_MAGIC 'S'

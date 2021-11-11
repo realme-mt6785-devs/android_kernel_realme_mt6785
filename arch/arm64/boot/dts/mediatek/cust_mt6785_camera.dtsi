@@ -38,13 +38,13 @@
 	};
 	camera1_rst_low: camera1_rst_output_low@gpio124 {
 		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO124__FUNC_GPIO124>;
+			pinmux = <PINMUX_GPIO114__FUNC_GPIO114>;
 			output-low;
 		};
 	};
 	camera1_rst_high: camera1_rst_output_high@gpio124 {
 		pins_cmd_dat {
-			pinmux = <PINMUX_GPIO124__FUNC_GPIO124>;
+			pinmux = <PINMUX_GPIO114__FUNC_GPIO114>;
 			output-high;
 		};
 	};

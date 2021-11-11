@@ -79,7 +79,10 @@
 
 #define CCU_CLK_PWR_NUM 4
 
-static int32_t _user_count;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
+static int32_t _user_count = 0;
+#endif
 
 /* [0]: CCU_CLK_TOP_MUX, [1]: MDP_PWR, [2]: CAM_PWR, [3]: CCU_CLK_CAM_CCU */
 struct clk *ccu_clk_pwr_ctrl[CCU_CLK_PWR_NUM];
@@ -321,22 +324,30 @@ static int ccu_open(struct inode *inode, struct file *flip)
 	int ret = 0, i;
 
 	struct ccu_user_s *user;
-	struct CcuMemHandle handle = {0};
 
+
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
 	mutex_lock(&g_ccu_device->dev_mutex);
 
 	LOG_INF_MUST("%s pid:%d tid:%d cnt:%d+\n",
 		__func__, current->pid, current->tgid, _user_count);
-
+	#else
+	_clk_count = 0;
+	#endif
 	ccu_create_user(&user);
 	if (IS_ERR_OR_NULL(user)) {
 		LOG_ERR("fail to create user\n");
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
 		mutex_unlock(&g_ccu_device->dev_mutex);
+		#endif
 		return -ENOMEM;
 	}
 
 	flip->private_data = user;
-
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
 	_user_count++;
 
 	if (_user_count > 1) {
@@ -354,23 +365,21 @@ static int ccu_open(struct inode *inode, struct file *flip)
 				import_buffer_handle[i]);/*can't in spin_lock*/
 		}
 
-		handle.meminfo.cached = 0;
-		ccu_deallocate_mem(&handle);
-		handle.meminfo.cached = 1;
-		ccu_deallocate_mem(&handle);
-
 		ccu_ion_uninit();
 	}
 
 	_clk_count = 0;
+	#endif
 	ccu_ion_init();
 
 	for (i = 0; i < CCU_IMPORT_BUF_NUM; i++)
 		import_buffer_handle[i] =
 			(struct ion_handle *)CCU_IMPORT_BUF_UNDEF;
 
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
 	mutex_unlock(&g_ccu_device->dev_mutex);
-
+	#endif
 	return ret;
 }
 
@@ -391,8 +400,6 @@ static long ccu_compat_ioctl(struct file *flip,
 
 	int ret = 0;
 	struct ccu_user_s *user = flip->private_data;
-
-	mutex_lock(&g_ccu_device->dev_mutex);
 
 	LOG_DBG("+, cmd: %d\n", cmd);
 
@@ -415,10 +422,8 @@ static long ccu_compat_ioctl(struct file *flip,
 
 		ptr_power32 = compat_ptr(arg);
 		ptr_power64 = compat_alloc_user_space(sizeof(*ptr_power64));
-		if (ptr_power64 == NULL) {
-			mutex_unlock(&g_ccu_device->dev_mutex);
+		if (ptr_power64 == NULL)
 			return -EFAULT;
-		}
 
 		LOG_DBG("[IOCTL_DBG] (void *)arg: %p\n", (void *)arg);
 		LOG_DBG("[IOCTL_DBG] ptr_power32: %p\n", ptr_power32);
@@ -475,8 +480,6 @@ static long ccu_compat_ioctl(struct file *flip,
 		LOG_ERR("(process, pid, tgid)=(%s, %d, %d)\n",
 			current->comm, current->pid, current->tgid);
 	}
-
-	mutex_unlock(&g_ccu_device->dev_mutex);
 
 	return ret;
 }
@@ -546,9 +549,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 	enum CCU_BIN_TYPE type;
 	struct ccu_run_s ccu_run_info;
 
-	if ((cmd != CCU_IOCTL_WAIT_IRQ) && (cmd != CCU_IOCTL_WAIT_AF_IRQ))
-		mutex_lock(&g_ccu_device->dev_mutex);
-
 	LOG_DBG("%s+, cmd:%d\n", __func__, cmd);
 
 	if ((cmd != CCU_IOCTL_SET_POWER) && (cmd != CCU_IOCTL_FLUSH_LOG) &&
@@ -558,7 +558,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		powert_stat = ccu_query_power_status();
 		if (powert_stat == 0) {
 			LOG_WARN("ccuk: ioctl without powered on\n");
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 	}
@@ -573,7 +572,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		if (ret != 0) {
 			LOG_ERR(
 			"[SET_POWER] copy_from_user failed, ret=%d\n", ret);
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 		ret = ccu_set_power(&power);
@@ -581,13 +579,13 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		break;
 	}
 
-	case CCU_IOCTL_SET_RUN_INPUT:
+	case CCU_IOCTL_SET_RUN:
 	{
 		ret = copy_from_user(&ccu_run_info,
 			(void *)arg, sizeof(struct ccu_run_s));
 		if (ret != 0) {
 			LOG_ERR(
-			"CCU_IOCTL_SET_RUN_INPUT copy_from_user failed: %d\n",
+			"CCU_IOCTL_SET_RUN copy_from_user failed: %d\n",
 			ret);
 			break;
 		}
@@ -699,25 +697,25 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 			(void *)arg, sizeof(struct ccu_control_info));
 		if (ret != 0) {
 			LOG_ERR(
-			"CCU_IOCTL_IPC_SEND_CMD copy_from_user failed: %d\n",
+			"CCU_IOCTL_IPC_SEND_CMD copy_to_user failed: %d\n",
 			ret);
 			kfree(indata);
 			kfree(outdata);
 			break;
 		}
-		if (msg.inDataSize > CCU_IPC_IBUF_CAPACITY) {
-			LOG_ERR(
-			"CCU_IOCTL_IPC_SEND_CMD copy_from_user 2 oversize\n");
-			ret = -EINVAL;
-			kfree(indata);
-			kfree(outdata);
-			break;
-		}
+
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/* Shipei.Chen@Camera.Drv, 20201117, MTK patch, ALPS05442108 for kernel panic! */
 		ret = copy_from_user(indata,
 			msg.inDataPtr, msg.inDataSize);
+		#else
+		ret = copy_from_user(indata,
+			(void *)msg.inDataPtr, msg.inDataSize);
+		#endif
+
 		if (ret != 0) {
 			LOG_ERR(
-			"CCU_IOCTL_IPC_SEND_CMD copy_from_user 2 failed: %d\n",
+			"CCU_IOCTL_IPC_SEND_CMD copy_to_user 2 failed: %d\n",
 			ret);
 			kfree(indata);
 			kfree(outdata);
@@ -727,14 +725,7 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		msg.feature_type,
 		(enum IMGSENSOR_SENSOR_IDX)msg.sensor_idx,
 		msg.msg_id, indata, msg.inDataSize, outdata, msg.outDataSize);
-		if (msg.outDataSize > CCU_IPC_OBUF_CAPACITY) {
-			LOG_ERR(
-			"CCU_IOCTL_IPC_SEND_CMD copy_to_user oversize\n");
-			ret = -EINVAL;
-			kfree(indata);
-			kfree(outdata);
-			break;
-		}
+
 		ret = copy_to_user((void *)msg.outDataPtr, outdata, msg.outDataSize);
 		kfree(indata);
 		kfree(outdata);
@@ -847,10 +838,8 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 	case CCU_READ_REGISTER:
 	{
 		int regToRead = (int)arg;
-		int rc = ccu_read_info_reg(regToRead);
 
-		mutex_unlock(&g_ccu_device->dev_mutex);
-		return rc;
+		return ccu_read_info_reg(regToRead);
 	}
 
 	case CCU_WRITE_REGISTER:
@@ -989,12 +978,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		ret = copy_from_user(&type,
 			(void *)arg, sizeof(enum CCU_BIN_TYPE));
 		LOG_INF_MUST("load ccu bin %d\n", type);
-		powert_stat = ccu_query_power_status();
-		if (type == 0 && powert_stat == 0) {
-			LOG_WARN("ccuk: ioctl without powered on\n");
-			mutex_unlock(&g_ccu_device->dev_mutex);
-			return -EFAULT;
-		}
 		ret = ccu_load_bin(g_ccu_device, type);
 
 		break;
@@ -1004,7 +987,11 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 	{
 		struct CcuMemHandle handle;
 
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/* Shipei.Chen@Camera.Drv, 20201117, MTK patch, ALPS05442108 for kernel panic! */
 		handle.ionHandleKd = 0;
+		#endif
+
 		ret = copy_from_user(&(handle.meminfo),
 			(void *)arg, sizeof(struct CcuMemInfo));
 		if (ret != 0) {
@@ -1065,9 +1052,6 @@ EXIT:
 			current->comm, current->pid, current->tgid);
 	}
 
-	if ((cmd != CCU_IOCTL_WAIT_IRQ) && (cmd != CCU_IOCTL_WAIT_AF_IRQ))
-		mutex_unlock(&g_ccu_device->dev_mutex);
-
 	return ret;
 }
 
@@ -1075,10 +1059,10 @@ static int ccu_release(struct inode *inode, struct file *flip)
 {
 	struct ccu_user_s *user = flip->private_data;
 	int i = 0;
-	struct CcuMemHandle handle = {0};
-
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
+	struct CcuMemHandle handle;
 	mutex_lock(&g_ccu_device->dev_mutex);
-
 	LOG_INF_MUST("%s pid:%d tid:%d cnt:%d+\n",
 		__func__, user->open_pid, user->open_tgid, _user_count);
 
@@ -1090,6 +1074,9 @@ static int ccu_release(struct inode *inode, struct file *flip)
 		mutex_unlock(&g_ccu_device->dev_mutex);
 		return 0;
 	}
+	#else
+	LOG_INF_MUST("%s +\n", __func__);
+	#endif
 
 	ccu_force_powerdown();
 
@@ -1104,16 +1091,24 @@ static int ccu_release(struct inode *inode, struct file *flip)
 		ccu_ion_free_import_handle(import_buffer_handle[i]);
 	}
 
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
 	handle.meminfo.cached = 0;
 	ccu_deallocate_mem(&handle);
 	handle.meminfo.cached = 1;
 	ccu_deallocate_mem(&handle);
+	#else
+	ccu_delete_user(user);
+	#endif
 
 	ccu_ion_uninit();
 
 	LOG_INF_MUST("%s -\n", __func__);
 
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
 	mutex_unlock(&g_ccu_device->dev_mutex);
+	#endif
 
 	return 0;
 }
@@ -1513,7 +1508,10 @@ static int __init CCU_INIT(void)
 	/*g_ccu_device = dma_cache_coherent();*/
 
 	INIT_LIST_HEAD(&g_ccu_device->user_list);
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
+	/* Shipei.Chen@Camera.Drv, 20201025, MTK patch, ALPS05442108 for reboot! */
 	mutex_init(&g_ccu_device->dev_mutex);
+	#endif
 	mutex_init(&g_ccu_device->user_mutex);
 	mutex_init(&g_ccu_device->clk_mutex);
 	mutex_init(&g_ccu_device->ion_client_mutex);

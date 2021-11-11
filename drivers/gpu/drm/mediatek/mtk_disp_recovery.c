@@ -34,9 +34,28 @@
 #include "mtk_drm_mmp.h"
 #include "mtk_drm_fbdev.h"
 #include "mtk_drm_trace.h"
+//#ifdef OPLUS_FEATURE_ESD
+/*shangruofan@PSW.MM.Display.LCD.Stability, 2020/03/04, add for ftm mode closed esd */
+#include <mt-plat/mtk_boot_common.h>
+//#endif
 
 #define ESD_TRY_CNT 5
-#define ESD_CHECK_PERIOD 2000 /* ms */
+//#ifndef OPLUS_FEATURE_ESD
+/* liwei.a@PSW.MM.LCD.Display, modify for doing a esd detection per 5s*/
+//#define ESD_CHECK_PERIOD 2000 /* ms */
+//#else
+#define ESD_CHECK_PERIOD 5000 /* ms */
+
+/*shangruofan@PSW.MM.Display.LCD.Stability, 2020/02/29, add for esd recovery */
+extern unsigned long esd_mode;
+extern unsigned int ffl_backlight_backup;
+//#ifdef OPLUS_BUG_STABILITY
+/* liwei.a@PSW.MM.Display.LCD.Stability, 2020/12/09, add for detecting esd status*/
+extern int esd_status;
+//#endif
+unsigned long esd_flag = 0;
+EXPORT_SYMBOL(esd_flag);
+//#endif
 
 /* pinctrl implementation */
 long _set_state(struct drm_crtc *crtc, const char *name)
@@ -111,7 +130,16 @@ static inline int _can_switch_check_mode(struct drm_crtc *crtc,
 static inline int _lcm_need_esd_check(struct mtk_panel_ext *panel_ext)
 {
 	int ret = 0;
-
+//#ifdef OPLUS_FEATURE_ESD
+/*shangruofan@PSW.MM.Display.LCD.Stability, 2020/03/04, add for ftm mode closed esd */
+	switch(get_boot_mode())
+	{
+		case FACTORY_BOOT:
+				 return ret;
+		default:
+				 break;
+	}
+//#endif
 	if (panel_ext->params->esd_check_enable == 1 &&
 		mtk_drm_lcm_is_connect()) {
 		ret = 1;
@@ -426,12 +454,6 @@ static int mtk_drm_esd_recover(struct drm_crtc *crtc)
 	mtk_drm_crtc_disable(crtc, true);
 	CRTC_MMP_MARK(drm_crtc_index(crtc), esd_recovery, 0, 2);
 
-#ifdef MTK_FB_MMDVFS_SUPPORT
-	if (drm_crtc_index(crtc) == 0)
-		mtk_disp_set_hrt_bw(mtk_crtc,
-			mtk_crtc->qos_ctx->last_hrt_req);
-#endif
-
 	mtk_drm_crtc_enable(crtc);
 	CRTC_MMP_MARK(drm_crtc_index(crtc), esd_recovery, 0, 3);
 
@@ -491,7 +513,12 @@ static int mtk_drm_esd_check_worker_kthread(void *data)
 			atomic_read(&esd_ctx->check_wakeup) &&
 			(atomic_read(&esd_ctx->target_time) ||
 				esd_ctx->chk_mode == READ_EINT));
-		if (ret < 0) {
+		//#ifndef OPLUS_BUG_STABILITY
+		/* liwei.a@PSW.MM.Display.LCD.Stability, 2020/10/24, modify for doing esd check when in aod or suspend*/
+		//if (ret < 0) {
+		//#else
+		if (ret < 0 || ffl_backlight_backup == 0 || ffl_backlight_backup == 1) {
+		//#endif
 			DDPINFO("[ESD]check thread waked up accidently\n");
 			continue;
 		}
@@ -513,14 +540,29 @@ static int mtk_drm_esd_check_worker_kthread(void *data)
 		do {
 			ret = mtk_drm_esd_check(crtc);
 
-			if (!ret) /* success */
+			//#ifndef OPLUS_FEATURE_ESD
+			/*shangruofan@PSW.MM.Display.LCD.Stability, 2020/02/29, add for esd recovery */
+			//if (!ret) /* success */
+				//break;
+			//#else
+			if (!esd_mode && !ret) /* success */
 				break;
-
+			esd_flag = 1;
+			//#endif
 			DDPPR_ERR(
 				"[ESD]esd check fail, will do esd recovery. try=%d\n",
 				i);
 			mtk_drm_esd_recover(crtc);
+			//#ifdef OPLUS_FEATURE_ESD
+			/*shangruofan@PSW.MM.Display.LCD.Stability, 2020/02/29, add for esd recovery */
+			esd_mode = 0;
+			esd_flag = 0;
+			//#endif
 			recovery_flg = 1;
+			//#ifdef OPLUS_BUG_STABILITY
+			/* liwei.a@PSW.MM.Display.LCD.Stability, 2020/12/09, add for detecting esd status*/
+			esd_status = 1;
+			//#endif
 		} while (++i < ESD_TRY_CNT);
 
 		if (ret != 0) {
@@ -618,10 +660,7 @@ static void mtk_disp_esd_chk_init(struct drm_crtc *crtc)
 	atomic_set(&esd_ctx->check_wakeup, 0);
 	atomic_set(&esd_ctx->ext_te_event, 0);
 	atomic_set(&esd_ctx->target_time, 0);
-	if (panel_ext->params->cust_esd_check == 1)
-		esd_ctx->chk_mode = READ_LCM;
-	else
-		esd_ctx->chk_mode = READ_EINT;
+	esd_ctx->chk_mode = READ_EINT;
 	mtk_drm_request_eint(crtc);
 
 	wake_up_process(esd_ctx->disp_esd_chk_task);
