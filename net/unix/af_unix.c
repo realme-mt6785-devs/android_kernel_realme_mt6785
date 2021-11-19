@@ -2648,9 +2648,6 @@ static int unix_shutdown(struct socket *sock, int mode)
 
 	unix_state_lock(sk);
 	WRITE_ONCE(sk->sk_shutdown, sk->sk_shutdown | mode);
-	if ((sk->sk_type == SOCK_STREAM || sk->sk_type == SOCK_SEQPACKET) &&
-	    mode == SHUTDOWN_MASK)
-		sk->sk_state = TCP_CLOSE;
 	other = unix_peer(sk);
 	if (other)
 		sock_hold(other);
