@@ -17,19 +17,19 @@
 #include <mt-plat/mtk_charger.h>
 #include <mt-plat/mtk_battery.h>
 
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/misc/mtk_gauge_time_service.h"
+#include "../../supply/mediatek/misc/mtk_gauge_time_service.h"
 
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/charger_class.h"
+#include "../../supply/mediatek/charger/charger_class.h"
 
 /* PD */
-#include "../../../../kernel-4.9/drivers/misc/mediatek/typec/tcpc/inc/tcpm.h"
+#include "../../../misc/mediatek/typec/tcpc/inc/tcpm.h"
 
-#include "../../../../kernel-4.9/drivers/misc/mediatek/typec/tcpc/inc/mtk_direct_charge_vdm.h"
+#include "../../../misc/mediatek/typec/tcpc/inc/mtk_direct_charge_vdm.h"
 
 struct charger_manager;
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/mtk_pe_intf.h"
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/mtk_pe20_intf.h"
-#include "../../../../kernel-4.9/drivers/power/supply/mediatek/charger/mtk_pdc_intf.h"
+#include "../../supply/mediatek/charger/mtk_pe_intf.h"
+#include "../../supply/mediatek/charger/mtk_pe20_intf.h"
+#include "../../supply/mediatek/charger/mtk_pdc_intf.h"
 
 //====================================================================//
 /* mtk_pe40_intf begin */
