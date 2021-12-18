@@ -505,6 +505,7 @@ endif
 export OPPO_MEMLEAK_DETECT
 export OPLUS_MEMLEAK_DETECT
 #endif
+FACTORY_VERSION_MODE := false
 
 export ARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE LD CC
 export CPP AR NM STRIP OBJCOPY OBJDUMP PAHOLE RESOLVE_BTFIDS READELF HOSTLDFLAGS HOST_LOADLIBES
@@ -521,6 +522,7 @@ export KBUILD_ARFLAGS
 export OPPO_F2FS_DEBUG
 export TARGET_BUILD_VARIANT
 
+export FACTORY_VERSION_MODE
 # When compiling out-of-tree modules, put MODVERDIR in the module
 # tree rather than in the kernel tree. The kernel tree might
 # even be read-only.
