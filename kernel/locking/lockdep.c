@@ -4978,10 +4978,12 @@ EXPORT_SYMBOL_GPL(debug_show_all_locks);
  */
 void debug_show_held_locks(struct task_struct *task)
 {
+#if !defined(CONFIG_MACH_MT6785)
 	if (unlikely(!debug_locks) && !lock_mon_enabled()) {
 		printk("INFO: lockdep is turned off.\n");
 		return;
 	}
+#endif
 	lockdep_print_held_locks(task);
 }
 EXPORT_SYMBOL_GPL(debug_show_held_locks);

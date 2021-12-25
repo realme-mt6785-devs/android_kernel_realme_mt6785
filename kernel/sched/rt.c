@@ -1483,6 +1483,11 @@ static void yield_task_rt(struct rq *rq)
 #ifdef CONFIG_SMP
 static int find_lowest_rq(struct task_struct *task);
 
+#if defined (CONFIG_SCHED_WALT) && defined (OPLUS_FEATURE_UIFIRST)
+extern bool is_sf(struct task_struct *p);
+extern sysctl_slide_boost_enabled;
+#endif
+
 static int
 select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags,
 		  int sibling_count_hint)
@@ -1541,6 +1546,12 @@ select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags,
 			cpu = target;
 	}
 	rcu_read_unlock();
+
+#if defined (CONFIG_SCHED_WALT) && defined (OPLUS_FEATURE_UIFIRST)
+	if (sysctl_slide_boost_enabled == 2 && is_sf(p) && cpu != -1) {
+		return cpu;
+	}
+#endif
 
 out:
 #ifdef CONFIG_MTK_SCHED_BOOST
