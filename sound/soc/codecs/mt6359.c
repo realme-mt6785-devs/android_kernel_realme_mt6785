@@ -39,6 +39,29 @@
 #endif
 
 #include "mt6359.h"
+#ifdef CONFIG_SND_SOC_CODEC_AW87339
+//Zhao.Pan@MULTIMEDIA.AUDIODRIVER.SMARTPA, 2020/03/26, add for aw87339 PA
+//HanHuiqun@PSW.MM.AudioDriver.Machine,2019/04/03, Add for aw87339
+extern unsigned char aw87339_audio_spk_if_kspk(void);
+extern unsigned char aw87339_audio_rcv_if_kspk(void);
+extern unsigned char aw87339_audio_rcv_if_drcv(void);
+extern unsigned char aw87339_audio_spk_if_off(void);
+extern unsigned char aw87339_audio_rcv_if_off(void);
+
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/11/19,
+ * add for setting different registers in voice */
+extern void aw87339_voice_setting(int bStatus);
+extern int aw87339_voice_status;
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/10/17,
+ * add for reduce aw87339 output voltage */
+extern void aw87339_audio_spk_low_voltage_status(bool bStatus);
+extern int aw87339_spk_low_voltage_status;
+
+static int aw87339_kspk_control_spk = 0;
+static int aw87339_kspk_control_rcv = 0;
+static int aw87339_drcv_control_rcv = 0;
+
+#endif /* CONFIG_SND_SOC_CODEC_AW87339 */
 
 enum {
 	MT6359_AIF_1 = 0,	/* dl: hp, rcv, hp+lo */
@@ -101,6 +124,7 @@ enum {
 	SUPPLY_SEQ_ADC_CLKGEN,
 	SUPPLY_SEQ_AUD_VOW,
 	SUPPLY_SEQ_VOW_CLK,
+	SUPPLY_SEQ_VOW_LDO,
 	SUPPLY_SEQ_TOP_CK,
 	SUPPLY_SEQ_TOP_CK_LAST,
 	SUPPLY_SEQ_DCC_CLK,
@@ -866,6 +890,131 @@ static int dl_pga_set(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+#ifdef CONFIG_SND_SOC_CODEC_AW87339
+//Zhao.Pan@PSW.MM.AudioDriver.SmartPa, 2020/03/26, add for aw87339 PA
+static int ext_kspk_amp_get_spk(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+    ucontrol->value.integer.value[0] = aw87339_kspk_control_spk;
+    pr_debug("%s: aw87339_kspk_control = %d\n", __func__, aw87339_kspk_control_spk);
+    return 0;
+}
+static int ext_kspk_amp_put_spk(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+    if(ucontrol->value.integer.value[0] == aw87339_kspk_control_spk)
+        return 1;
+    aw87339_kspk_control_spk = ucontrol->value.integer.value[0];
+    if(ucontrol->value.integer.value[0]) {
+        aw87339_audio_spk_if_kspk();
+    } else {
+        aw87339_audio_spk_if_off();
+    }
+    pr_debug("%s: value.integer.value = %d\n", __func__, ucontrol->value.integer.value[0]);
+    return 0;
+}
+static int ext_kspk_amp_get_rcv(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+    ucontrol->value.integer.value[0] = aw87339_kspk_control_rcv;
+    pr_debug("%s: aw87339_kspk_control = %d\n", __func__, aw87339_kspk_control_rcv);
+    return 0;
+}
+static int ext_kspk_amp_put_rcv(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+    if(ucontrol->value.integer.value[0] == aw87339_kspk_control_rcv)
+        return 1;
+    aw87339_kspk_control_rcv = ucontrol->value.integer.value[0];
+    if(ucontrol->value.integer.value[0]) {
+        aw87339_audio_rcv_if_kspk();
+    } else {
+        aw87339_audio_rcv_if_off();
+    }
+    pr_debug("%s: value.integer.value = %d\n", __func__, ucontrol->value.integer.value[0]);
+    return 0;
+}
+
+static int ext_drcv_amp_get_rcv(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+    ucontrol->value.integer.value[0] = aw87339_drcv_control_rcv;
+    pr_debug("%s: aw87339_drcv_control = %d\n", __func__, aw87339_drcv_control_rcv);
+    return 0;
+}
+
+static int ext_drcv_amp_put_rcv(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+    if(ucontrol->value.integer.value[0] == aw87339_drcv_control_rcv)
+        return 1;
+    aw87339_drcv_control_rcv = ucontrol->value.integer.value[0];
+    if(ucontrol->value.integer.value[0]) {
+        aw87339_audio_rcv_if_drcv();
+    } else {
+        aw87339_audio_rcv_if_off();
+    }
+    pr_debug("%s: value.integer.value = %d\n", __func__, ucontrol->value.integer.value[0]);
+    return 0;
+}
+
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/10/17,
+ * add for reduce aw87339 output voltage */
+static int ext_amp_low_voltage_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+        ucontrol->value.integer.value[0] = aw87339_spk_low_voltage_status;
+        pr_info("%s: aw87339_spk_low_voltage_status = %d\n", __func__, aw87339_spk_low_voltage_status);
+        return 0;
+}
+
+static int ext_amp_low_voltage_set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+        if (ucontrol->value.integer.value[0] == aw87339_spk_low_voltage_status)
+                return 1;
+        if (ucontrol->value.integer.value[0] == 1) {
+                aw87339_audio_spk_low_voltage_status(1);
+        } else {
+                aw87339_audio_spk_low_voltage_status(0);
+        }
+
+        pr_info("%s: value.integer.value = %ld\n", __func__, ucontrol->value.integer.value[0]);
+        return 0;
+}
+
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/11/19,
+ * add for setting different registers in voice */
+static int ext_amp_voice_get(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = aw87339_voice_status;
+	pr_info("%s: aw87339_voice_status = %d\n", __func__, aw87339_voice_status);
+	return 0;
+}
+
+static int ext_amp_voice_set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_value *ucontrol)
+{
+	if (ucontrol->value.integer.value[0] == aw87339_voice_status)
+		return 1;
+	if (ucontrol->value.integer.value[0] == 1) {
+		aw87339_voice_setting(1);
+	} else {
+		aw87339_voice_setting(0);
+	}
+
+	pr_info("%s: value.integer.value = %ld\n", __func__, ucontrol->value.integer.value[0]);
+	return 0;
+}
+
+
+
+
+
+//HanHuiqun@PSW.MM.AudioDriver.Machine,2019/04/03, Add for aw87339
+static const char *const ext_kspk_amp_function_spk[] = { "Off", "On" };
+static const char *const ext_kspk_amp_function_rcv[] = { "Off", "On" };
+static const char *const ext_drcv_amp_function_rcv[] = { "Off", "On" };
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/10/17,
+ * add for reduce aw87339 output voltage */
+static const char *const ext_amp_low_vol_function[] = { "Off", "On" };
+
+/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/11/19,
+ * add for setting different registers in voice */
+static const char *const ext_amp_voice_function[] = { "Off", "On" };
+#endif /* CONFIG_SND_SOC_CODEC_AW87339 */
+
 static int mt6359_put_volsw(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
 {
@@ -933,6 +1082,18 @@ static const DECLARE_TLV_DB_SCALE(capture_tlv, 0, 600, 0);
 static const struct soc_enum dl_pga_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(dl_pga_gain), dl_pga_gain),
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(hp_dl_pga_gain), hp_dl_pga_gain),
+	#ifdef CONFIG_SND_SOC_CODEC_AW87339
+	//HanHuiqun@PSW.MM.AudioDriver.Machine,2019/04/03, Add for aw87339
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ext_kspk_amp_function_spk), ext_kspk_amp_function_spk),
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ext_kspk_amp_function_rcv), ext_kspk_amp_function_rcv),
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ext_drcv_amp_function_rcv), ext_drcv_amp_function_rcv),
+    /* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/10/17,
+    * add for reduce aw87339 output voltage */
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ext_amp_low_vol_function), ext_amp_low_vol_function),
+    /* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/11/19,
+     * add for setting different registers in voice */
+    SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(ext_amp_voice_function), ext_amp_voice_function),
+	#endif /* CONFIG_SND_SOC_CODEC_AW87339 */
 };
 
 #define MT_SOC_ENUM_EXT_ID(xname, xenum, xhandler_get, xhandler_put, id) \
@@ -976,6 +1137,18 @@ static const struct snd_kcontrol_new mt6359_snd_controls[] = {
 	MT_SOC_ENUM_EXT_ID("Lineout_PGAR_GAIN", dl_pga_enum[0],
 			   dl_pga_get, dl_pga_set,
 			   AUDIO_ANALOG_VOLUME_LINEOUTR),
+	#ifdef CONFIG_SND_SOC_CODEC_AW87339
+	//HanHuiqun@PSW.MM.AudioDriver.Machine,2019/04/03, Add for aw87339
+	SOC_ENUM_EXT("Ext_Speaker_Amp_spkmode", dl_pga_enum[2], ext_kspk_amp_get_spk, ext_kspk_amp_put_spk),
+	SOC_ENUM_EXT("Ext_Receiver_Amp_spkmode", dl_pga_enum[3], ext_kspk_amp_get_rcv, ext_kspk_amp_put_rcv),
+	SOC_ENUM_EXT("Ext_Receiver_Amp_rcvmode", dl_pga_enum[4], ext_drcv_amp_get_rcv, ext_drcv_amp_put_rcv),
+        /* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/10/17,
+        * add for reduce aw87339 output voltage */
+        SOC_ENUM_EXT("Ext_AMP_LOW_VOLTAGE", dl_pga_enum[5], ext_amp_low_voltage_get, ext_amp_low_voltage_set),
+	/* Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/11/19,
+	 * add for setting different registers in voice */
+	SOC_ENUM_EXT("EXT_AMP_VOICE_SETTING", dl_pga_enum[6], ext_amp_voice_get, ext_amp_voice_set),
+	#endif
 };
 
 /* ul pga gain */
@@ -2435,14 +2608,6 @@ static int mt_vow_aud_lpw_event(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_PRE_PMU:
 		/* add delay for RC Calibration */
 		usleep_range(1000, 1200);
-		/* Enable VOW AND gate CLK */
-		/* Select VOW CLKSQ out */
-		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON23,
-				   RG_CLKAND_EN_VOW_MASK_SFT,
-				   0x1 << RG_CLKAND_EN_VOW_SFT);
-		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON23,
-				   RG_VOWCLK_SEL_EN_VOW_MASK_SFT,
-				   0x1 << RG_VOWCLK_SEL_EN_VOW_SFT);
 		/* Enable audio uplink LPW mode */
 		/* Enable Audio ADC 1st Stage LPW */
 		/* Enable Audio ADC 2nd & 3rd LPW */
@@ -2457,14 +2622,6 @@ static int mt_vow_aud_lpw_event(struct snd_soc_dapm_widget *w,
 					   0x0039, 0x0039);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		/* Disable VOW AND gate CLK */
-		/* Select VOW AND gate out */
-		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON23,
-				   RG_CLKAND_EN_VOW_MASK_SFT,
-				   0x0 << RG_CLKAND_EN_VOW_SFT);
-		regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON23,
-				   RG_VOWCLK_SEL_EN_VOW_MASK_SFT,
-				   0x0 << RG_VOWCLK_SEL_EN_VOW_SFT);
 		/* Disable audio uplink LPW mode */
 		/* Disable Audio ADC 1st Stage LPW */
 		/* Disable Audio ADC 2nd & 3rd LPW */
@@ -3653,6 +3810,9 @@ static const struct snd_soc_dapm_widget mt6359_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY_S("VOW_CLK", SUPPLY_SEQ_VOW_CLK,
 			      MT6359_DCXO_CW11,
 			      RG_XO_VOW_EN_SFT, 0, NULL, 0),
+	SND_SOC_DAPM_SUPPLY_S("VOW_LDO", SUPPLY_SEQ_VOW_LDO,
+			      MT6359_AUDENC_ANA_CON23,
+			      RG_CLKSQ_EN_VOW_SFT, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("VOW_DIG_CFG", SUPPLY_SEQ_VOW_DIG_CFG,
 			      MT6359_AUD_TOP_CKPDN_CON0,
 			      RG_VOW13M_CK_PDN_SFT, 1,
@@ -4340,6 +4500,7 @@ static const struct snd_soc_dapm_route mt6359_dapm_routes[] = {
 		{"VOW TX", NULL, "VOW_AUD_LPW", mt_vow_amic_connect},
 		{"VOW TX", NULL, "VOW_CLK"},
 		{"VOW TX", NULL, "AUD_VOW"},
+		{"VOW TX", NULL, "VOW_LDO", mt_vow_amic_connect},
 		{"VOW TX", NULL, "VOW_DIG_CFG"},
 		{"VOW TX", NULL, "VOW_PERIODIC_CFG", mt_vow_amic_dcc_connect},
 	{"VOW_UL_SRC_MUX", "AMIC", "VOW_AMIC0_MUX"},
@@ -6468,11 +6629,6 @@ static int mt6359_codec_init_reg(struct mt6359_priv *priv)
 	regmap_update_bits(priv->regmap, MT6359_AUDDEC_ANA_CON7,
 			   RG_AUDLOLSCDISABLE_VAUDP32_MASK_SFT,
 			   0x1 << RG_AUDLOLSCDISABLE_VAUDP32_SFT);
-
-	/* Set HP_EINT trigger level to 2.0v */
-	regmap_update_bits(priv->regmap, MT6359_AUDENC_ANA_CON19,
-			   RG_EINTCOMPVTH_MASK_SFT,
-			   0x2 << RG_EINTCOMPVTH_SFT);
 
 	/* set gpio */
 	gpio_smt_set(priv);
