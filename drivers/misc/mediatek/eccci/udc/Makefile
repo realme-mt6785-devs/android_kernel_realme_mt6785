@@ -13,8 +13,19 @@
 
 ifeq ($(CONFIG_MTK_ECCCI_DRIVER), y)
 
-obj-$(CONFIG_MTK_ECCCI_DRIVER) += udc.o
+obj-$(CONFIG_MTK_ECCCI_DRIVER) += udc.o udc_lib.o
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci/udc/udc_lib_inc
+
+udc_lib-y += \
+    adler32.o \
+    crc32.o \
+    zutil.o \
+    deflate.o \
+    trees.o \
+    udc_lib_main.o
+
+ccflags-y += \
+    -DZ_SOLO
 else
 obj-  := dummy.o # avoid build error
 endif
