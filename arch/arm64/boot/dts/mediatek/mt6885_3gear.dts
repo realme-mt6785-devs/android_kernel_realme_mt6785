@@ -3021,6 +3021,12 @@ page_owner=on loop.max_part=7";
 		io-channel-names = "thermistor-ch2";
 	};
 
+	tboard_thermistor4: thermal-sensor4 {
+		compatible = "mediatek,mtboard-thermistor4";
+		io-channels = <&auxadc 3>;
+		io-channel-names = "thermistor-ch3";
+	};
+
 	mt6315_them_intr {
 		compatible = "mediatek,mt6315_therm_intr";
 		interrupts-extended =
@@ -3074,7 +3080,7 @@ page_owner=on loop.max_part=7";
 			"PWR";
 	};
 
-	gpufreq: gpufreq {
+	gpufreq {
 		compatible = "mediatek,gpufreq";
 		clocks =
 			<&topckgen TOP_MUX_MFG>,
@@ -3111,11 +3117,6 @@ page_owner=on loop.max_part=7";
 			"mtcmos_mfg_core7_8";
 			_vgpu-supply = <&mt6315_7_vbuck1>;
 			_vsram_gpu-supply = <&mt_pmic_vsram_others_ldo_reg>;
-	};
-
-	ged: ged {
-		compatible = "mediatek,ged";
-		gpufreq-supply = <&gpufreq>;
 	};
 
 	mali_dvfs_hint@13fbb000 {

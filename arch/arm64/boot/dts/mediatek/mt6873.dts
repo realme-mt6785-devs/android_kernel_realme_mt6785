@@ -231,10 +231,23 @@ page_owner=on loop.max_part=7";
 
 		backlight {
 			label = "lcd-backlight";
-			max-brightness = <255>;
-			led-bits = <8>;
+			max-brightness = <2047>;
+			led-bits = <11>;
+			trans-bits = <11>;
 			default-state = "on";
 		};
+	};
+
+	shell_front {
+		compatible = "oppo,shell-temp";
+	};
+
+	shell_frame {
+		compatible = "oppo,shell-temp";
+	};
+
+	shell_back {
+		compatible = "oppo,shell-temp";
 	};
 
 	psci {
@@ -2715,6 +2728,24 @@ page_owner=on loop.max_part=7";
 		pinctrl-35 = <&aud_dat_miso_ch34_on>;
 	};
 
+//#ifdef VENDOR_EDIT
+//Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/09/27, add for SIA PA ALGO
+	sia81xx_L: sia81xx@L {
+		compatible = "si,sia81xx";
+		si,sia81xx_type = "sia8108";
+		si,sia81xx_disable_pin = <1>;
+
+		/* the same value share a same task
+		 * valid value range : 0 ~ 7 */
+		timer_task_hdl = <0>;
+
+		channel_num = <0>;
+		owi_mode = <10>;
+		en_x_filter = <1>;
+		en_dynamic_updata_vdd = <0>;
+		dynamic_updata_vdd_port = <0x2>;
+        };
+//endif
 	mt6359_snd: mt6359_snd {
 		compatible = "mediatek,mt6359-sound";
 		mediatek,pwrap-regmap = <&pwrap>;
@@ -2727,6 +2758,12 @@ page_owner=on loop.max_part=7";
 		mediatek,snd_audio_dsp = <&snd_audio_dsp>;
 		mtk_spk_i2s_out = <3>;
 		mtk_spk_i2s_in = <0>;
+//#ifdef VENDOR_EDIT
+//Yongzhi.Zhang@PSW.MM.AudioDriver.Codec, 2019/09/27, add for SIA PA ALGO
+		si,sia81xx-max-num = <1>;
+		si,sia81xx-aux-devs = <&sia81xx_L>;
+		si,sia81xx-aux-devs-prefix = "SpkrLeft";
+//#endif
 		/* mtk_spk_i2s_mck = <3>; */
 		mediatek,speaker-codec {
 			sound-dai = <&speaker_amp>;
@@ -3170,11 +3207,15 @@ page_owner=on loop.max_part=7";
 			ct = <0>;
 			part = <0>;
 		};
+		//Wenjun.Wu@Cam.Drv, 20200104, modify for single flashligh
+		/*
 		channel@2 {
 			type = <0>;
 			ct = <1>;
 			part = <0>;
 		};
+		*/
+
 	};
 
 	smi_larb13: smi_larb13@1a001000 {
@@ -4933,7 +4974,7 @@ page_owner=on loop.max_part=7";
 		compatible = "mediatek,msf_b";
 		reg = <0 0x15810000 0 0x1000>;
 		interrupts = <GIC_SPI 501 IRQ_TYPE_LEVEL_HIGH>;
-		mboxes = <&gce_mbox 18 0 CMDQ_THR_PRIO_1>;
+		mboxes = <&gce_mbox 18 1200 CMDQ_THR_PRIO_1>;
 		msf_frame_done =
 		/bits/ 16 <CMDQ_EVENT_IMG2_MFB_DONE_LINK_MISC>;
 		msf_token =
@@ -5326,6 +5367,7 @@ page_owner=on loop.max_part=7";
 		mdp_color_frame_done = <313>;
 		mdp_aal1_frame_done = <316>;
 		mdp_aal_frame_done = <316>;
+		dre30_hist_sram_start = <1536>;
 	};
 
 	mdp_rdma1: mdp_rdma1@1f004000 {
@@ -5645,6 +5687,14 @@ page_owner=on loop.max_part=7";
 		clock-names = "parent-clk", "sel-clk", "spi-clk";
 	      };
 
+//#ifdef VENDOR_EDIT
+//Anhui.Sun@PSW.NW.RF, 2018/12/19, Add for SWTP - RF cable detection
+	swtp: swtp {
+	};
+	swtp_1: swtp_1 {
+	};
+//#endif  /*VENDOR_EDIT*/
+
 	i2c_common: i2c_common {
 		compatible = "mediatek,i2c_common";
 		dma_support = /bits/ 8 <3>;
@@ -5890,9 +5940,20 @@ page_owner=on loop.max_part=7";
 		mediatek,fifo_only;
 	};
 
-	goodix_fp: fingerprint {
-		compatible = "mediatek,goodix-fp";
+	//#ifdef OPLUS_FEATURE_FINGERPRINT
+	/* Fengxiong.Wu@PSW.BSP.Fingerprint.Basic, 2020/09/02, Add for GF  driver*/
+	oplus_fp_common:oplus_fp_common { //Slave driver and CS ID
+		compatible = "oplus,fp_common"; //Manufacture, and Model
 	};
+
+	goodix_fp: goodix_fp {
+		compatible = "goodix,goodix_fp";
+	};
+	fpc_interrupt:fpc_interrupt {
+		status        = "ok";
+		compatible    = "fpc,fpc_irq";
+	};
+	//#endif //OPLUS_FEATURE_FINGERPRINT
 
 	accdet: accdet {
 		compatible = "mediatek,pmic-accdet";
@@ -5967,6 +6028,13 @@ page_owner=on loop.max_part=7";
 		pwm_ch = <3>;
 		pwm_data_invert = <0>;
 	};
+
+	//#ifdef VENDOR_EDIT
+	/* Dingtong.Liu@BSP.Secure.Basic, 2020/08/24, Add for seucre common driver*/
+	oplus_secure_common:oplus_secure_common {
+		compatible = "oppo,secure_common";
+	};
+	//#endif //VENDOR_EDIT
 
 	mt_charger: mt_charger {
 		compatible = "mediatek,mt-charger";
@@ -6140,7 +6208,7 @@ page_owner=on loop.max_part=7";
 	};
 
 	mrdump_ext_rst: mrdump_ext_rst {
-		compatible = "mediatek, mrdump_ext_rst-eint";
+		//compatible = "mediatek, mrdump_ext_rst-eint";
 		mode = "IRQ";
 		status = "okay";
 	};

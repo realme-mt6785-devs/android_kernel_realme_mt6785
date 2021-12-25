@@ -43,6 +43,18 @@
 		kaslr-seed = <0 0>;
 	};
 
+        shell_front {
+                compatible = "oppo,shell-temp";
+        };
+
+        shell_frame {
+                compatible = "oppo,shell-temp";
+        };
+
+        shell_back {
+                compatible = "oppo,shell-temp";
+        };
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -3090,7 +3102,6 @@
 		mediatek,clkbuf-driving-current = <1 1 1 1 1 1 1>;
 	};
 
-	i2c7:i2c7{};
 	i2c8:i2c8{};
 	i2c9:i2c9{};
 	smart_pa: smart_pa{};

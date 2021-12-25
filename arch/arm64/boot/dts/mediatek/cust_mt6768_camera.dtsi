@@ -284,4 +284,31 @@
 	status = "okay";
 
 };
+
+&flashlights_monet {
+        pinctrl-names = "default","hwen_high","hwen_low";
+        pinctrl-0 = <&flashlights_monet_pins_default>;
+        pinctrl-1 = <&flashlights_monet_pins_hwen_high>;
+        pinctrl-2 = <&flashlights_monet_pins_hwen_low>;
+        status = "okay";
+};
+
+&pio {
+        flashlights_monet_pins_default:default {
+		};
+        flashlights_monet_pins_hwen_high: hwen_high {
+                pins_cmd_dat {
+                        pinmux = <PINMUX_GPIO152__FUNC_GPIO152>;
+                        slew-rate = <1>;
+                        output-high;
+                };
+        };
+        flashlights_monet_pins_hwen_low: hwen_low {
+                pins_cmd_dat {
+                        pinmux = <PINMUX_GPIO152__FUNC_GPIO152>;
+                        slew-rate = <1>;
+                        output-low;
+                };
+        };
+};
 /* CAMERA GPIO end */

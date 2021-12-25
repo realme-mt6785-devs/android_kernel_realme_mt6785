@@ -42,6 +42,18 @@ page_owner=on loop.max_part=7";
 		kaslr-seed = <0 0>;
 	};
 
+        shell_front {
+                compatible = "oppo,shell-temp";
+        };
+
+        shell_frame {
+                compatible = "oppo,shell-temp";
+        };
+
+        shell_back {
+                compatible = "oppo,shell-temp";
+        };
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -2858,7 +2870,7 @@ page_owner=on loop.max_part=7";
 		mtk_dsp_capture1 = <0x1 0xffffffff 0xc 0x12 0x20000>;
 		mtk_dsp_a2dp = <0x0 0xffffffff 0xffffffff 0xffffffff 0x40000>;
 		mtk_dsp_dataprovider = <0x0 0xffffffff 0xf 0xffffffff 0x30000>;
-		mtk_dsp_call_final = <0x1 0x4 0xf 0x13 0x18000>;
+		mtk_dsp_call_final = <0x5 0x0 0xf 0x13 0x18000>;
 		mtk_dsp_fast = <0x0 0xffffffff 0xffffffff 0xffffffff 0x5000>;
 		mtk_dsp_ktv = <0x1 0x8 0x11 0xffffffff 0x10000>;
 		mtk_dsp_capture_raw = <0x1 0xffffffff 0xffffffff 0xffffffff 0x20000>;
@@ -2884,7 +2896,7 @@ page_owner=on loop.max_part=7";
 		/*INFRA MISC, conn_bt_cvsd_mask*/
 		/*cvsd_mcu_read, write, packet_indicator*/
 		mediatek,offset =<0xf00 0x800 0x140 0x144 0x148>;
-		disable_write_silence = <0>;
+		disable_write_silence = <1>;
 	};
 
 	mt_soc_playback_offload {
@@ -4139,22 +4151,20 @@ page_owner=on loop.max_part=7";
 	kd_camera_hw1:kd_camera_hw1@1a040000 {
 		compatible = "mediatek,imgsensor";
 	};
-
+	/*Wujun@RM.Camera mofiy for complie error 20200710*/
+	camera_af_hw_node: camera_af_hw_node {
+		compatible = "mediatek,camera_af_lens";
+	};
 	flashlight_core: flashlight_core {
 		compatible = "mediatek,flashlight_core";
 	};
 
 	flashlights_mt6360: flashlights_mt6360 {
 		compatible = "mediatek,flashlights_mt6360";
-		decouple = <0>;
+		decouple = <1>;
 		channel@1 {
 			type = <0>;
 			ct = <0>;
-			part = <0>;
-		};
-		channel@2 {
-			type = <0>;
-			ct = <1>;
 			part = <0>;
 		};
 	};
@@ -4351,9 +4361,30 @@ page_owner=on loop.max_part=7";
 		reg = <0 0x80210000 0 0x1000>;
 	};
 
-	goodix_fp: fingerprint {
-		compatible = "mediatek,goodix-fp";
+//#ifdef OPLUS_FEATURE_FINGERPRINT
+//Qi.zhang@BSP.Biometrics.Fingerprint 2020/09/25 add  fingerprint driver.
+	goodix_fp: goodix_fp {
+		compatible = "goodix,goodix_fp";
+		status = "okay";
 	};
+	fpc_interrupt:fpc_interrupt {
+		status        = "ok";
+		compatible    = "fpc,fpc_irq";
+	};
+	oplus_fp_common:oplus_fp_common {
+		compatible = "oplus,fp_common";
+	};
+	oplus_secure_common:oplus_secure_common {
+		compatible = "oplus,secure_common";
+	};
+//#endif /* OPLUS_FEATURE_FINGERPRINT */
+
+/*#ifdef VENDOR_EDIT*/
+/*panxiaolong_hq@vanyol.com, 2019/12/11, add for swtp*/
+	swtp: swtp {
+		compatible = "mediatek, swtp-eint";
+	};
+/*#endif*/
 
 	accdet: accdet {
 		compatible = "mediatek,pmic-accdet";
@@ -4563,10 +4594,15 @@ page_owner=on loop.max_part=7";
 		reg = <0 0x14013000 0 0x1000>;
 	};
 
-	dsi0@14014000 {
+    dsi0: dsi0@14014000 {
 		compatible = "mediatek,dsi0";
 		reg = <0 0x14014000 0 0x1000>;
 		interrupts = <GIC_SPI 260 IRQ_TYPE_LEVEL_LOW>;
+	};
+	dispsys_config: dispsys_config@14116000 {
+		compatible = "mediatek,dispsys_config",
+		"syscon",
+		"mediatek,mt6885-mmsys";
 	};
 
 	dpi0@14015000 {
@@ -5175,6 +5211,13 @@ page_owner=on loop.max_part=7";
 		reg = <0 0x38000000 0 0x1000>;
 	};
 
+	//#ifdef OPLUS_FEATURE_BRINGUP
+	//LinJunBin@CONNECTIVITY.NFC.BASIC.HARDWARE , 2020/09/19, add for : add NFC irq_nfc
+	irq_nfc: irq_nfc {
+		compatible = "mediatek,irq_nfc-eint";
+	};
+	//#endif /* OPLUS_FEATURE_NFC_BRINGUP */
+
 	mt_charger: mt_charger {
 		compatible = "mediatek,mt-charger";
 	};
@@ -5185,7 +5228,8 @@ page_owner=on loop.max_part=7";
 		/* enable_pe_plus; */
 		enable_pd20_reset;
 		power_path_support;
-		max_charger_voltage = <6500000>;
+		/* Liu.Yong@RM.CM.Charger 2020/07/27 modify for showing OVP picture when power off*/
+		max_charger_voltage = <5800000>;
 		fast_charge_voltage = <3000000>;
 
 		/* charging current */
@@ -5315,7 +5359,8 @@ page_owner=on loop.max_part=7";
 
 		/* PD */
 		pd_vbus_low_bound = <5000000>;
-		pd_vbus_upper_bound = <5000000>;
+		/* Liu.Yong@RM.CM.Charger 2020/07/27 modify for pd charger*/
+		pd_vbus_upper_bound = <12000000>;
 		pd_ichg_level_threshold = <1000000>; /* uA */
 		pd_stop_battery_soc = <80>;
 
@@ -5354,7 +5399,12 @@ page_owner=on loop.max_part=7";
 	};
 
 	mrdump_ext_rst: mrdump_ext_rst {
-		compatible = "mediatek, mrdump_ext_rst-eint";
+		//#ifdef ODM_HQ_EDIT
+		//zuoqiquan@ODM.BSP.Sensor  2019/11/21 disable mrdump key function
+		compatible = "mediatek, mrdump_ext_disable";
+		//#else 
+		//compatible = "mediatek, mrdump_ext_rst-eint";
+		//#endif /* ODM_HQ_EDTI */
 		mode = "IRQ";
 		status = "okay";
 	};
@@ -5607,6 +5657,9 @@ page_owner=on loop.max_part=7";
 #include "mediatek/cust_mt6785_msdc.dtsi"
 #include "mediatek/mt6360.dtsi"
 #include "mediatek/mt6360_pd.dtsi"
+/* wuhui@Multimedia.Audio.Driver 2021/01/02 modified for sia8109 bringup */
+#include "mediatek/mt6785-sia81xx.dtsi"
 #ifdef CONFIG_MTK_ENABLE_GENIEZONE
 #include "mediatek/trusty.dtsi"
 #endif
+#include "mediatek/camera_ldo.dtsi"
