@@ -276,6 +276,10 @@ struct display_primary_path_context {
 	int request_fps;
 #endif
 	enum mtkfb_power_mode pm;
+	/* #ifdef OPLUS_FEATURE_AOD */
+	/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/10/09, add for AOD feature */
+	enum mtkfb_power_mode prev_pm;
+	/* #endif */ /* OPLUS_FEATURE_AOD */
 	enum lcm_power_state lcm_ps;
 };
 
@@ -404,6 +408,10 @@ int primary_display_pause(PRIMARY_DISPLAY_CALLBACK callback,
 			  unsigned int user_data);
 int primary_display_switch_dst_mode(int mode);
 int primary_display_get_lcm_index(void);
+#ifdef VENDOR_EDIT
+/* Xinqin.Yang@Cam.Tuning.Display, 2018/11/17, add for multi-lcms */
+int _ioctl_get_lcm_module_info(unsigned long arg);
+#endif /* VENDOR_EDIT */
 int primary_display_force_set_fps(unsigned int keep, unsigned int skip);
 int primary_display_set_fps(int fps);
 int primary_display_get_lcm_max_refresh_rate(void);
@@ -412,7 +420,9 @@ int primary_display_get_lcm_refresh_rate(void);
 int _display_set_lcm_refresh_rate(int fps);
 void primary_display_idlemgr_kick(const char *source, int need_lock);
 void primary_display_idlemgr_enter_idle(int need_lock);
-void primary_display_update_present_fence(unsigned int fence_idx);
+void primary_display_update_present_fence(struct cmdqRecStruct *cmdq_handle,
+	unsigned int fence_idx);
+void primary_display_wakeup_pf_thread(void);
 void primary_display_switch_esd_mode(int mode);
 int primary_display_cmdq_set_reg(unsigned int addr, unsigned int val);
 int primary_display_vsync_switch(int method);
@@ -441,6 +451,10 @@ enum mtkfb_power_mode primary_display_check_power_mode(void);
 void debug_print_power_mode_check(enum mtkfb_power_mode prev,
 				  enum mtkfb_power_mode cur);
 bool primary_is_aod_supported(void);
+/* #ifdef OPLUS_FEATURE_AOD */
+/* Zhijun.Ye@PSW.MM.Display.LCD.Stability 2020/10/26, Add for aod */
+int primary_display_set_aod_mode_nolock(unsigned int mode);
+/* #endif */ /* OPLUS_FEATURE_AOD */
 
 /* legancy */
 struct LCM_PARAMS *DISP_GetLcmPara(void);

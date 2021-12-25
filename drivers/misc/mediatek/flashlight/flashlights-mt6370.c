@@ -31,7 +31,10 @@
 
 #include "flashlight-core.h"
 #include "flashlight-dt.h"
-
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Liukai@Camera.Driver 20191008 add for 19151flashlight*/
+#include <soc/oplus/system/oppo_project.h>
+#endif
 /* device tree should be defined in flashlight-dt.h */
 #ifndef MT6370_DTNAME
 #define MT6370_DTNAME "mediatek,flashlights_mt6370"
@@ -51,8 +54,14 @@
 #define MT6370_ENABLE_TORCH 1
 #define MT6370_ENABLE_FLASH 2
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/* Shounan.Yang@Camera.Driver add for P70 Project 20190704 */
+#define MT6370_LEVEL_NUM 12
+#define MT6370_LEVEL_TORCH 6
+#else
 #define MT6370_LEVEL_NUM 32
 #define MT6370_LEVEL_TORCH 16
+#endif
 #define MT6370_LEVEL_FLASH MT6370_LEVEL_NUM
 #define MT6370_WDT_TIMEOUT 1248 /* ms */
 #define MT6370_HW_TIMEOUT 400 /* ms */
@@ -92,6 +101,38 @@ struct mt6370_platform_data {
 /******************************************************************************
  * mt6370 operations
  *****************************************************************************/
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/*Add by Shounan.Yang@Camera.Driver for P70 flashlight 20190704*/
+/* single-colortemperature dual-leds mt6370_current: single-led current * 2 */
+static const int mt6370_current[MT6370_LEVEL_NUM] = {
+	100, 150, 200, 300, 400, 450, 500, 550, 600, 650, 700, 750
+};
+
+/* 25+12.5*n*/
+static const unsigned char mt6370_torch_level[MT6370_LEVEL_TORCH] = {
+	0x02, 0x03, 0x06, 0x0A, 0x0C, 0x0E
+};
+
+/* 0x00~0x74 6.25mA/step 0x75~0xB1 12.5mA/step */
+static const unsigned char mt6370_strobe_level[MT6370_LEVEL_FLASH] = {
+	0x04, 0x08, 0x0C, 0x14, 0x1C, 0x20, 0x24, 0x28, 0x2C, 0x30, 0x34, 0x38
+};
+
+static const int mt6370_current_19151[MT6370_LEVEL_NUM] = {
+	75, 125, 150, 225, 275, 300, 325, 375, 425, 475, 525, 550
+};
+
+/* 25+12.5*n*/
+/* 110ma */
+static const unsigned char mt6370_torch_level_19151[MT6370_LEVEL_TORCH] = {
+	0x07, 0x07, 0x07, 0x07, 0x07, 0x07
+};
+
+/* 0x00~0x74 6.25mA/step 0x75~0xB1 12.5mA/step  25+6.25*n*/
+static const unsigned char mt6370_strobe_level_19151[MT6370_LEVEL_FLASH] = {
+	0x08,0x10,0x14,0x20,0x28,0x2C,0x30,0x38,0x40,0x48,0x50,0x54
+};
+#else
 static const int mt6370_current[MT6370_LEVEL_NUM] = {
 	  25,   50,  75, 100, 125, 150, 175,  200,  225,  250,
 	 275,  300, 325, 350, 375, 400, 450,  500,  550,  600,
@@ -110,6 +151,7 @@ static const unsigned char mt6370_strobe_level[MT6370_LEVEL_FLASH] = {
 	0x30, 0x34, 0x38, 0x3C, 0x40, 0x44, 0x48, 0x4C, 0x50, 0x54,
 	0x58, 0x5C
 };
+#endif
 
 static int mt6370_decouple_mode;
 static int mt6370_en_ch1;
@@ -298,10 +340,32 @@ static int mt6370_set_level_ch1(int level)
 
 	/* set brightness level */
 	if (!mt6370_is_torch(level))
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 		flashlight_set_torch_brightness(
 				flashlight_dev_ch1, mt6370_torch_level[level]);
+	#else
+	{
+	    if(is_project(19151)||is_project(19350)){
+		    flashlight_set_torch_brightness(
+				flashlight_dev_ch1, mt6370_torch_level_19151[level]);
+		} else{
+		    flashlight_set_torch_brightness(
+				flashlight_dev_ch1, mt6370_torch_level[level]);
+		}
+	}
+	#endif
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 	flashlight_set_strobe_brightness(
 			flashlight_dev_ch1, mt6370_strobe_level[level]);
+	#else
+	if(is_project(19151)||is_project(19350)){
+	    flashlight_set_strobe_brightness(
+			flashlight_dev_ch1, mt6370_strobe_level_19151[level]);
+	} else{
+	    flashlight_set_strobe_brightness(
+			flashlight_dev_ch1, mt6370_strobe_level[level]);
+	}
+	#endif
 
 	return 0;
 }
@@ -318,10 +382,32 @@ static int mt6370_set_level_ch2(int level)
 
 	/* set brightness level */
 	if (!mt6370_is_torch(level))
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 		flashlight_set_torch_brightness(
 				flashlight_dev_ch2, mt6370_torch_level[level]);
+	#else
+	{
+	    if(is_project(19151)||is_project(19350)){
+		    flashlight_set_torch_brightness(
+				flashlight_dev_ch2, mt6370_torch_level_19151[level]);
+		} else{
+		    flashlight_set_torch_brightness(
+				flashlight_dev_ch2, mt6370_torch_level[level]);
+		}
+	}
+	#endif
+	#ifndef OPLUS_FEATURE_CAMERA_COMMON
 	flashlight_set_strobe_brightness(
 			flashlight_dev_ch2, mt6370_strobe_level[level]);
+	#else
+	if(is_project(19151)||is_project(19350)){
+	    flashlight_set_strobe_brightness(
+			flashlight_dev_ch2, mt6370_strobe_level_19151[level]);
+	} else{
+	    flashlight_set_strobe_brightness(
+			flashlight_dev_ch2, mt6370_strobe_level[level]);
+	}
+	#endif
 
 	return 0;
 }
@@ -571,13 +657,25 @@ static int mt6370_ioctl(unsigned int cmd, unsigned long arg)
 	case FLASH_IOC_SET_TIME_OUT_TIME_MS:
 		pr_debug("FLASH_IOC_SET_TIME_OUT_TIME_MS(%d): %d\n",
 				channel, (int)fl_arg->arg);
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/* Shounan.Yang@Camera.Driver add for Dual channel flashlight 20190622 */
+		mt6370_timeout_ms[MT6370_CHANNEL_CH1] = fl_arg->arg;
+		mt6370_timeout_ms[MT6370_CHANNEL_CH2] = fl_arg->arg;
+		#else
 		mt6370_timeout_ms[channel] = fl_arg->arg;
+		#endif
 		break;
 
 	case FLASH_IOC_SET_DUTY:
 		pr_debug("FLASH_IOC_SET_DUTY(%d): %d\n",
 				channel, (int)fl_arg->arg);
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/* Shounan.Yang@Camera.Driver add for Dual channel flashlight 20190622 */
+		mt6370_set_level(MT6370_CHANNEL_CH1, fl_arg->arg);
+		mt6370_set_level(MT6370_CHANNEL_CH2, fl_arg->arg);
+		#else
 		mt6370_set_level(channel, fl_arg->arg);
+		#endif
 		break;
 
 	case FLASH_IOC_SET_SCENARIO:
@@ -589,7 +687,22 @@ static int mt6370_ioctl(unsigned int cmd, unsigned long arg)
 	case FLASH_IOC_SET_ONOFF:
 		pr_debug("FLASH_IOC_SET_ONOFF(%d): %d\n",
 				channel, (int)fl_arg->arg);
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/*Shounan.Yang@Camera.Driver add for dualflash eng test 20190622*/
+		if (fl_arg->arg == 2) {
+			mt6370_operate(MT6370_CHANNEL_CH1, MT6370_ENABLE);
+			mt6370_operate(MT6370_CHANNEL_CH2, MT6370_DISABLE);
+		} else if (fl_arg->arg == 3) {
+			mt6370_operate(MT6370_CHANNEL_CH1, MT6370_DISABLE);
+			mt6370_operate(MT6370_CHANNEL_CH2, MT6370_ENABLE);
+		} else {
+			/* Shounan.Yang@Camera.Driver add for Dual channel flashlight 20190622 */
+			mt6370_operate(MT6370_CHANNEL_CH1, fl_arg->arg);
+			mt6370_operate(MT6370_CHANNEL_CH2, fl_arg->arg);
+		}
+		#else
 		mt6370_operate(channel, fl_arg->arg);
+		#endif
 		break;
 
 	case FLASH_IOC_IS_CHARGER_READY:
@@ -611,7 +724,15 @@ static int mt6370_ioctl(unsigned int cmd, unsigned long arg)
 		fl_arg->arg = mt6370_verify_level(fl_arg->arg);
 		pr_debug("FLASH_IOC_GET_DUTY_CURRENT(%d): %d\n",
 				channel, (int)fl_arg->arg);
+		#ifndef OPLUS_FEATURE_CAMERA_COMMON
 		fl_arg->arg = mt6370_current[fl_arg->arg];
+		#else
+		if (is_project(19151)||is_project(19350)) {
+		    fl_arg->arg = mt6370_current_19151[fl_arg->arg];
+		} else {
+		    fl_arg->arg = mt6370_current[fl_arg->arg];
+		}
+		#endif
 		break;
 
 	case FLASH_IOC_GET_HW_TIMEOUT:

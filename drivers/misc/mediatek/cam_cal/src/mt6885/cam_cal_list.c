@@ -19,14 +19,30 @@
 #define MAX_EEPROM_SIZE_16K 0x4000
 
 struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
+	#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	/*Henry.Chang@Cam.Drv add for 20131 20200727*/
+	{OV64B_SENSOR_ID, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{IMX616_SENSOR_ID, 0xA8, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{IMX615_SENSOR_ID, 0xA8, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{IMX319_SENSOR_ID, 0xA2, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{OV02B10_SENSOR_ID, 0xA4, Common_read_region, MAX_EEPROM_SIZE_16K},
+	/*Shengguang.Zhu@Cam.Drv add for 20601 20201015*/
+	{IMX686_SENSOR_ID_20601, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{OV32A1Q_SENSOR_ID_20601, 0xA8, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{HI846_SENSOR_ID_20601, 0xA2, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{GC2385_SENSOR_ID_20601, 0xA4, Common_read_region, MAX_EEPROM_SIZE_16K},
+	/*Shaolun.wei@Cam.Drv add for 20645 20201102*/
+	{OV64B_SENSOR_ID_20645, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{OV32A1Q_SENSOR_ID_20645, 0xA8, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{HI846_SENSOR_ID_20645, 0xA2, Common_read_region, MAX_EEPROM_SIZE_16K},
+	{OV02B10_SENSOR_ID_20645, 0xA4, Common_read_region, MAX_EEPROM_SIZE_16K},
+	#else
 	/*Below is commom sensor */
-	{IMX586_SENSOR_ID, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K,
-		BL24SA64_write_region},
+	{IMX586_SENSOR_ID, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K},
 	{IMX576_SENSOR_ID, 0xA2, Common_read_region},
 	{IMX519_SENSOR_ID, 0xA0, Common_read_region},
 	{IMX319_SENSOR_ID, 0xA2, Common_read_region, MAX_EEPROM_SIZE_16K},
-	{S5K3M5SX_SENSOR_ID, 0xA2, Common_read_region, MAX_EEPROM_SIZE_16K,
-		BL24SA64_write_region},
+	{S5K3M5SX_SENSOR_ID, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K},
 	{IMX686_SENSOR_ID, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K},
 	{HI846_SENSOR_ID, 0xA0, Common_read_region, MAX_EEPROM_SIZE_16K},
 	{S5KGD1SP_SENSOR_ID, 0xA8, Common_read_region, MAX_EEPROM_SIZE_16K},
@@ -37,10 +53,9 @@ struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
 	{IMX350_SENSOR_ID, 0xA0, Common_read_region},
 	{IMX386_MONO_SENSOR_ID, 0xA0, Common_read_region},
 	{IMX499_SENSOR_ID, 0xA0, Common_read_region},
+	#endif
 	{S5KJD1_SENSOR_ID, 0xB0, Common_read_region, DEFAULT_MAX_EEPROM_SIZE_8K,
 		DW9763_write_region},
-	{IMX481_SENSOR_ID, 0xA4, Common_read_region, DEFAULT_MAX_EEPROM_SIZE_8K,
-		BL24SA64_write_region},
 	/*  ADD before this line */
 	{0, 0, 0}       /*end of list */
 };

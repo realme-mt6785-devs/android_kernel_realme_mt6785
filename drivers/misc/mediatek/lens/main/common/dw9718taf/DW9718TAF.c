@@ -246,7 +246,26 @@ long DW9718TAF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 /* Q1 : Try release multiple times. */
 int DW9718TAF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 {
-	LOG_INF("Start\n");
+    unsigned long af_step = 25;
+    LOG_INF("Start\n");
+
+    if (g_u4CurrPosition > g_u4AF_INF && g_u4CurrPosition <= g_u4AF_MACRO) {
+        while (g_u4CurrPosition > 100) {
+            if (g_u4CurrPosition > 200)
+                af_step = 50;
+            else if (g_u4CurrPosition > 150)
+                af_step = 25;
+            else
+                af_step = 10;
+
+            if (s4AF_WriteReg(g_u4CurrPosition - af_step) != 0) {
+                break;
+            }
+            g_u4CurrPosition = g_u4CurrPosition - af_step;
+            mdelay(10);
+            LOG_INF("release position: %d", g_u4CurrPosition);
+        }
+    }
 
 	if (*g_pAF_Opened == 2) {
 		int i4RetValue = 0;

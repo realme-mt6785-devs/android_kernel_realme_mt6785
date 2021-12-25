@@ -87,6 +87,13 @@
 #include "ddp_rsz.h"
 #include "disp_tphint.h"
 
+#ifdef OPLUS_BUG_STABILITY
+/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature, 2018/09/10, Add for sau and silence close backlight */
+#include <mt-plat/mtk_boot_common.h>
+extern unsigned long oplus_silence_mode;
+extern unsigned int oplus_fp_silence_mode;
+#endif /* OPLUS_BUG_STABILITY */
+
 
 #define DDP_OUTPUT_LAYID 4
 
@@ -102,6 +109,7 @@ static int has_memory_session;
 /* @g_session: SESSION_TYPE | DEVICE_ID */
 static unsigned int g_session[MAX_SESSION_COUNT];
 static DEFINE_MUTEX(disp_session_lock);
+static DEFINE_MUTEX(disp_layer_lock);
 
 static dev_t mtk_disp_mgr_devno;
 static struct cdev *mtk_disp_mgr_cdev;
@@ -1371,7 +1379,9 @@ static long _ioctl_query_valid_layer(unsigned long arg)
 		return -EINVAL;
 	}
 
+	mutex_lock(&disp_layer_lock);
 	layering_rule_start(&disp_info_user, 0);
+	mutex_unlock(&disp_layer_lock);
 
 	if (copy_to_user(argp, &disp_info_user, sizeof(disp_info_user))) {
 		DISP_PR_ERR("[FB] copy_to_user failed! line:%d\n", __LINE__);
@@ -1764,6 +1774,11 @@ long mtk_disp_mgr_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		return _ioctl_wait_touch_hint(arg);
 	case DISP_IOCTL_GET_SUPPORTED_FPS:
 		return _ioctl_get_supported_fps(arg);
+#ifdef OPLUS_BUG_STABILITY
+/* Longyajun@ODM.HQ.Multimedia.LCM 2019/12/12 modified for TM JDI pq */
+	case DISP_IOCTL_GET_LCM_MODULE_INFO:
+		return _ioctl_get_lcm_module_info(arg);
+#endif /* OPLUS_BUG_STABILITY */
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 	case DISP_IOCTL_GET_MULTI_CONFIGS:
 		return _ioctl_get_multi_configs(arg);
@@ -1987,6 +2002,16 @@ static int mtk_disp_mgr_probe(struct platform_device *pdev)
 	class_dev = (struct class_device *)device_create(mtk_disp_mgr_class,
 						NULL, mtk_disp_mgr_devno,
 						NULL, DISP_SESSION_DEVICE);
+
+	#ifdef OPLUS_BUG_STABILITY
+	/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Feature, 2018/09/10, Add for sau and silence close backlight */
+	if ((oppo_boot_mode == OPPO_SILENCE_BOOT)
+			||(get_boot_mode() == OPPO_SAU_BOOT)) {
+		printk("%s OPPO_SILENCE_BOOT set oplus_silence_mode to 1\n", __func__);
+		oplus_silence_mode = 1;
+		oplus_fp_silence_mode = 1;
+	}
+	#endif /* OPLUS_BUG_STABILITY */
 	disp_sync_init();
 
 	external_display_control_init();

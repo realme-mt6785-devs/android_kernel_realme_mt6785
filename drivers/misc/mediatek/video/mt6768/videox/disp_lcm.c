@@ -30,6 +30,12 @@
 /* such as DPI0, DSI0/1 */
 /* static struct disp_lcm_handle _disp_lcm_driver[MAX_LCM_NUMBER]; */
 
+#ifdef OPLUS_BUG_STABILITY
+//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/12/9, Add cabc function
+extern bool __attribute((weak)) oplus_flag_lcd_off;
+//Jiantao.Liu@ODM_WT.MM.Display.Lcd, 2020/07/08, LCD backlight switch 11bit to 12bit
+extern bool __attribute((weak)) oplus_display_twelvebits_support;
+#endif
 int _lcm_count(void)
 {
 	return lcm_count;
@@ -1028,6 +1034,46 @@ void load_lcm_resources_from_DT(struct LCM_DRIVER *lcm_drv)
 }
 #endif
 
+#ifdef OPLUS_BUG_STABILITY
+//Tongxing.Liu@ODM_WT.MM.Display.Lcd, 2021/01/25, add gamma interface api
+int disp_lcm_oplus_set_lcm_gamma_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level)
+{
+    struct LCM_DRIVER *lcm_drv = NULL;
+    DISPFUNC();
+    pr_err("check disp_lcm_oplus_set_lcm_gamma_cmd in disp_lcm_c\n");
+    if (_is_lcm_inited(plcm)) {
+        lcm_drv = plcm->drv;
+        if (lcm_drv->set_gamma_mode_cmdq) {
+            lcm_drv->set_gamma_mode_cmdq(handle, level);
+        } else {
+            pr_err("FATAL ERROR, lcm_drv->oppo_set_gamma_mode_cmdq is null\n");
+            return -1;
+        }
+
+        return 0;
+    }
+
+    pr_err("lcm_drv is null\n");
+    return -1;
+}
+
+int tp_gesture = 0;
+EXPORT_SYMBOL(tp_gesture);
+char Lcm_name1[256];
+//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/10/7, add LCD HW information
+#include <linux/hardware_info.h>
+//extern char Lcm_name2[HARDWARE_MAX_ITEM_LONGTH];
+//extern void devinfo_info_set(char *name, char *version, char *manufacture);
+static char nt36525b_panel_xxx_mark;
+static inline char getLcmPanel_ID(void){
+	DISPCHECK("lcm nt36525b_panel kernel is %d\n",nt36525b_panel_xxx_mark);
+	return nt36525b_panel_xxx_mark;
+}
+
+static inline void setLcmPanel_ID(char value){
+		nt36525b_panel_xxx_mark = value;
+}
+#endif
 struct disp_lcm_handle *disp_lcm_probe(char *plcm_name,
 	enum LCM_INTERFACE_ID lcm_id, int is_lcm_inited)
 {
@@ -1042,10 +1088,79 @@ struct disp_lcm_handle *disp_lcm_probe(char *plcm_name,
 	struct LCM_DRIVER *lcm_drv = NULL;
 	struct LCM_PARAMS *lcm_param = NULL;
 	struct disp_lcm_handle *plcm = NULL;
-
+#ifdef OPLUS_BUG_STABILITY
+//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/10/9, add proc devinfo which used for shooting troubles related with LCD
+	char *temp = NULL;
+	char *tddic_temp = NULL;
+	char *lcm_panel_temp = NULL;
+#endif /*OPLUS_BUG_STABILITY*/
 	DISPFUNC();
 	DISPCHECK("plcm_name=%s is_lcm_inited %d\n", plcm_name, is_lcm_inited);
-
+#ifdef OPLUS_BUG_STABILITY
+	if(is_lcm_inited ==1){
+		strncpy(Lcm_name1,plcm_name,strlen(plcm_name)+1);
+		//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/10/7, add LCD HW information
+//		strncpy(Lcm_name2,plcm_name,strlen(plcm_name)+1);
+	}
+	pr_err(" lcm name IS %s\n",Lcm_name1);
+	tddic_temp = strstr(plcm_name ,"ilt9881h");
+	if (tddic_temp != NULL){
+		temp = tddic_temp + strlen("ilt9881h");
+		if (!strncmp(temp ,"_truly_hdp_dsi_vdo_lcm_drv", strlen("_truly_hdp_dsi_vdo_lcm_drv"))){
+			lcm_panel_temp = "TRULY_ILI";
+		} else if (!strncmp(temp ,"_txd_hdp_dsi_vdo_lcm_drv", strlen("_txd_hdp_dsi_vdo_lcm_drv"))){
+			lcm_panel_temp = "TXD_ILI";
+		} else {
+			lcm_panel_temp = "TEMP_DEFAULT_ILI";
+		}
+		tddic_temp = "ili9881h";
+		setLcmPanel_ID(0);
+	} else {
+			tddic_temp = strstr(plcm_name ,"hx83112a");
+			if (tddic_temp != NULL){
+				temp = tddic_temp + strlen("hx83112a");
+				if (!strncmp(temp ,"_lead_hdp_dsi_vdo_lcm_drv" ,strlen("_lead_hdp_dsi_vdo_lcm_drv"))){
+					lcm_panel_temp = "LEAD_HX";
+				} else {
+					lcm_panel_temp = "NULL_HX";
+				}
+				tddic_temp = "hx83112a";
+			} else {
+			 	tddic_temp = strstr(plcm_name ,"ili9881tfh");
+				if (tddic_temp != NULL){
+						temp = tddic_temp + strlen("ili9881tfh");
+						if (!strncmp(temp ,"_txd_hdp_dsi_vdo_lcm_drv" ,strlen("_txd_hdp_dsi_vdo_lcm_drv"))){
+							lcm_panel_temp = "TXD_ILI_TF";
+						} else if (!strncmp(temp ,"_lide_hdp_dsi_vdo_lcm_drv" ,strlen("_lide_hdp_dsi_vdo_lcm_drv"))){
+							lcm_panel_temp = "LIDE_ILI_TF";
+						}
+						tddic_temp = "ili9881tfh";
+						setLcmPanel_ID(0);
+				} else {
+					tddic_temp = strstr(plcm_name ,"nt36525b");
+					if (tddic_temp != NULL){
+						temp = tddic_temp + strlen("nt36525b");
+						if (!strncmp(temp ,"_hlt_hdp_dsi_vdo_lcm_drv" ,strlen("_hlt_hdp_dsi_vdo_lcm_drv"))){
+							lcm_panel_temp = "HELITAI_NT";
+						} else {
+							lcm_panel_temp = "ELSE_NT";
+						}
+						tddic_temp = "nt36525b";
+						setLcmPanel_ID(1);
+					}else if (strstr(plcm_name ,"Simulator")){
+						lcm_panel_temp = "Simulator";
+						tddic_temp = "virtual";
+						setLcmPanel_ID(0);
+					} else {
+						lcm_panel_temp = "NOT_FOUND";
+						tddic_temp = "NOT_FOUND";
+					}
+				}
+			}
+	}
+	pr_err(" lcm tddic_temp=%s,lcm_panel_temp=%s\n",tddic_temp,lcm_panel_temp);
+	//devinfo_info_set("lcd" ,tddic_temp ,lcm_panel_temp);
+#endif
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 	if (check_lcm_node_from_DT() == 0) {
 		lcm_drv = &lcm_common_drv;
@@ -1405,6 +1520,24 @@ int disp_lcm_esd_recover(struct disp_lcm_handle *plcm)
 	return -1;
 }
 
+#ifdef OPLUS_BUG_STABILITY
+//Tongxing.Liu@ODM_WT.MM.Display.Lcd, 2019/11/26, display timing adaptation 
+int disp_lcm_shutdown(struct disp_lcm_handle *plcm)
+{
+    struct LCM_DRIVER *lcm_drv = NULL;
+    DISPFUNC();
+    if (_is_lcm_inited(plcm)) {
+        lcm_drv = plcm->drv;
+        if (lcm_drv->shutdown_power) {
+            lcm_drv->shutdown_power();
+        }
+        return 0;
+    }
+    DISPERR("lcm_drv is null\n");
+    return -1;
+}
+#endif
+
 int disp_lcm_suspend(struct disp_lcm_handle *plcm)
 {
 	struct LCM_DRIVER *lcm_drv = NULL;
@@ -1421,13 +1554,30 @@ int disp_lcm_suspend(struct disp_lcm_handle *plcm)
 
 		if (lcm_drv->suspend_power)
 			lcm_drv->suspend_power();
-
-
+#ifdef OPLUS_BUG_STABILITY
+		//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/12/9, Add cabc function
+		oplus_flag_lcd_off = true;
+#endif
 		return 0;
 	}
 	DISPERR("lcm_drv is null\n");
 	return -1;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/10/9, NT36525b related panel request extra power sequence before MIPI entering LP11 from LP-00
+int primary_disp_lcm_resume_power(struct disp_lcm_handle *plcm)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+	DISPFUNC();
+	if (getLcmPanel_ID()) {
+		lcm_drv = plcm->drv;
+		if (lcm_drv->resume_power)
+			lcm_drv->resume_power();
+	}
+	return 0;
+}
+#endif /* OPLUS_BUG_STABILITY */
 
 int disp_lcm_resume(struct disp_lcm_handle *plcm)
 {
@@ -1436,10 +1586,14 @@ int disp_lcm_resume(struct disp_lcm_handle *plcm)
 	DISPFUNC();
 	if (_is_lcm_inited(plcm)) {
 		lcm_drv = plcm->drv;
-
+		#ifdef OPLUS_BUG_STABILITY
+		//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/10/9, NT36525b related panel request extra power sequence before MIPI entering LP11 from LP-00
+		if ( (!getLcmPanel_ID()) && (lcm_drv->resume_power))
+			lcm_drv->resume_power();
+		#else
 		if (lcm_drv->resume_power)
 			lcm_drv->resume_power();
-
+		#endif /* OPLUS_BUG_STABILITY */
 
 		if (lcm_drv->resume) {
 			lcm_drv->resume();
@@ -1447,6 +1601,10 @@ int disp_lcm_resume(struct disp_lcm_handle *plcm)
 			DISPERR("FATAL ERROR, lcm_drv->resume is null\n");
 			return -1;
 		}
+#ifdef OPLUS_BUG_STABILITY
+		//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/12/9, Add cabc function
+		oplus_flag_lcd_off = false;
+#endif
 
 		return 0;
 	}
@@ -1503,10 +1661,129 @@ int disp_lcm_adjust_fps(void *cmdq, struct disp_lcm_handle *plcm, int fps)
 	DISPERR("lcm not initialied\n");
 	return -1;
 }
+#ifdef OPLUS_BUG_STABILITY
+//Jiantao.Liu@ODM_WT.MM.Display.Lcd, 2020/07/08, LCD backlight support hight light mode with 12bit
+#define BRIGHT_BL_X	2047
+#define BRIGHT_BL_Y	3562
+#define BRIGHT_BL_BIGGER_Y	3343
+#define BRIGHT_BL_X1	2
+#define BRIGHT_BL_Y1	16
+#define BRIGHT_MAX 4095
+#define BRIGHT_MIN 2048
+#define BL_MAX 4095
+#define BL_MIN 3562
+#define BL_BIGGER_MIN 3343
+#define VALUE_MASK 1000000
+#define OPLUS_BRIGHT_TO_BL(out, v, BL_MIN, BL_MAX, BRIGHT_MIN,BRIGHT_MAX) do { \
+                    out = (((int)BL_MAX - (int)BL_MIN)*v + \
+                    ((int)BRIGHT_MAX*(int)BL_MIN -(int)BRIGHT_MIN*(int)BL_MAX)) \
+                    /((int)BRIGHT_MAX - (int)BRIGHT_MIN); \
+                    } while (0)
+//Jiantao.Liu@ODM_WT.MM.Display.Lcd, 2020/07/27, switch of LCD backlight current 24.5MA
+#define OPLUS_BRIGHT_TO_BL_BIGGER(out, v, BL_BIGGER_MIN, BL_MAX, BRIGHT_MIN,BRIGHT_MAX) do { \
+                    out = (((int)BL_MAX - (int)BL_BIGGER_MIN)*v + \
+                    ((int)BRIGHT_MAX*(int)BL_BIGGER_MIN -(int)BRIGHT_MIN*(int)BL_MAX)) \
+                    /((int)BRIGHT_MAX - (int)BRIGHT_MIN); \
+                    } while (0)
+
+static unsigned int oplus_private_set_backlight(unsigned int level)
+{
+	unsigned int value_a = 846;
+	unsigned int value_b = 15996616;
+	unsigned int level_temp;
+//Jiantao.Liu@ODM_WT.MM.Display.Lcd, 2020/07/27, switch of LCD backlight current 24.5MA
+	if(oplus_display_twelvebits_support) {
+		value_a = 794;
+		value_b = 15996824;
+	}
+	if (level > 0) {
+	if ( level < 2048) {
+		level_temp = (value_a * level * level  + value_b) / VALUE_MASK;
+		pr_err("check brightness level_temp == %u \n",level_temp);
+		if (level_temp < 16) {
+			level_temp = 16;
+			pr_err("min brightness level_temp < 16 , level_temp == %u \n",level_temp);
+			return level_temp;
+		}
+		return level_temp;
+	} else if ( (level < 4096) && (level >= 2048) ) {
+//Jiantao.Liu@ODM_WT.MM.Display.Lcd, 2020/07/27, switch of LCD backlight current 24.5MA
+		if (oplus_display_twelvebits_support)
+			OPLUS_BRIGHT_TO_BL_BIGGER(level_temp, level, BL_BIGGER_MIN, BL_MAX, BRIGHT_MIN,BRIGHT_MAX);
+		else
+			OPLUS_BRIGHT_TO_BL(level_temp, level, BL_MIN, BL_MAX, BRIGHT_MIN,BRIGHT_MAX);
+		pr_err("check brightness level_temp == %u \n",level_temp);
+		return level_temp;
+        }
+	} else if (0 == level) {
+		level_temp = level;
+	} else {
+		DISPERR("check brightness level fail level > 4095, level==%u ",level);
+		level_temp = level;
+	}
+	return level_temp;
+}
+
+	//Hao.liang@ODM_WT.MM.Display.Lcd, 2019/10/24, LCD backlight value remapping into register of tddic
+	/* This maps android backlight level 0 to 2047 into
+	 * driver backlight level 0 to bl_max with rounding
+	 */
+static int backlight_remapping_into_tddic_reg(struct disp_lcm_handle *plcm, int level_brightness){
+
+	int level_temp, value_a, value_b;
+	int level;
+	struct LCM_PARAMS *lcm_params = NULL;
+	lcm_params = plcm->params;
+	level = level_brightness;
+	if ( level > 0) {
+
+		if (lcm_params->blmap){
+			if (level%32 > 0)
+				level_temp = level/32 + 1;
+			else
+				level_temp = level/32;
+
+			level_temp = level_temp - 1;
+			if((level_temp*2 + 1) > lcm_params->blmap_size){
+				DISPERR(" %s android brightness level is more than 2047 or LCM blmap_size is setting short than 128 = %d\n", __func__, lcm_params->blmap_size);
+				return 0;
+			}
+			value_a = lcm_params->blmap[level_temp*2];
+			value_b = lcm_params->blmap[level_temp*2 + 1];
+			if (level <= 383)
+				level = value_a*level/100 + value_b;
+			else
+				level = value_a*level/100 - value_b;
+		pr_debug(" level_brightness=%d ,value_a= %d ,value_b=%d,level=%d \n",level_brightness, value_a,value_b,level);
+			if (level < 0){
+				DISPERR(" %s backlight value had been converted into a minus type = %d\n", __func__, level);
+				return 0;
+			}
+		}
+		if (level < lcm_params->brightness_min)
+			level = lcm_params->brightness_min;
+		if (level > lcm_params->brightness_max)
+			level = lcm_params->brightness_max;
+		return level;
+	} else if (level == 0){
+		return 0;
+	} else {
+		DISPERR(" %s android brightness level is error = %d\n", __func__, level);
+		return 0;
+	}
+}
+#endif
+#ifdef OPLUS_BUG_STABILITY
+ unsigned int g_lcd_backlight=0;
+#endif
 
 int disp_lcm_set_backlight(struct disp_lcm_handle *plcm,
 	void *handle, int level)
 {
+	#ifdef OPLUS_BUG_STABILITY
+	//Hao.liang@ODM_WT.MM.Display.Lcd, 2019/10/24, LCD backlight value remapping into register of tddic
+	int level_temp;
+	#endif /* OPLUS_BUG_STABILITY */
 	struct LCM_DRIVER *lcm_drv = NULL;
 
 	DISPFUNC();
@@ -1517,7 +1794,17 @@ int disp_lcm_set_backlight(struct disp_lcm_handle *plcm,
 
 	lcm_drv = plcm->drv;
 	if (lcm_drv->set_backlight_cmdq) {
-		lcm_drv->set_backlight_cmdq(handle, level);
+		#ifdef OPLUS_BUG_STABILITY
+		if (oplus_display_twelvebits_support) {
+			level_temp = oplus_private_set_backlight(level);
+		} else {
+			level_temp = backlight_remapping_into_tddic_reg(plcm, level);
+		}
+			g_lcd_backlight=level;
+			lcm_drv->set_backlight_cmdq(handle, level_temp);
+		#else
+			lcm_drv->set_backlight_cmdq(handle, level);
+		#endif
 	} else {
 		DISPERR("FATAL ERROR, lcm_drv->set_backlight is null\n");
 		return -1;
@@ -1653,6 +1940,30 @@ int disp_lcm_set_lcm_cmd(struct disp_lcm_handle *plcm, void *cmdq_handle,
 	DISPERR("lcm_drv is null\n");
 	return -1;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
+int disp_lcm_oplus_set_lcm_cabc_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPFUNC();
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+		if (lcm_drv->set_cabc_mode_cmdq) {
+			lcm_drv->set_cabc_mode_cmdq(handle, level);
+		} else {
+			DISPERR("FATAL ERROR, lcm_drv->oppo_set_cabc_mode_cmdq is null\n");
+			return -1;
+		}
+
+		return 0;
+	}
+
+	DISPERR("lcm_drv is null\n");
+	return -1;
+}
+#endif
 
 int disp_lcm_is_partial_support(struct disp_lcm_handle *plcm)
 {

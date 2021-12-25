@@ -107,7 +107,30 @@ u16 rtc_spare_reg[RTC_SPAR_NUM][3] = {
 	{RTC_PDN2, 0x1, 15},
 	{RTC_SPAR0, 0x1, 6},
 	{RTC_SPAR0, 0x1, 7},
-	{RTC_AL_HOU, 0xff, 8}
+	{RTC_AL_HOU, 0xff, 8},
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Bin.Li@EXP.BSP.bootloader.bootflow, 2017/05/24,, Add for /panic mode/silence mode/meta mode/SAU mode */
+	{RTC_SPAR0, 0x1, 8},
+	{RTC_SPAR0, 0x1, 9},
+	{RTC_SPAR0, 0x1, 10},
+	{RTC_SPAR0, 0x1, 11},
+#endif /* CONFIG_OPLUS_CHARGER_MTK6771 */
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Qiao.Hu@EXP.BSP.BaseDrv.CHG.Basic, 2017/08/02, Add for charger memory electricity */
+	{RTC_AL_DOW, 0xff, 8}, //battery electricity
+/* Fuchun.Liao@BSP.CHG.Basic 2018/02/12 modify for factory mode */
+	{RTC_SPAR0, 0x1, 12},
+/* Fuchun.Liao@BSP.CHG.Basic 2018/02/12 modify for sensor i2c err workaround */
+	{RTC_SPAR0, 0x1, 13},
+#endif 
+/* xiaofan.yang@PSW.TECH.AgingTest, 2019/09/09,Add for factory agingtest */
+#ifdef OPLUS_FEATURE_AGINGTEST
+	{RTC_SPAR0, 0x01, 14},
+#endif /*OPLUS_FEATURE_AGINGTEST */
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/*xiongxing@BSP.Kernel.Driver, 2019/02/27, Add for safemode*/
+	{RTC_SPAR0, 0x01, 15},
+#endif /* VENDOR_EDIT */
 };
 
 static int rtc_eosc_cali_td = 8;

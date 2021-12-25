@@ -73,7 +73,17 @@ enum {
 	SENSOR_TYPE_SAR,
 	SENSOR_TYPE_OIS,
 	SENSOR_TYPE_GYRO_SECONDARY,
+#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+//Chao.Zeng@PSW.BSP.Sensor add for ai shutter 2020/9/28
+	SENSOR_TYPE_AI_SHUTTER,
+#endif
+/*xiebaixue@PSW.BSP.Sensor, 2020/04/17, Add for oppo sensor algo driver*/
+#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+	//SENSOR_TYPE_SENSOR_MAX,
+	OPLUS_VIRTAUL_SENSOR_START,
+#else
 	SENSOR_TYPE_SENSOR_MAX,
+#endif /*OPLUS_FEATURE_SENSOR_ALGORITHM*/
 };
 
 enum {
@@ -137,7 +147,18 @@ enum {
 	ID_SAR,
 	ID_OIS,
 	ID_GYRO_SECONDARY,
+#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+//Chao.Zeng@PSW.BSP.Sensor add for ai shutter 2020/9/28
+	ID_AI_SHUTTER,
+#endif
+/*xiebaixue@PSW.BSP.Sensor, 2020/04/17, Add for oppo sensor algo driver*/
+#ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
+/* end sensor type */
+	//ID_SENSOR_MAX,
+	ID_OPLUS_VIRTUAL_SENSOR_START,
+#else
 	ID_SENSOR_MAX,
+#endif
 };
 
 enum {

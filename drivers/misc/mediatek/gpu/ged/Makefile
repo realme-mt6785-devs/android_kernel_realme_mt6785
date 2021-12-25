@@ -439,7 +439,6 @@ ccflags-y += -DGED_BUFFER_LOG_DISABLE
 endif
 endif
 
-
 ifeq ($(VER),eng)
 ccflags-y += -DGED_DEBUG_IOCTL_LOCK
 endif
@@ -488,6 +487,11 @@ ifeq ($(CONFIG_DEBUG_FS),y)
 ccflags-y += -DGED_DEBUG_FS
 ged-y += \
     src/ged_debugFS.o
+endif
+
+ifeq ($(CONFIG_OPLUS_FEATURE_MIDAS),y)
+ged-y += \
+    src/ged_oppo_ex.o
 endif
 
 ged-y += \

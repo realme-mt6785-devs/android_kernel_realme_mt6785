@@ -16,6 +16,48 @@
 
 #include <lcm_drv.h>
 
+#ifdef OPLUS_BUG_STABILITY
+extern struct LCM_DRIVER ilt9881h_truly_hdp_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER ilt9881h_txd_hdp_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER ilt9882n_txd_psc_ac_hdp_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER nt36525b_hlt_hdp_dsi_vdo_lcm_drv; //Add for Monet
+#endif //OPLUS_BUG_STABILITY
+#ifdef OPLUS_BUG_STABILITY
+extern struct LCM_DRIVER nt36525b_hlt_psc_ac_hdp_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER nt36525b_hlt_psc_ac_boe_hdp_dsi_vdo_lcm_drv; //Add for pascal
+extern struct LCM_DRIVER virtual_dsi_vdo_default;
+#endif //OPLUS_BUG_STABILITY
+
+#ifdef OPLUS_BUG_STABILITY
+extern struct LCM_DRIVER nt36672c_fhdp_dsi_vdo_tianma_zal1878_lcm_drv; // Add for Nemo
+extern struct LCM_DRIVER nt36672c_fhdp_dsi_vdo_jdi_zal1878_lcm_drv; // Add for Nemo
+extern struct LCM_DRIVER nt36672c_fhdp_dsi_vdo_tianma_zal1852_lcm_drv; // Add for sala
+extern struct LCM_DRIVER nt36672c_fhdp_dsi_vdo_jdi_zal1852_lcm_drv; // Add for Sala
+extern struct LCM_DRIVER nt36672c_fhdp_dsi_vdo_boe_zal1852_lcm_drv; // Add for sala
+#endif //OPLUS_BUG_STABILITY
+#ifdef OPLUS_BUG_STABILITY
+/* YongPeng.Yi@PSW.MM.Display.LCD.Machine 2019/09/21, Add for 19151 lcm ic samsung*/
+extern struct LCM_DRIVER oppo19151_samsung_ams644va04_1080p_dsi_cmd_lcm_drv;
+/* zhoujian-xinzhi@PSW.MM.Display.LCD.Machine, 2019/09/17, Add for porting lcd driver */
+extern struct LCM_DRIVER oppo18311_dsjm_himax83112a_1080p_dsi_vdo_lcm_drv;
+/* zhoujian-xinzhi@PSW.MM.Display.LCD.Machine, 2019/09/3, Add for porting 18561 lcd driver */
+extern struct LCM_DRIVER oppo18561_djn_jdi_himax83112b_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo18561_dpt_jdi_td4330_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo18561_dsjm_jdi_himax83112a_1080p_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER oppo18561_dsjm_jdi_td4330_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo18561_tianma_himax83112a_1080p_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER oppo18561_tianma_td4330_1080p_dsi_cmd_lcm_drv;
+/* zhoujian-xinzhi@PSW.MM.Display.LCD.Machine, 2019/08/30, Add for porting 18531 lcd driver */
+extern struct LCM_DRIVER oppo18531_tianma_td4330_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo18531_dpt_jdi_td4330_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo18531_dsjm_jdi_td4330_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo18531_tm_himax83112a_2_1080p_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER oppo18531_dpt_jdi_himax83112a_2_1080p_dsi_vdo_lcm_drv;
+extern struct LCM_DRIVER oppo18531_tm_nt36670a_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo18531_dsjm_jdi_himax83112b_1080p_dsi_cmd_lcm_drv;
+extern struct LCM_DRIVER oppo19531_samsung_ams641rw01_1080p_dsi_cmd_lcm_drv;
+#endif /* OPLUS_BUG_STABILITY */
+
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_60hz_lcm_drv;
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_lcm_drv;
 extern struct LCM_DRIVER nt35595_fhd_dsi_cmd_truly_8163_lcm_drv;

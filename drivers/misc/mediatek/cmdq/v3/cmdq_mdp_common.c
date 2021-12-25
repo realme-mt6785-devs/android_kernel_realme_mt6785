@@ -936,7 +936,12 @@ static s32 cmdq_mdp_consume_handle(void)
 			CMDQ_MSG(
 				"fail to get thread handle:0x%p engine:0x%llx\n",
 				handle, handle->engineFlag);
+			#ifndef OPLUS_FEATURE_CAMERA_COMMON
+			//dingpeifei@camera 20210708 modify for MDP error ALPS05901187
 			continue;
+			#else
+			break;
+			#endif
 		}
 
 		/* lock thread for counting and clk */

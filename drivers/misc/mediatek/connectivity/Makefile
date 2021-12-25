@@ -27,7 +27,13 @@ endif
 ifeq ($(CONFIG_MTK_PMIC_NEW_ARCH),y)
     subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/pmic/include
 endif
-    subdir-ccflags-y += -I$(srctree)/drivers/mmc/core
+
+ifdef CONFIG_OPLUS_FEATURE_MMCPLUS
+MMC_BUILD_FOLDER :=ommc
+else
+MMC_BUILD_FOLDER :=mmc
+endif
+    subdir-ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/core
     subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci/$(MTK_PLATFORM)
     subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci/
     subdir-ccflags-y += -I$(srctree)/drivers/clk/mediatek/

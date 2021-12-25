@@ -824,6 +824,10 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 	}
 	return 0;
 }
+#ifdef OPLUS_BUG_STABILITY
+//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/12/9, Add cabc function
+extern bool __attribute((weak)) oplus_flag_lcd_off;
+#endif
 
 /* ESD RECOVERY */
 int primary_display_esd_recovery(void)
@@ -953,6 +957,10 @@ int primary_display_esd_recovery(void)
 #endif
 done:
 	primary_display_manual_unlock();
+#ifdef OPLUS_BUG_STABILITY
+	//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/12/9, Add cabc function
+	oplus_flag_lcd_off = false;
+#endif
 	DISPCHECK("[ESD]ESD recovery end\n");
 	mmprofile_log_ex(mmp_r, MMPROFILE_FLAG_END, 0, 0);
 	dprec_logger_done(DPREC_LOGGER_ESD_RECOVERY, 0, 0);

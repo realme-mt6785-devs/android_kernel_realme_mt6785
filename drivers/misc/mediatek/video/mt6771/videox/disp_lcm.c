@@ -25,6 +25,28 @@
 #include <linux/of.h>
 #endif
 
+#ifdef OPLUS_BUG_STABILITY
+/* Zhijun.Ye@PSW.MM.Display.LCD.Stability 2020/10/16, Add for lcd */
+extern bool oplus_display_mipi_before_init;
+#endif /* OPLUS_BUG_STABILITY */
+
+/* #ifdef OPLUS_FEATURE_AOD */
+/*
+* Yongpeng.Yi@PSW.MM.Display.LCD.Stability, 2017/07/25,
+* add for lcd status flag
+*/
+extern bool oplus_flag_lcd_off;
+extern bool oplus_display_aod_support;
+/* #endif */ /* OPLUS_FEATURE_AOD */
+
+extern int __attribute__((weak)) tp_gesture_enable_flag(void)
+{
+	printk("ERROR: black gesture is invalid\n");
+	return 0;
+};
+/* MingQiang.Guo@PSW.BSP.TP.Function, 2017/12/30, Add for TP gesture*/
+extern int tp_gesture_enable_flag(void);
+
 /* This macro and arrya is designed for multiple LCM support */
 /* for multiple LCM, we should assign I/F Port id in lcm driver, */
 /* such as DPI0, DSI0/1 */
@@ -1403,7 +1425,8 @@ int disp_lcm_suspend(struct disp_lcm_handle *plcm)
 			return -1;
 		}
 
-		if (lcm_drv->suspend_power)
+		/* MingQiang.Guo@PSW.BSP.TP.Function, 2017/12/30, delete for TP gesture*/
+		if (lcm_drv->suspend_power && (0 == tp_gesture_enable_flag()))
 			lcm_drv->suspend_power();
 
 		return 0;
@@ -1423,6 +1446,20 @@ int disp_lcm_resume(struct disp_lcm_handle *plcm)
 		if (lcm_drv->resume_power)
 			lcm_drv->resume_power();
 
+		#ifdef OPLUS_BUG_STABILITY
+		/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/12/10, add for Lcd TM TD4330 init after mipi  */
+		if (oplus_display_mipi_before_init \
+			|| (!strcmp(lcm_drv->name, "oppo18531_tianma_td4330_1080p_dsi_cmd"))) {
+				if ((!strcmp(lcm_drv->name, "oppo18561_dsjm_jdi_himax83112a_1080p_dsi_vdo"))
+					|| (!strcmp(lcm_drv->name, "oppo18561_tianma_himax83112a_1080p_dsi_vdo"))) {
+				//video mode go through
+			} else {
+				DISPCHECK("[lcd] TM td4330 exit resume init after mipi\n");
+				return 0;
+			}
+		}
+		#endif /* OPLUS_BUG_STABILITY */
+
 		if (lcm_drv->resume) {
 			lcm_drv->resume();
 		} else {
@@ -1436,6 +1473,33 @@ int disp_lcm_resume(struct disp_lcm_handle *plcm)
 	return -1;
 }
 
+#ifdef OPLUS_BUG_STABILITY
+/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/12/10, add for Lcd TM TD4330 init after mipi  */
+int disp_lcm_init_code(struct disp_lcm_handle *plcm)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPFUNC();
+	DISPCHECK("[lcd] TM td4330 init code after mipi\n");
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+
+		if (lcm_drv->resume) {
+			lcm_drv->resume();
+		} else {
+			DISPPR_ERROR("FATAL ERROR, lcm_drv->resume is null\n");
+			return -1;
+		}
+
+		oplus_flag_lcd_off = false;
+
+		return 0;
+	}
+	DISPPR_ERROR("lcm_drv is null\n");
+	return -1;
+}
+#endif /* OPLUS_BUG_STABILITY */
+
 int disp_lcm_aod(struct disp_lcm_handle *plcm, int enter)
 {
 	struct LCM_DRIVER *lcm_drv = NULL;
@@ -1443,12 +1507,35 @@ int disp_lcm_aod(struct disp_lcm_handle *plcm, int enter)
 	DISPMSG("%s, enter:%d\n", __func__, enter);
 	if (_is_lcm_inited(plcm)) {
 		lcm_drv = plcm->drv;
+
+		/* #ifdef OPLUS_FEATURE_AOD */
+		/*
+		* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/15,
+		* add for aod
+		*/
+		if (oplus_display_aod_support) {
+			if (lcm_drv->resume_power)
+				lcm_drv->resume_power();
+		}
+		/* #endif */ /* OPLUS_FEATURE_AOD */
+
 		if (lcm_drv->aod) {
 			lcm_drv->aod(enter);
 		} else {
 			DISPPR_ERROR("FATAL ERROR, lcm_drv->aod is null\n");
 			return -1;
 		}
+
+		/* #ifdef OPLUS_FEATURE_AOD */
+		/*
+		* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/01/15,
+		* add for lcd status flag
+		*/
+		if (oplus_display_aod_support) {
+			oplus_flag_lcd_off = false;
+		}
+		/* #endif */ /* OPLUS_FEATURE_AOD */
+
 		return 0;
 	}
 
@@ -1636,6 +1723,156 @@ int disp_lcm_set_lcm_cmd(struct disp_lcm_handle *plcm, void *cmdq_handle,
 	DISPPR_ERROR("lcm_drv is null\n");
 	return -1;
 }
+
+#ifdef OPLUS_BUG_STABILITY
+/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
+int disp_lcm_oplus_set_lcm_cabc_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPFUNC();
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+		if (lcm_drv->set_cabc_mode_cmdq) {
+			lcm_drv->set_cabc_mode_cmdq(handle, level);
+		} else {
+			DISPPR_ERROR("FATAL ERROR, lcm_drv->oppo_set_cabc_mode_cmdq is null\n");
+			return -1;
+		}
+
+		return 0;
+	}
+
+	DISPPR_ERROR("lcm_drv is null\n");
+	return -1;
+}
+
+/*
+* liping-m@PSW.MM.Display.LCD.Stability, 2018/07/20,
+* add power seq api for ulps
+*/
+int disp_lcm_poweron_before_ulps(struct disp_lcm_handle *plcm)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPFUNC();
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+		if (lcm_drv->poweron_before_ulps) {
+			lcm_drv->poweron_before_ulps();
+		} else {
+			DISPPR_ERROR("FATAL ERROR, lcm_drv->poweron_before_ulps is null\n");
+			return -1;
+		}
+		return 0;
+	}
+	DISPPR_ERROR("lcm_drv is null\n");
+	return -1;
+}
+
+int disp_lcm_poweroff_after_ulps(struct disp_lcm_handle *plcm)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPFUNC();
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+		if (lcm_drv->poweroff_after_ulps) {
+			/* if ((0 == tp_gesture_enable_flag()) || (1 == display_esd_recovery_lcm())) { */
+			if (0 == tp_gesture_enable_flag()) {
+				lcm_drv->poweroff_after_ulps();
+			}
+		} else {
+			DISPPR_ERROR("FATAL ERROR, lcm_drv->poweroff_after_ulps is null\n");
+			return -1;
+		}
+		return 0;
+	}
+	DISPPR_ERROR("lcm_drv is null\n");
+	return -1;
+}
+#endif /* OPLUS_BUG_STABILITY */
+
+/* #ifdef OPLUS_FEATURE_AOD */
+/*
+* Yongpeng.Yi@PSW.MM.Display.LCD.Feature, 2018/09/26,
+* add for Aod feature
+*/
+int disp_lcm_aod_doze_resume(struct disp_lcm_handle *plcm)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPFUNC();
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+
+		if (lcm_drv->resume_power)
+			lcm_drv->resume_power();
+
+
+		if (lcm_drv->aod_doze_resume) {
+			lcm_drv->aod_doze_resume();
+		} else {
+			DISPPR_ERROR("FATAL ERROR, lcm_drv->resume is null\n");
+			return -1;
+		}
+		oplus_flag_lcd_off = false;
+		return 0;
+	}
+	DISPPR_ERROR("lcm_drv is null\n");
+	return -1;
+}
+
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/02/14,
+* modify for support aod state.
+*/
+int disp_lcm_aod_from_display_on(struct disp_lcm_handle *plcm)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPMSG("[soso] %s \n", __func__);
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+
+		if (lcm_drv->resume_power)
+			lcm_drv->resume_power();
+
+		if (lcm_drv->disp_lcm_aod_from_display_on) {
+			lcm_drv->disp_lcm_aod_from_display_on();
+		} else {
+			DISPPR_ERROR("FATAL ERROR, lcm_drv->aod is null\n");
+			return -1;
+		}
+
+		oplus_flag_lcd_off = false;
+
+		return 0;
+	}
+
+	DISPPR_ERROR("lcm_drv is null\n");
+	return -1;
+}
+
+int disp_lcm_set_aod_mode(struct disp_lcm_handle *plcm, void *handle, unsigned int mode)
+{
+	struct LCM_DRIVER *lcm_drv = NULL;
+
+	DISPFUNC();
+	if (_is_lcm_inited(plcm)) {
+		lcm_drv = plcm->drv;
+		if (lcm_drv->set_aod_brightness) {
+			lcm_drv->set_aod_brightness(handle, mode);
+		} else {
+			DISPPR_ERROR("FATAL ERROR, lcm_drv->set_aod_brightness is null\n");
+			return -1;
+		}
+		return 0;
+	}
+	DISPPR_ERROR("lcm_drv is null\n");
+	return -1;
+}
+/* #endif */ /* OPLUS_FEATURE_AOD */
 
 int disp_lcm_is_partial_support(struct disp_lcm_handle *plcm)
 {

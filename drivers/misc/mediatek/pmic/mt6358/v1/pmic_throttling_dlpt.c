@@ -335,6 +335,9 @@ static irqreturn_t fg_cur_h_int_handler(int irq, void *data)
 		, pmic_get_register_value(PMIC_RG_INT_EN_FG_CUR_H)
 		, pmic_get_register_value(PMIC_RG_INT_EN_FG_CUR_L));
 #else
+//#ifdef VENDOR_EDIT
+/*Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for kernel log .*/
+/*
 	PMICLOG("Reg[0x%x]=0x%x, Reg[0x%x]=0x%x, Reg[0x%x]=0x%x\n",
 		PMIC_FG_CUR_HTH_ADDR,
 		upmu_get_reg_value(PMIC_FG_CUR_HTH_ADDR),
@@ -342,6 +345,8 @@ static irqreturn_t fg_cur_h_int_handler(int irq, void *data)
 		upmu_get_reg_value(PMIC_FG_CUR_LTH_ADDR),
 		PMIC_RG_INT_EN_FG_BAT0_H_ADDR,
 		upmu_get_reg_value(PMIC_RG_INT_EN_FG_BAT0_H_ADDR));
+*/
+//#endif
 #endif
 	return IRQ_HANDLED;
 }
@@ -366,6 +371,9 @@ static irqreturn_t fg_cur_l_int_handler(int irq, void *data)
 		, pmic_get_register_value(PMIC_RG_INT_EN_FG_CUR_H)
 		, pmic_get_register_value(PMIC_RG_INT_EN_FG_CUR_L));
 #else
+//#ifdef VENDOR_EDIT
+/*Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for kernel log .*/
+/*
 	PMICLOG("Reg[0x%x]=0x%x, Reg[0x%x]=0x%x, Reg[0x%x]=0x%x\n",
 		PMIC_FG_CUR_HTH_ADDR,
 		upmu_get_reg_value(PMIC_FG_CUR_HTH_ADDR),
@@ -373,6 +381,8 @@ static irqreturn_t fg_cur_l_int_handler(int irq, void *data)
 		upmu_get_reg_value(PMIC_FG_CUR_LTH_ADDR),
 		PMIC_RG_INT_EN_FG_BAT0_H_ADDR,
 		upmu_get_reg_value(PMIC_RG_INT_EN_FG_BAT0_H_ADDR));
+*/
+//#endif
 #endif
 	return IRQ_HANDLED;
 }
@@ -1131,8 +1141,13 @@ int dlpt_notify_handler(void *unused)
 					, power_off_cnt);
 
 				if (power_off_cnt >= 4)
+#ifndef OPLUS_FEATURE_CHG_BASIC
+/*Liu.Yong@BSP.CHG.basic 2020/11/26, add for shutdown use oppo uisoc*/
 					kernel_restart(
 						"DLPT reboot system");
+#else
+					power_off_cnt = 0;
+#endif /*OPLUS_FEATURE_CHG_BASIC*/
 			} else
 				power_off_cnt = 0;
 		}
@@ -1673,12 +1688,16 @@ void pmic_throttling_dlpt_suspend(void)
 #ifdef BATTERY_OC_PROTECT
 	disable_irq_nosync(fg_cur_h_irq);
 	disable_irq_nosync(fg_cur_l_irq);
-
+//#ifdef VENDOR_EDIT
+/*Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for kernel log .*/
+/*
 	PMICLOG("Reg[0x%x]=0x%x, Reg[0x%x]=0x%x, Reg[0x%x]=0x%x\n",
 		PMIC_FG_CUR_HTH_ADDR, upmu_get_reg_value(PMIC_FG_CUR_HTH_ADDR),
 		PMIC_FG_CUR_LTH_ADDR, upmu_get_reg_value(PMIC_FG_CUR_LTH_ADDR),
 		PMIC_RG_INT_EN_FG_BAT0_H_ADDR,
 		upmu_get_reg_value(PMIC_RG_INT_EN_FG_BAT0_H_ADDR));
+*/
+//#endif
 #endif
 }
 
@@ -1688,7 +1707,9 @@ void pmic_throttling_dlpt_resume(void)
 #ifdef BATTERY_OC_PROTECT
 	enable_irq(fg_cur_h_irq);
 	enable_irq(fg_cur_l_irq);
-
+//#ifdef VENDOR_EDIT
+/*Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for kernel log .*/
+/*
 	PMICLOG("Reg[0x%x]=0x%x, Reg[0x%x]=0x%x, Reg[0x%x]=0x%x\n"
 		, PMIC_FG_CUR_HTH_ADDR
 		, upmu_get_reg_value(PMIC_FG_CUR_HTH_ADDR)
@@ -1696,6 +1717,8 @@ void pmic_throttling_dlpt_resume(void)
 		, upmu_get_reg_value(PMIC_FG_CUR_LTH_ADDR)
 		, PMIC_RG_INT_EN_FG_BAT0_H_ADDR
 		, upmu_get_reg_value(PMIC_RG_INT_EN_FG_BAT0_H_ADDR));
+*/
+//#endif
 #endif
 }
 

@@ -69,6 +69,11 @@ static void cam_temperature_report_wq_routine(struct work_struct *);
 	struct delayed_work cam_temperature_wq;
 #endif
 
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/*Liu.Yong@BSP.CHG.Basic, 20201112, add for charge status change*/
+extern void oplus_chg_set_camera_status(bool val);
+#endif
+
 #define FEATURE_CONTROL_MAX_DATA_SIZE 128000
 
 struct platform_device *gpimgsensor_hw_platform_device;
@@ -503,9 +508,26 @@ int imgsensor_set_driver(struct IMGSENSOR_SENSOR *psensor)
 	char *driver_name = NULL;
 
 	imgsensor_mutex_init(psensor_inst);
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	if (pascal_project() == 4) {
+		imgsensor_i2c_init(&psensor_inst->i2c_cfg,
+			imgsensor_custom_config[(unsigned int)psensor->inst.sensor_idx].i2c_dev);
+	} else if ((pascal_project() == 5) || (pascal_project() == 6) || (pascal_project() == 7)) {
+		imgsensor_i2c_init(&psensor_inst->i2c_cfg,
+			imgsensor_custom_config_monetx[(unsigned int)psensor->inst.sensor_idx].i2c_dev);
+	} else if (pascal_project() == 8) {
+			imgsensor_i2c_init(&psensor_inst->i2c_cfg,
+			imgsensor_custom_config_pascalC[psensor->inst.sensor_idx].i2c_dev);
+	} else {
+		imgsensor_i2c_init(&psensor_inst->i2c_cfg,
+			imgsensor_custom_config[(unsigned int)psensor->inst.sensor_idx].i2c_dev);
+	}
+#else
 	imgsensor_i2c_init(&psensor_inst->i2c_cfg,
 	imgsensor_custom_config[
 	(unsigned int)psensor->inst.sensor_idx].i2c_dev);
+
+#endif /* OPLUS_FEATURE_CAMERA_COMMON */
 
 	imgsensor_i2c_filter_msg(&psensor_inst->i2c_cfg, true);
 
@@ -2537,6 +2559,12 @@ static int imgsensor_open(struct inode *a_pstInode, struct file *a_pstFile)
 		imgsensor_clk_enable_all(&pgimgsensor->clk);
 
 	atomic_inc(&pgimgsensor->imgsensor_open_cnt);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	/*Liu.Yong@BSP.CHG.Basic, 20201112, add for charge status change*/
+	if(atomic_read(&pgimgsensor->imgsensor_open_cnt) > 0) {
+		oplus_chg_set_camera_status(true);
+	}
+#endif
 	pr_info(
 	    "%s %d\n",
 	    __func__,
@@ -2567,6 +2595,14 @@ static int imgsensor_release(struct inode *a_pstInode, struct file *a_pstFile)
 		imgsensor_dfs_ctrl(DFS_RELEASE, NULL);
 #endif
 	}
+
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	/*Liu.Yong@BSP.CHG.Basic, 20201112, add for charge status change*/
+	if(atomic_read(&pgimgsensor->imgsensor_open_cnt) == 0) {
+		oplus_chg_set_camera_status(false);
+	}
+#endif
+
 	pr_info(
 	    "%s %d\n",
 	    __func__,

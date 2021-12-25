@@ -661,7 +661,12 @@ int ccu_force_powerdown(void)
 		ccu_write_reg_bit(ccu_base, CTL_CCU_INT, INT_CTL_CCU, 1);
 
 		ret = _ccu_powerdown();
+		#ifdef OPLUS_FEATURE_CAMERA_COMMON
+		/*wujun@camera improve switch operation performance 20210107*/
+		mdelay(1);
+		#else
 		mdelay(60);
+		#endif
 
 		if (ret < 0)
 			return ret;

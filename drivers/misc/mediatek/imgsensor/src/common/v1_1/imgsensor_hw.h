@@ -96,6 +96,11 @@ extern struct IMGSENSOR_HW_POWER_SEQ platform_power_sequence[];
 extern struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[];
 extern enum IMGSENSOR_RETURN (*hw_open[IMGSENSOR_HW_ID_MAX_NUM])
 					(struct IMGSENSOR_HW_DEVICE **);
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+#ifdef SENSOR_PLATFORM_MT6771
+void set_gc02m0_flag(enum IMGSENSOR_SENSOR_IDX sensor_idx);
+#endif
+#endif
 
 #endif
 

@@ -76,7 +76,19 @@ static struct gpio_item gpio_mapping_table[] = {
 
 static int get_md_gpio_val(unsigned int num)
 {
-	return gpio_get_value(num);
+	//#ifdef OPLUS_FEATURE_THREESTATE_GPIO
+	//Yuchun.Luo@NETWORK.RF, 2020/11/26, Add for tristate gpio
+	if(is_project(19749) || is_project(19600) || is_project(19741) || is_project(19742) || is_project(19740) || is_project(19673) || is_project(19674) || 
+		is_project(19747) || is_project(19748) || is_project(19746) || is_project(19677) || is_project(19678) || is_project(0x206AC) || is_project(0x206AD) || 
+		is_project(0x206AE) || is_project(0x206AF) || is_project(0x206A0) || is_project(0x2073B) || is_project(0x2073C) )
+	{
+          return gpio_get_tristate_input(num);
+	}
+	else
+	{
+          return gpio_get_value(num);
+	}
+	//#endif OPLUS_FEATURE_THREESTATE_GPIO
 }
 
 static int get_md_adc_val(__attribute__((unused))unsigned int num)

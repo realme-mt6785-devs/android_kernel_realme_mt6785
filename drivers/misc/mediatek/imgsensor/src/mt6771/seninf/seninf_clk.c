@@ -74,8 +74,11 @@ enum SENINF_RETURN seninf_clk_init(struct SENINF_CLK *pclk)
 		}
 	}
 
-#ifdef CONFIG_PM_SLEEP
+#ifdef CONFIG_PM_WAKELOCKS
 	wakeup_source_init(&pclk->seninf_wake_lock, "seninf_lock_wakelock");
+#else
+	wake_lock_init(&pclk->seninf_wake_lock, WAKE_LOCK_SUSPEND,
+						"seninf_lock_wakelock");
 #endif
 
 	return SENINF_RETURN_SUCCESS;
@@ -164,8 +167,10 @@ void seninf_clk_open(struct SENINF_CLK *pclk)
 
 	PK_DBG("open\n");
 
-#ifdef CONFIG_PM_SLEEP
+#ifdef CONFIG_PM_WAKELOCKS
 	__pm_stay_awake(&pclk->seninf_wake_lock);
+#else
+	wake_lock(&pclk->seninf_wake_lock);
 #endif
 
 	for (i = SENINF_CLK_IDX_SYS_MIN_NUM;
@@ -191,8 +196,10 @@ void seninf_clk_release(struct SENINF_CLK *pclk)
 		}
 	} while (i);
 
-#ifdef CONFIG_PM_SLEEP
+#ifdef CONFIG_PM_WAKELOCKS
 	__pm_relax(&pclk->seninf_wake_lock);
+#else
+	wake_unlock(&pclk->seninf_wake_lock);
 #endif
 }
 

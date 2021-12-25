@@ -1428,7 +1428,13 @@ static void disp_aal_notify_backlight_log(int bl_1024)
 void disp_aal_notify_backlight_changed(int bl_1024)
 {
 	unsigned long flags;
+	#ifndef OPLUS_FEATURE_MULTIBITS_BL
+	/*
+	 * Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2017/12/08,
+	 * modify for multibits backlight.
+	 */
 	int max_backlight;
+	#endif /* OPLUS_FEATURE_MULTIBITS_BL */
 	unsigned int service_flags;
 
 	/* pr_debug("disp_aal_notify_backlight_changed: %d/1023", bl_1024); */
@@ -1436,9 +1442,15 @@ void disp_aal_notify_backlight_changed(int bl_1024)
 
 	disp_aal_exit_idle(__func__, 1);
 
+	#ifndef OPLUS_FEATURE_MULTIBITS_BL
+	/*
+	 * Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2017/12/08,
+	 * modify for multibits backlight.
+	 */
 	max_backlight = disp_pwm_get_max_backlight(DISP_PWM0);
 	if (bl_1024 > max_backlight)
 		bl_1024 = max_backlight;
+	#endif /* OPLUS_FEATURE_MULTIBITS_BL */
 
 	atomic_set(&g_aal_backlight_notified, bl_1024);
 

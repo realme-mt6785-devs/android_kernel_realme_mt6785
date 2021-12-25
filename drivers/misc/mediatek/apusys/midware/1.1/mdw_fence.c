@@ -51,14 +51,19 @@ static unsigned int apu_file_poll(struct file *file, poll_table *wait)
 		return POLLIN;
 
 	mutex_lock(&u_mgr.mtx);
-	u = d->u;
-	if (mdw_user_check(u))
-		mdw_usr_get(u);
-	else {
-		mutex_unlock(&u_mgr.mtx);
-		return POLLIN;
+
+	/* Check user */
+	list_for_each_safe(list_ptr, tmp, &u_mgr.list) {
+		u = list_entry(list_ptr, struct mdw_usr, m_item);
+		mdw_flw_debug("poll usr(0x%llx/0x%llx) matching...\n", u, d->u);
+		if (u == d->u)
+			break;
+		u = NULL;
 	}
-	mutex_unlock(&u_mgr.mtx);
+
+
+	if (u == NULL)
+		goto out;
 
 	/* Check cmd */
 	mutex_lock(&u->mtx);
@@ -77,7 +82,7 @@ static unsigned int apu_file_poll(struct file *file, poll_table *wait)
 
 	mdw_wait_cmd(d->c);
 out:
-	mdw_usr_put(u);
+	mutex_unlock(&u_mgr.mtx);
 	return POLLIN;
 }
 

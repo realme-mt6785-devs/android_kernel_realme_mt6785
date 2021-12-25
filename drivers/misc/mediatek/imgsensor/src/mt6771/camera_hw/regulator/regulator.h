@@ -22,6 +22,10 @@
 #include "imgsensor_hw.h"
 #include "imgsensor_common.h"
 
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
+#define OPLUS_FEATURE_CAMERA_COMMON
+#endif
+
 enum REGULATOR_VOLTAGE {
 	REGULATOR_VOLTAGE_0    = 0,
 	REGULATOR_VOLTAGE_1000 = 1000000,
@@ -57,5 +61,9 @@ struct REGULATOR {
 enum IMGSENSOR_RETURN
 	imgsensor_hw_regulator_open(struct IMGSENSOR_HW_DEVICE **pdevice);
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+int kdVIOPowerOn(int On);
+int kdVAFPowerOn(int On);
+#endif /* OPLUS_FEATURE_CAMERA_COMMON */
 #endif
 

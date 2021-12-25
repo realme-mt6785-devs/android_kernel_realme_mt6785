@@ -96,6 +96,10 @@ static bool no_update;
 static struct disp_session_input_config session_input;
 long dts_gpio_state;
 
+#ifdef OPLUS_BUG_STABILITY
+/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
+extern int __attribute((weak)) oplus_mtkfb_custom_data_init(struct platform_device *pdev) { return 0; };
+#endif /* OPLUS_BUG_STABILITY */
 
 /* macro definiton */
 #define ALIGN_TO(x, n)  (((x) + ((n) - 1)) & ~((n) - 1))
@@ -2537,6 +2541,11 @@ static int mtkfb_probe(struct platform_device *pdev)
 		}
 	}
 
+	#ifdef OPLUS_BUG_STABILITY
+	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
+	oplus_mtkfb_custom_data_init(pdev);
+	#endif
+
 	_parse_tag_videolfb();
 
 	init_state = 0;
@@ -2696,6 +2705,19 @@ static int mtkfb_probe(struct platform_device *pdev)
 		register_ccci_sys_call_back(MD_SYS1,
 			MD_DISPLAY_DYNAMIC_MIPI, mipi_clk_change);
 	}
+#ifdef OPLUS_BUG_STABILITY
+	//Hao.Liang@ODM_WT.MM.Display.Lcd, 2019/10/29, Add clk_change function
+	if (!strcmp(mtkfb_find_lcm_driver(),
+		"ilt9881h_txd_hdp_dsi_vdo_lcm_drv") ||!strcmp(mtkfb_find_lcm_driver(),
+		"ilt9881h_truly_hdp_dsi_vdo_lcm_drv") ||!strcmp(mtkfb_find_lcm_driver(),
+		"nt36525b_hlt_hdp_dsi_vdo_lcm_drv") ||!strcmp(mtkfb_find_lcm_driver(),
+		"nt36525b_hlt_psc_ac_boe_vdo") ||!strcmp(mtkfb_find_lcm_driver(),
+		"nt36525b_hlt_psc_ac_vdo") ||!strcmp(mtkfb_find_lcm_driver(),
+		"ilt9882n_txd_psc_ac_hdp_dsi_vdo_lcm")) {
+		register_ccci_sys_call_back(MD_SYS1,
+			MD_DISPLAY_DYNAMIC_MIPI, mipi_clk_change);
+	}
+#endif
 
 	MSG_FUNC_LEAVE();
 	pr_info("disp driver(2) %s end\n", __func__);
@@ -2754,10 +2776,18 @@ static void mtkfb_shutdown(struct platform_device *pdev)
 
 	if (primary_display_is_sleepd()) {
 		MTKFB_LOG("mtkfb has been power off\n");
+#ifdef OPLUS_BUG_STABILITY
+//Tongxing.Liu@ODM_WT.MM.Display.Lcd, 2019/11/26, display timing adaptation
+		primary_display_shutdown();
+#endif
 		return;
 	}
 	primary_display_set_power_mode(FB_SUSPEND);
 	primary_display_suspend();
+#ifdef OPLUS_BUG_STABILITY
+//Tongxing.Liu@ODM_WT.MM.Display.Lcd, 2019/11/26, display timing adaptation
+	primary_display_shutdown();
+#endif
 	MTKFB_LOG("[FB Driver] leave %s\n", __func__);
 }
 

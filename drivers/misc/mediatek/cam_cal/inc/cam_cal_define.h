@@ -23,6 +23,49 @@ struct CAM_CAL_SENSOR_INFO {
 	u32 sensor_id;
 };
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+/* cengshang@vanyol.com add for otp porting in 206AC */
+struct stCAM_CAL_DATAINFO_STRUCT {
+	u32 sensorID;
+	u32 deviceID; /* MAIN = 0x01, SUB  = 0x02, MAIN_2 = 0x04,SUB2 = 0x08, MAIN3 =0x10*/
+	u32 dataLength;
+	u32 sensorVendorid;
+	u8  vendorPos;
+	u8  sensorPos;
+	u8  vendorByte;
+	u8  *dataBuffer;
+};
+typedef enum{
+	MODULE_ITEM = 0,
+	AWB_H_ITEM,
+	AWB_M_ITEM,
+	AWB_L_ITEM,
+	AWB_H_SRC_ITEM,
+	AWB_M_SRC_ITEM,
+	AWB_L_SRC_ITEM,
+	AF_ITEM,
+	BARCODE_ITEM,
+	LSC_QUA_ITEM,
+	LSC_MTK_ITEM,
+	PDAF_QUA_GM_ITEM,
+	PDAF_QUA_DCC_ITEM,
+	PDAF_MTK_S1_ITEM,
+	PDAF_MTK_S2_ITEM,
+	DUALCAM_ITEM,
+	CROSS_TALK_ITEM,
+	DPC_ITEM,
+	LDC_ITEM,
+	MAX_ITEM,
+}stCAM_CAL_CHECKSUM_ITEM;
+
+struct stCAM_CAL_CHECKSUM_STRUCT{
+	stCAM_CAL_CHECKSUM_ITEM item;
+	u32 startAdress;
+	u32 endAdress;
+	u32 flagAdrees;
+	u32 checksumAdress;
+	u8  validFlag;
+};
 struct stCAM_CAL_INFO_STRUCT {
 	u32 u4Offset;
 	u32 u4Length;
@@ -48,5 +91,5 @@ struct COMPAT_stCAM_CAL_INFO_STRUCT {
 	compat_uptr_t pu1Params;
 };
 #endif
-
+#endif
 #endif/*_CAM_CAL_DATA_H*/

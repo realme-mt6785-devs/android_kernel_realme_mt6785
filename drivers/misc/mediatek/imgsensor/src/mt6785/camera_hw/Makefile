@@ -16,7 +16,8 @@
 #
 
 ccflags-y += -I$(MTK_CUSTOM_PATH)/imgsensor/inc \
-
+#GaoWang@Cam.Drv add for 20682 camera BringUp 20200918
+obj-y		+= wl2864/
 obj-y		+= regulator/
 obj-y		+= gpio/
 obj-y		+= mclk/

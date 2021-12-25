@@ -7,6 +7,9 @@ flashlight-y += flashlight-device.o
 
 obj-$(CONFIG_MTK_FLASHLIGHT)             += flashlight.o
 obj-$(CONFIG_MTK_V4L2_FLASHLIGHT)        += mtk-composite.o
+#Feng.Hu@Camera.Driver 20171121 add for mp3331 flash driver IC
+obj-$(CONFIG_MTK_FLASHLIGHT_MP3331)      += flashlights-mp3331.o
+obj-$(CONFIG_MTK_FLASHLIGHT_AW3642)      += flashlights-aw3642.o
 obj-$(CONFIG_MTK_FLASHLIGHT_LED191)      += flashlights-led191.o
 obj-$(CONFIG_MTK_FLASHLIGHT_LM3642)      += flashlights-lm3642.o
 obj-$(CONFIG_MTK_FLASHLIGHT_LM3643)      += flashlights-lm3643.o
@@ -16,6 +19,9 @@ obj-$(CONFIG_MTK_FLASHLIGHT_RT5081)      += flashlights-rt5081.o
 obj-$(CONFIG_MTK_FLASHLIGHT_MT6336)      += flashlights-mt6336.o
 obj-$(CONFIG_MTK_FLASHLIGHT_MT6370)      += flashlights-mt6370.o
 obj-$(CONFIG_MTK_FLASHLIGHT_MT6360)      += flashlights-mt6360.o
+#pascalA flashlight
+obj-$(CONFIG_MTK_FLASHLIGHT_PASCAL)      += flashlights-pascal.o
+obj-$(CONFIG_MTK_FLASHLIGHT_MONET)       += flashlights-monet.o
 obj-$(CONFIG_MTK_FLASHLIGHT_DUMMY)       += flashlights-dummy.o
 obj-$(CONFIG_MTK_FLASHLIGHT_DUMMY_GPIO)  += flashlights-dummy-gpio.o
 
@@ -29,7 +35,14 @@ MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 MTK_PROJECT := $(subst ",,$(CONFIG_ARCH_MTK_PROJECT))
 MTK_CUSTOM_PATH := $(srctree)/drivers/misc/mediatek
 
+ifeq ($(CONFIG_MTK_PLATFORM),"mt6771")
+    subdir-ccflags-y += -DOPLUS_PLATFORM_MT6771
+endif
+
 ccflags-y += -D$(MTK_PLATFORM) -D$(MTK_PROJECT)
+
+subdir-ccflags-${CONFIG_MACH_MT6833} += \
+	-I$(MTK_CUSTOM_PATH)/include/mt-plat/mt6833/include/mach
 
 subdir-ccflags-y += \
 	-I$(MTK_CUSTOM_PATH)/include/mt-plat \

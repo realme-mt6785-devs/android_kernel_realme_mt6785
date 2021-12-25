@@ -14,23 +14,37 @@
 #include "disp_drv_log.h"
 #include "ddp_dsi.h"
 
+#ifdef OPLUS_BUG_COMPATIBILITY
+extern int led_rm;
+#endif
 void set_lcm(struct LCM_setting_table_V3 *para_tbl,
 			unsigned int size, bool hs)
 {
 	DISPFUNC();
 
-	_primary_path_switch_dst_lock();
-	primary_display_manual_lock();
+#ifdef OPLUS_BUG_COMPATIBILITY
+	if (led_rm != 0) {
+		if (_is_power_on_status(DISP_MODULE_DSI0))
+			DSI_dcs_set_lcm_reg_v4(DISP_MODULE_DSI0, hs, para_tbl, size, 1);
+		else
+			DISPERR("%s invalid: dsi is power off\n", __func__);
+	} else {
+#endif
+		_primary_path_switch_dst_lock();
+		primary_display_manual_lock();
 
-	primary_display_idlemgr_kick(__func__, 0);
+		primary_display_idlemgr_kick(__func__, 0);
 
-	if (_is_power_on_status(DISP_MODULE_DSI0))
-		DSI_dcs_set_lcm_reg_v4(DISP_MODULE_DSI0, hs, para_tbl, size, 1);
-	else
-		DISPERR("%s invalid: dsi is power off\n", __func__);
+		if (_is_power_on_status(DISP_MODULE_DSI0))
+			DSI_dcs_set_lcm_reg_v4(DISP_MODULE_DSI0, hs, para_tbl, size, 1);
+		else
+			DISPERR("%s invalid: dsi is power off\n", __func__);
 
-	primary_display_manual_unlock();
-	_primary_path_switch_dst_unlock();
+		primary_display_manual_unlock();
+		_primary_path_switch_dst_unlock();
+#ifdef OPLUS_BUG_COMPATIBILITY
+	}
+#endif
 }
 
 int read_lcm(unsigned char cmd, unsigned char *buf,

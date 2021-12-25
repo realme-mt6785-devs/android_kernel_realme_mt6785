@@ -71,4 +71,29 @@ int disp_lcm_validate_roi(struct disp_lcm_handle *plcm, int *x, int *y,
 			  int *w, int *h);
 int disp_lcm_aod(struct disp_lcm_handle *plcm, int enter);
 
+/* #ifdef OPLUS_FEATURE_AOD */
+/*
+* Ling.Guo@PSW.MM.Display.LCD.Stability, 2019/02/14,
+* modify for support aod state.
+*/
+int disp_lcm_aod_from_display_on(struct disp_lcm_handle *plcm);
+int disp_lcm_set_aod_mode(struct disp_lcm_handle *plcm, void *handle, unsigned int mode);
+/*
+* Yongpeng.Yi@PSW.MM.Display.LCD.Feature, 2018/09/26,
+* add for Aod feature
+*/
+int disp_lcm_aod_doze_resume(struct disp_lcm_handle *plcm);
+/* #endif */ /* OPLUS_FEATURE_AOD */
+
+#ifdef OPLUS_BUG_STABILITY
+/* Yongpeng.Yi@PSW.MultiMedia.Display.LCD.Machine, 2018/09/10, Add for Porting cabc interface */
+int disp_lcm_oplus_set_lcm_cabc_cmd(struct disp_lcm_handle *plcm, void *handle, unsigned int level);
+/* liping-m@PSW.MM.Display.LCD.Stability, 2018/07/21,
+* add power seq api for ulps
+*/
+int disp_lcm_poweron_before_ulps(struct disp_lcm_handle *plcm);
+int disp_lcm_poweroff_after_ulps(struct disp_lcm_handle *plcm);
+/* YongPeng.Yi@PSW.MM.Display.LCD.Stability, 2018/12/10, add for Lcd tm td4330 */
+int disp_lcm_init_code(struct disp_lcm_handle *plcm);
+#endif /* OPLUS_BUG_STABILITY */
 #endif /* _DISP_LCM_H_ */

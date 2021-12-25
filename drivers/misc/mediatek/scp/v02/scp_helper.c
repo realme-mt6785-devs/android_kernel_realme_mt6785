@@ -66,6 +66,9 @@
 #define SCP_READY_TIMEOUT (8 * HZ) /* 30 seconds*/
 #define SCP_A_TIMER 0
 
+#ifdef CONFIG_OPLUS_FEATURE_FEEDBACK
+#include <soc/oplus/system/kernel_fb.h>
+#endif
 /* scp ipi message buffer */
 uint32_t msg_scp_ready0, msg_scp_ready1;
 char msg_scp_err_info0[40], msg_scp_err_info1[40];
@@ -79,7 +82,6 @@ unsigned int scp_enable[SCP_CORE_TOTAL];
 /* scp dvfs variable*/
 unsigned int scp_expected_freq;
 unsigned int scp_current_freq;
-unsigned int scp_dvfs_cali_ready;
 
 /*scp awake variable*/
 int scp_awake_counts[SCP_CORE_TOTAL];
@@ -394,7 +396,6 @@ static void scp_A_notify_ws(struct work_struct *ws)
 		scp_pll_ctrl_set(PLL_DISABLE, CLK_26M);
 #endif
 
-		scp_dvfs_cali_ready = 1;
 		pr_debug("[SCP] notify blocking call\n");
 		blocking_notifier_call_chain(&scp_A_notifier_list
 			, SCP_EVENT_READY, NULL);
@@ -481,8 +482,13 @@ static void scp_A_set_ready(void)
 static void scp_wait_ready_timeout(unsigned long data)
 {
 #if SCP_RECOVERY_SUPPORT
-	if (scp_timeout_times < 10)
+//Chao.Zeng@PSW.BSP.Sensor add for store EE case ALPS05402851
+	//if (scp_timeout_times < 10)
+	if (scp_timeout_times < 3){
 		scp_send_reset_wq(RESET_TYPE_TIMEOUT);
+	} else {
+		__pm_relax(&scp_reset_lock);
+	}
 #endif
 	scp_timeout_times++;
 	pr_notice("[SCP] scp_timeout_times=%x\n", scp_timeout_times);
@@ -543,10 +549,12 @@ static void scp_err_info_handler(int id, void *prdata, void *data,
 
 	/* Ensure the context[] is terminated by the NULL character. */
 	info->context[ERR_MAX_CONTEXT_LEN - 1] = '\0';
-	pr_notice("[SCP] Error_info: case id: %u\n", info->case_id);
-	pr_notice("[SCP] Error_info: sensor id: %u\n", info->sensor_id);
-	pr_notice("[SCP] Error_info: context: %s\n", info->context);
-
+	pr_err("[SCP] Error_info: case id: %u\n", info->case_id);
+	pr_err("[SCP] Error_info: sensor id: %u\n", info->sensor_id);
+	pr_err("[SCP] Error_info: context: %s\n", info->context);
+#ifdef CONFIG_OPLUS_FEATURE_FEEDBACK
+	oplus_kevent_fb_str(FB_SENSOR, "10005", info->context);
+#endif
 	if (report_hub_dmd)
 		report_hub_dmd(info->case_id, info->sensor_id, info->context);
 	else
@@ -1182,12 +1190,6 @@ void scp_register_feature(enum feature_id id)
 			scp_ready[SCP_A_ID]);
 		return;
 	}
-	/* prevent from access when scp dvfs cali isn't done */
-	if (!scp_dvfs_cali_ready) {
-		pr_debug("[SCP] %s: dvfs cali not ready, scp_dvfs_cali=%u\n",
-		__func__, scp_dvfs_cali_ready);
-		return;
-	}
 
 	/* because feature_table is a global variable,
 	 * use mutex lock to protect it from accessing in the same time
@@ -1234,12 +1236,6 @@ void scp_deregister_feature(enum feature_id id)
 	if (!scp_ready[SCP_A_ID]) {
 		pr_debug("[SCP] %s:not ready, scp=%u\n", __func__,
 			scp_ready[SCP_A_ID]);
-		return;
-	}
-	/* prevent from access when scp dvfs cali isn't done */
-	if (!scp_dvfs_cali_ready) {
-		pr_debug("[SCP] %s: dvfs cali not ready, scp_dvfs_cali=%u\n",
-		__func__, scp_dvfs_cali_ready);
 		return;
 	}
 
@@ -1432,11 +1428,8 @@ void scp_reset_wait_timeout(void)
 		mdelay(20);
 	}
 
-	if (timeout < 0) {
+	if (timeout == 0)
 		pr_notice("[SCP] reset timeout, still reset scp\n");
-		pr_notice("[SCP] core0_status = %x, core1_status = %x\n",
-		readl(R_CORE0_STATUS), readl(R_CORE1_STATUS));
-	}
 
 }
 
@@ -1463,7 +1456,6 @@ void scp_sys_reset_ws(struct work_struct *ws)
 	 *   SCP_PLATFORM_READY = 1,
 	 */
 	scp_ready[SCP_A_ID] = 0;
-	scp_dvfs_cali_ready = 0;
 
 	/* wake lock AP*/
 	__pm_stay_awake(&scp_reset_lock);
@@ -1872,7 +1864,6 @@ static int __init scp_init(void)
 		scp_enable[i] = 0;
 		scp_ready[i] = 0;
 	}
-	scp_dvfs_cali_ready = 0;
 
 #if SCP_DVFS_INIT_ENABLE
 	scp_dvfs_init();
