@@ -26,6 +26,19 @@
 #include <linux/alarmtimer.h>
 #endif
 
+#ifdef CONFIG_OPLUS_CHARGER_MTK6771
+/* Qiao.Hu@BSP.BaseDrv.CHG.Basic, 2017/11/19, Add for otg */
+//#include <linux/gpio.h>
+//extern int iddig_gpio_mode(int mode);
+extern int bq24190_otg_enable(void);
+extern int bq24190_otg_disable(void);
+extern int charger_ic_flag;
+extern int bq25890h_otg_enable(void);
+extern int bq25890h_otg_disable(void);
+extern int bq25601d_otg_enable(void);
+extern int bq25601d_otg_disable(void);
+//extern bool get_otg_switch(void);
+#endif /* CONFIG_OPLUS_CHARGER_MTK6771 */
 struct usbotg_boost {
 	struct platform_device *pdev;
 	struct charger_device *primary_charger;
@@ -100,6 +113,14 @@ static enum alarmtimer_restart
 }
 #endif
 
+
+#ifdef CONFIG_OPLUS_CHARGER_MTK6889
+/* Lukaili@BSP.CHG.Basic, 2020/06/06, Add for OTG */
+extern bool oplus_otgctl_by_buckboost(void);
+extern int oplus_otg_enable_by_buckboost(void);
+extern int oplus_otg_disable_by_buckboost(void);
+#endif
+
 int usb_otg_set_vbus(int is_on)
 {
 	if (!IS_ERR(drvvbus)) {
@@ -110,26 +131,78 @@ int usb_otg_set_vbus(int is_on)
 
 		return 0;
 	}
-
+#ifndef CONFIG_OPLUS_CHARGER_MTK6771
+/* JianWei.Ye@BSP.BaseDrv.CHG.Basic, 2019/09/07, Add for otg */
 	if (!g_info)
 		return -1;
+#endif /* CONFIG_OPLUS_CHARGER_MTK6771 */
 
 #if CONFIG_MTK_GAUGE_VERSION == 30
 	if (is_on) {
-		charger_dev_enable_otg(g_info->primary_charger, true);
-		charger_dev_set_boost_current_limit(g_info->primary_charger,
-			1500000);
+/* LiYue@BSP.CHG.Basic, 2019/09/13, Modify for OTG */
+#ifdef CONFIG_OPLUS_CHARGER_MTK6889
+		if (oplus_otgctl_by_buckboost()) {
+			oplus_otg_enable_by_buckboost();
+		} else {
+			charger_dev_enable_otg(g_info->primary_charger, true);
+			charger_dev_set_boost_current_limit(g_info->primary_charger,
+				1100000);
+		}
 		charger_dev_kick_wdt(g_info->primary_charger);
 		enable_boost_polling(true);
+#elif defined(CONFIG_OPLUS_CHARGER_MTK6771) && !defined(CONFIG_OPLUS_CHARGER_MT6370_TYPEC)
+/* Jianwei.Ye@BSP.CHG.Basic, 2020/03/03, Modify for otg */
+		printk("vbus_on\n");
+		if (charger_ic_flag == 0) {
+			bq24190_otg_enable();
+		} else if(charger_ic_flag == 1){
+			bq25890h_otg_enable();
+		} else if (charger_ic_flag == 2) {
+			bq25601d_otg_enable();
+		}
+#else
+		printk("typec vbus_on\n");
+		charger_dev_enable_otg(g_info->primary_charger, true);
+		charger_dev_set_boost_current_limit(g_info->primary_charger,
+			1100000);
+		charger_dev_kick_wdt(g_info->primary_charger);
+		enable_boost_polling(true);
+#endif
 	} else {
+/* LiYue@BSP.CHG.Basic, 2019/09/13, Modify for OTG */
+#ifdef CONFIG_OPLUS_CHARGER_MTK6889
+		if (oplus_otgctl_by_buckboost()) {
+			oplus_otg_disable_by_buckboost();
+		} else {
+			charger_dev_enable_otg(g_info->primary_charger, false);
+		}
+		enable_boost_polling(false);
+#elif defined(CONFIG_OPLUS_CHARGER_MTK6771) && !defined(CONFIG_OPLUS_CHARGER_MT6370_TYPEC)
+/* Jianwei.Ye@BSP.CHG.Basic, 2020/03/03, Modify for otg */
+		if (charger_ic_flag == 0) {
+			bq24190_otg_disable();
+		} else if(charger_ic_flag == 1){
+			bq25890h_otg_disable();
+		} else if (charger_ic_flag == 2) {
+			bq25601d_otg_disable();
+		}
+#else
 		charger_dev_enable_otg(g_info->primary_charger, false);
 		enable_boost_polling(false);
+#endif
 	}
 #else
 	if (is_on) {
 		charger_dev_enable_otg(g_info->primary_charger, true);
+/* LiYue@BSP.CHG.Basic, 2019/09/13, Modify for OTG */
+		charger_dev_set_boost_current_limit(g_info->primary_charger,
+			1100000);
+/*ELSE VENDOR_EDIT*/
+/*
 		charger_dev_set_boost_current_limit(g_info->primary_charger,
 			1500000);
+*/
+/*END VENDOR_EDIT*/
 	} else {
 		charger_dev_enable_otg(primary_charger, false);
 	}

@@ -317,7 +317,7 @@ static const struct mtk_pin_field_calc mt6771_pin_drv_range[] = {
 	PIN_FIELD_BASE(108, 108, 7, 0x0A0, 0x10, 4, 3),
 	PIN_FIELD_BASE(109, 109, 7, 0x0A0, 0x10, 8, 3),
 	PIN_FIELD_BASE(110, 110, 7, 0x0A0, 0x10, 0, 3),
-	PIN_FIELD_BASE(111, 111, 7, 0x0A0, 0x10, 4, 3),
+	PIN_FIELD_BASE(111, 111, 7, 0x0A0, 0x10, 12, 3),
 	PIN_FIELD_BASE(112, 112, 7, 0x0A0, 0x10, 8, 3),
 	PIN_FIELD_BASE(113, 113, 7, 0x0A0, 0x10, 16, 3),
 	PIN_FIELD_BASE(114, 114, 7, 0x0A0, 0x10, 20, 3),

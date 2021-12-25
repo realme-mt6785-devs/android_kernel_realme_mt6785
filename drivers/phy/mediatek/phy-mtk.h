@@ -21,6 +21,12 @@ struct mtk_phy_tuning {
 	s32 u2_vrt_ref;
 	s32 u2_term_ref;
 	s32 u2_enhance;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* Baoquan.Lai@BSP.CHG.Basic, 2020/04/26, add for phy_tuning */
+	s32 host_u2_vrt_ref;
+	s32 host_u2_term_ref;
+	s32 host_u2_enhance;
+#endif
 	bool inited;
 };
 

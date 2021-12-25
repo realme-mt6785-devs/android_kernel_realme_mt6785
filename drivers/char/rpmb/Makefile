@@ -1,31 +1,41 @@
 ifeq ($(CONFIG_MEDIATEK_SOLUTION),y)
 MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
-ccflags-y += -I$(srctree)/drivers/mmc/core
+
+ifdef CONFIG_OPLUS_FEATURE_MMCPLUS
+MMC_BUILD_FOLDER :=ommc
+else
+MMC_BUILD_FOLDER :=mmc
+endif
+
+ifdef CONFIG_OPLUS_FEATURE_UFSPLUS
+UFS_BUILD_FOLDER :=oufs
+else
+UFS_BUILD_FOLDER :=ufs
+endif
+
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/core
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/base/power/$(MTK_PLATFORM)
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/base/power/include
 ccflags-y += -I$(srctree)/drivers/devfreq
-ccflags-y += -I$(srctree)/drivers/scsi/ufs
+ccflags-y += -I$(srctree)/drivers/scsi/$(UFS_BUILD_FOLDER)
 
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/ComboA
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/ComboA
 ifeq ($(CONFIG_MTK_PLATFORM), "mt6761")
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/ComboA/mt6765
-else ifeq ($(CONFIG_MTK_PLATFORM), "mt6893")
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/ComboA/mt6885
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/ComboA/mt6765
 else
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/ComboA/$(MTK_PLATFORM)
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/ComboA/$(MTK_PLATFORM)
 endif
-
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/$(MTK_PLATFORM)
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/$(MTK_PLATFORM)/$(MTK_PLATFORM)
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/$(MTK_PLATFORM)
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/$(MTK_PLATFORM)/$(MTK_PLATFORM)
 
 ifeq ($(CONFIG_TRUSTONIC_TEE_SUPPORT),y)
 include $(srctree)/drivers/misc/mediatek/gud/Makefile.include
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/rpmb/drrpmb/public
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/rpmb/drrpmb_gp/public
-ccflags-y += -I$(srctree)/drivers/mmc/host/mediatek/rpmb/tlrpmb/public
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/rpmb/drrpmb/public
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/rpmb/drrpmb_gp/public
+ccflags-y += -I$(srctree)/drivers/$(MMC_BUILD_FOLDER)/host/mediatek/rpmb/tlrpmb/public
 endif
 
 #

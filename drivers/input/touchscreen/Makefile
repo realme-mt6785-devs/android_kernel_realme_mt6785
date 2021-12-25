@@ -108,3 +108,16 @@ obj-$(CONFIG_TOUCHSCREEN_ROHM_BU21023)	+= rohm_bu21023.o
 TOUCH_LISTS := $(subst ",,$(CONFIG_TOUCHSCREEN_MTK_TOUCH))
 obj-y += $(foreach TOUCH,$(TOUCH_LISTS),$(TOUCH)/)
 
+#ifdef OPLUS_FEATURE_TP_BASIC
+#Xuhang.Li@BSP.TP, 20200726, Add common touchpanel driver
+subdir-ccflags-y += -DODM_WT_EDIT
+obj-$(CONFIG_TOUCHPANEL_OPPO) += oppo_touchscreen/
+obj-$(CONFIG_TOUCHPANEL_OPPO) += touch.o
+#endif /* OPLUS_FEATURE_TP_BASIC */
+#liunianliang@ODM.HQ.System for avoid build error
+ifndef CONFIG_TOUCHPANEL_OPPO
+obj-$(CONFIG_OPLUS_CHARGER_MTK6785)	+= avoid_build_error.o
+endif
+##Pan.Chen@BSP.TP.Function, 2020/09/11, bringup add for touchscreen makefile
+obj-$(CONFIG_OPLUS_CHARGER_MTK6769)      += avoid_build_error.o
+

@@ -112,7 +112,10 @@ struct adc_cali_info {
 };
 
 static struct adc_cali_info adc_cali;
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/30,  Add for suspend auxadc */
+static atomic_t mt_auxadc_state;
+#endif
 extern u32 __attribute__((weak)) get_devinfo_with_index(u32 index)
 {
 	return 0;
@@ -221,6 +224,16 @@ static int mt6577_auxadc_read(struct iio_dev *indio_dev,
 
 	reg_channel = adc_dev->reg_base + MT6577_AUXADC_DAT0 +
 		      chan->channel * 0x04;
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/30,  Add for suspend auxadc */
+	/* if auxadc suspend, DO NOT allow to read. */
+	if (atomic_read(&mt_auxadc_state) == 0) {
+		dev_err(indio_dev->dev.parent,
+			"can not read, the device goes to suspend.\n",
+			chan->channel);
+		return -EPERM;
+	}
+#endif
 
 	mutex_lock(&adc_dev->lock);
 
@@ -332,6 +345,10 @@ static int __maybe_unused mt6577_auxadc_resume(struct device *dev)
 	mt6577_auxadc_mod_reg(adc_dev->reg_base + MT6577_AUXADC_MISC,
 			      MT6577_AUXADC_PDN_EN, 0);
 	mdelay(MT6577_AUXADC_POWER_READY_MS);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/30,  Add for suspend auxadc */
+	atomic_set(&mt_auxadc_state, 1);
+#endif
 
 	return 0;
 }
@@ -340,11 +357,18 @@ static int __maybe_unused mt6577_auxadc_suspend(struct device *dev)
 {
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct mt6577_auxadc_device *adc_dev = iio_priv(indio_dev);
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/30,  Add for suspend auxadc */
+	atomic_set(&mt_auxadc_state, 0);
+	mutex_lock(&adc_dev->lock);
+#endif
 	mt6577_auxadc_mod_reg(adc_dev->reg_base + MT6577_AUXADC_MISC,
 			      0, MT6577_AUXADC_PDN_EN);
 	clk_disable_unprepare(adc_dev->adc_clk);
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/30,  Add for suspend auxadc */
+	mutex_unlock(&adc_dev->lock);
+#endif
 	return 0;
 }
 
@@ -471,7 +495,10 @@ static int mt6577_auxadc_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to register iio device\n");
 		goto err_power_off;
 	}
-
+#ifdef OPLUS_FEATURE_CHG_BASIC
+/* tongfeng.huang@BSP.CHG.Basic, 2020/10/30,  Add for suspend auxadc */
+	atomic_set(&mt_auxadc_state, 1);
+#endif
 	adc_debug_init();
 
 	return 0;
