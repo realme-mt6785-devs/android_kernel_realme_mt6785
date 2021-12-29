@@ -55,7 +55,7 @@
 #else
 #define dbgmsg(...)
 #endif
-#define msg(msg...) pr_info(PFX msg)
+#define msg(msg...) pr_debug(PFX msg)
 #define warnmsg(msg...) pr_warn(PFX msg)
 #define errmsg(msg...) pr_err(PFX msg)
 
@@ -171,27 +171,27 @@ static ssize_t wk_proc_cmd_write(struct file *file, const char *buf,
 		mode, kinterval, timeout, en);
 
 	if (timeout < kinterval) {
-		pr_info("Interval(%d) need smaller than timeout value(%d)\n",
+		pr_debug("Interval(%d) need smaller than timeout value(%d)\n",
 		       kinterval, timeout);
 		return -1;
 	}
 
 	if ((timeout < MIN_KICK_INTERVAL) || (timeout > MAX_KICK_INTERVAL)) {
-		pr_info("The timeout(%d) is invalid (%d - %d)\n", kinterval,
+		pr_debug("The timeout(%d) is invalid (%d - %d)\n", kinterval,
 			MIN_KICK_INTERVAL, MAX_KICK_INTERVAL);
 		return -1;
 	}
 
 	if ((kinterval < MIN_KICK_INTERVAL) ||
 		(kinterval > MAX_KICK_INTERVAL)) {
-		pr_info("The interval(%d) is invalid (%d - %d)\n", kinterval,
+		pr_debug("The interval(%d) is invalid (%d - %d)\n", kinterval,
 			MIN_KICK_INTERVAL, MAX_KICK_INTERVAL);
 		return -1;
 	}
 
 	if (!((mode == WDT_IRQ_ONLY_MODE) ||
 	      (mode == WDT_HW_REBOOT_ONLY_MODE) || (mode == WDT_DUAL_MODE))) {
-		pr_info("Tha watchdog kicker wdt mode is not correct %d\n",
+		pr_debug("Tha watchdog kicker wdt mode is not correct %d\n",
 			mode);
 		return -1;
 	}
@@ -344,7 +344,7 @@ void wk_start_kick_cpu(int cpu)
 		pr_debug("[wdk] wk_task[%d] is NULL\n", cpu);
 	} else {
 		kthread_bind(wk_tsk[cpu], cpu);
-		pr_info("[wdk] bind thread %d to cpu %d\n",
+		pr_debug("[wdk] bind thread %d to cpu %d\n",
 			wk_tsk[cpu]->pid, cpu);
 		wake_up_process(wk_tsk[cpu]);
 	}
@@ -372,7 +372,7 @@ void dump_wdk_bind_info(void)
 	for (i = 0; i < CPU_NR; i++) {
 		if (wk_tsk[i] != NULL) {
 			/*
-			 * pr_info("[wdk]CPU %d, %d, %lld, %lu, %d, %ld\n",
+			 * pr_debug("[wdk]CPU %d, %d, %lld, %lu, %d, %ld\n",
 			 *	i, wk_tsk_bind[i], wk_tsk_bind_time[i],
 			 *	wk_tsk[i]->cpus_allowed.bits[0],
 			 *	wk_tsk[i]->on_rq, wk_tsk[i]->state);
@@ -548,7 +548,7 @@ static void kwdt_process_kick(int local_bit, int cpu,
 	 *	    using printk_deferred to ensure being printed.
 	 */
 	if (msg_buf[5] != 'k')
-		pr_info("%s", msg_buf);
+		pr_debug("%s", msg_buf);
 	else
 		printk_deferred("%s", msg_buf);
 #ifdef CONFIG_MTK_TICK_BROADCAST_AEE_DUMP
@@ -649,7 +649,7 @@ static int kwdt_thread(void *arg)
 		} else if (g_enable == 0) {
 			pr_debug("[wdk] stop to kick\n");
 		} else {
-			pr_info("[wdk] no wdt driver is hooked\n");
+			pr_debug("[wdk] no wdt driver is hooked\n");
 			WARN_ON(1);
 		}
 
@@ -676,7 +676,7 @@ static int kwdt_thread(void *arg)
 				 * avoid bulk of delayed printk happens here
 				 */
 				if (msg_buf[0] != '\0')
-					pr_info("%s", msg_buf);
+					pr_debug("%s", msg_buf);
 			}
 		}
 
@@ -841,7 +841,7 @@ ssize_t mtk_rgu_pause_wdt_store(struct kobject *kobj,
 	pause_wdt_b = pause_wdt;
 
 	if (res != 1) {
-		pr_info("%s: expect 1 numbers\n", __func__);
+		pr_debug("%s: expect 1 numbers\n", __func__);
 	} else {
 		/* For real case, pause wdt if get value is not zero.
 		 * Suspend and resume may enable wdt again
@@ -875,7 +875,7 @@ static int wk_cpu_callback_online(unsigned int cpu)
 	if (g_kicker_init == 1)
 		kicker_cpu_bind(cpu);
 	else
-		pr_info("kicker was not bound to CPU%d\n", cpu);
+		pr_debug("kicker was not bound to CPU%d\n", cpu);
 
 	mtk_wdt_cpu_callback(wk_tsk[cpu], cpu, g_kicker_init);
 
@@ -892,7 +892,7 @@ static int wk_cpu_callback_offline(unsigned int cpu)
 	mpcore_wk_wdt_stop();
 #endif
 	wk_cpu_update_bit_flag(cpu, 0);
-	/* pr_info("[wdk]cpu %d plug off, kick wdt\n", hotcpu); */
+	/* pr_debug("[wdk]cpu %d plug off, kick wdt\n", hotcpu); */
 
 	mtk_wdt_restart(WD_TYPE_NORMAL);/* for KICK external wdt */
 
@@ -910,7 +910,7 @@ static void wdk_work_callback(struct work_struct *work)
 	/*  */
 	res = get_wd_api(&g_wd_api);
 	if (res)
-		pr_info("get public api error in wd common driver %d", res);
+		pr_debug("get public api error in wd common driver %d", res);
 
 #ifdef __ENABLE_WDT_SYSFS__
 	mtk_rgu_sysfs();

@@ -666,7 +666,7 @@ void arch_reset(char mode, const char *cmd)
 	struct wd_api *wd_api = NULL;
 
 	res = get_wd_api(&wd_api);
-	pr_info("%s: cmd = %s\n", __func__, cmd ? : "NULL");
+	pr_debug("%s: cmd = %s\n", __func__, cmd ? : "NULL");
 	dump_stack();
 	if (console_trylock()) {
 		pr_notice("we can get console_sem\n");
@@ -728,9 +728,9 @@ static struct notifier_block mtk_restart_handler;
 static int mtk_arch_reset_handle(struct notifier_block *this,
 	unsigned long mode, void *cmd)
 {
-	pr_info("ARCH_RESET happen!!!\n");
+	pr_debug("ARCH_RESET happen!!!\n");
 	arch_reset(mode, cmd);
-	pr_info("ARCH_RESET end!!!!\n");
+	pr_debug("ARCH_RESET end!!!!\n");
 	return NOTIFY_DONE;
 }
 
@@ -741,12 +741,12 @@ static int __init mtk_arch_reset_init(void)
 	arm_pm_restart = NULL;
 	mtk_restart_handler.notifier_call = mtk_arch_reset_handle;
 	mtk_restart_handler.priority = 128;
-	pr_info("\n register_restart_handler- 0x%p, Notify call: - 0x%p\n",
+	pr_debug("\n register_restart_handler- 0x%p, Notify call: - 0x%p\n",
 		 &mtk_restart_handler, mtk_restart_handler.notifier_call);
 	ret = register_restart_handler(&mtk_restart_handler);
 	if (ret)
 		pr_notice("ARCH_RESET cannot register mtk_restart_handler!!!!\n");
-	pr_info("ARCH_RESET register mtk_restart_handler  ok!!!!\n");
+	pr_debug("ARCH_RESET register mtk_restart_handler  ok!!!!\n");
 	return ret;
 }
 
