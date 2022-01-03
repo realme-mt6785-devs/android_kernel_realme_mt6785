@@ -18,7 +18,6 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci/udc/udc_lib_inc
 
 udc_lib-y += \
     adler32.o \
-    crc32.o \
     zutil.o \
     deflate.o \
     trees.o \
