@@ -30,6 +30,7 @@
 #include <linux/ratelimit.h>
 #include <soc/oppo/oppo_project.h>
 #include <linux/sysfs.h>
+#include <trace/events/error_report.h>
 
 #define PANIC_TIMER_STEP 100
 #define PANIC_BLINK_SPD 18
@@ -630,6 +631,7 @@ void __warn(const char *file, int line, void *caller, unsigned taint,
 		dump_stack();
 
 	print_oops_end_marker();
+	trace_error_report_end(ERROR_DETECTOR_WARN, (unsigned long)caller);
 
 	/* Just a warning, don't kill lockdep. */
 	add_taint(taint, LOCKDEP_STILL_OK);
