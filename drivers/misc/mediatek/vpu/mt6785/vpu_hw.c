@@ -355,8 +355,6 @@ static void vpu_err_msg(int core, const char *msg)
 		if (hw_fail) { \
 			vpu_dmp_create_locked(core, req, fmt, ##args); \
 			apu_get_power_info(); \
-			aee_kernel_exception("VPU", \
-			"\nCRDISPATCH_KEY:" key "\n" fmt, ##args); \
 		} \
 	} while (0)
 
