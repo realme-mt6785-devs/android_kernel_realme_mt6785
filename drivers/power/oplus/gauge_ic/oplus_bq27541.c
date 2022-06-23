@@ -1217,7 +1217,7 @@ static int bq27541_get_average_current(void)
 
 static int bq27541_sha1_hmac_authenticate(struct bq27541_authenticate_data *authenticate_data);
 
-static bool bq27541_get_battery_hmac(void)
+static bool __init bq27541_get_battery_hmac(void)
 {
 	if (!gauge_ic) {
 		return true;
@@ -3139,7 +3139,7 @@ static int bq27541_sha1_hmac_authenticate(struct bq27541_authenticate_data *auth
 	return 0;
 }
 
-static bool get_smem_batt_info(oplus_gauge_auth_result *auth, int kk) {
+static __init bool get_smem_batt_info(oplus_gauge_auth_result *auth, int kk) {
 #ifdef CONFIG_OPLUS_CHARGER_MTK
 	int ret = 0;
 
