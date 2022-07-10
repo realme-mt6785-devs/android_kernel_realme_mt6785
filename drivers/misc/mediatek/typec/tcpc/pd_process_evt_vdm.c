@@ -538,20 +538,13 @@ static inline void print_vdm_msg(
 #if (PE_EVT_INFO_VDM_DIS == 0)
 	uint8_t cmd;
 	uint8_t cmd_type;
-	uint16_t svid;
 	const char *name = NULL;
 	uint32_t vdm_hdr = pd_port->curr_vdm_hdr;
 
 	cmd = PD_VDO_CMD(vdm_hdr);
 	cmd_type = PD_VDO_CMDT(vdm_hdr);
-	svid = PD_VDO_VID(vdm_hdr);
 
 	name = assign_vdm_cmd_name(cmd);
-
-#ifdef CONFIG_USB_PD_ALT_MODE
-	if (name == NULL && svid == USB_SID_DISPLAYPORT)
-		name = assign_vdm_dp_cmd_name(cmd);
-#endif	/* CONFIG_USB_PD_ALT_MODE */
 
 	if (name == NULL)
 		return;
