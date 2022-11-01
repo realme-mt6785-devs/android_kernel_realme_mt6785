@@ -5002,7 +5002,7 @@ void oplus_get_usbtemp_volt(struct oplus_chg_chip *chip)
         }
 	chip->usbtemp_volt_r = usbtemp_volt * 1500 / 4096;
 
-       chg_err("usbtemp_volt: %d, %d\n", chip->usbtemp_volt_r, chip->usbtemp_volt_l);
+        // chg_debug("usbtemp_volt: %d, %d\n", chip->usbtemp_volt_r, chip->usbtemp_volt_l);
 
 	return;
 }
