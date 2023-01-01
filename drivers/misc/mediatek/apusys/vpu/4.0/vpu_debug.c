@@ -921,7 +921,7 @@ DEFINE_SIMPLE_ATTRIBUTE(vpu_debug_mesg_level_fops, vpu_mesg_level_get,
 			NULL, &vpu_debug_ ## name ## _fops); \
 	if (IS_ERR_OR_NULL(vpu_d##name)) { \
 		ret = PTR_ERR(vpu_d##name); \
-		pr_info("%s: vpu%d: " #name "): %d\n", \
+		pr_debug("%s: vpu%d: " #name "): %d\n", \
 			__func__, (vd) ? (vd->id) : 0, ret); \
 		goto out; \
 	} \
@@ -943,7 +943,7 @@ int vpu_init_dev_debug(struct platform_device *pdev, struct vpu_device *vd)
 
 	if (IS_ERR_OR_NULL(droot)) {
 		ret = PTR_ERR(droot);
-		pr_info("%s: failed to create debugfs node: vpu/%s: %d\n",
+		pr_debug("%s: failed to create debugfs node: vpu/%s: %d\n",
 			__func__, vd->name, ret);
 		goto out;
 	}
@@ -987,7 +987,7 @@ int vpu_init_debug(void)
 
 	if (IS_ERR_OR_NULL(droot)) {
 		ret = PTR_ERR(droot);
-		pr_info("%s: failed to create debugfs node: %d\n",
+		pr_debug("%s: failed to create debugfs node: %d\n",
 			__func__, ret);
 		goto out;
 	}

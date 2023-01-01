@@ -133,7 +133,7 @@ static int edma_enque_handler(struct edma_request *req,
 		ret = edma_ext_mode(edma_sub, req);
 		break;
 	default:
-		pr_notice("%s: bad command!\n", __func__);
+		pr_debug("%s: bad command!\n", __func__);
 		ret = -EINVAL;
 	}
 	edma_power_off(edma_sub, 0);
@@ -371,7 +371,7 @@ int edma_push_request_to_queue(struct edma_user *user,
 	int ret = 0;
 
 	if (!user) {
-		pr_notice("empty user");
+		pr_debug("empty user");
 		return -EINVAL;
 	}
 
