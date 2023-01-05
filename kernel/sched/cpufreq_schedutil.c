@@ -478,6 +478,12 @@ static void sugov_get_util(unsigned long *util, unsigned long *max, int cpu)
 	*max = max_cap;
 }
 
+unsigned long sched_cpu_util(int cpu, unsigned long max)
+{
+	return schedutil_cpu_util(cpu, cpu_util_cfs(cpu_rq(cpu)), max,
+				  ENERGY_UTIL, NULL);
+}
+
 static void sugov_set_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
 				   unsigned int flags)
 {

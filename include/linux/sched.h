@@ -2101,6 +2101,11 @@ extern long sched_getaffinity(pid_t pid, struct cpumask *mask);
 #include <linux/sched/sched.h>
 #endif
 
+#ifdef CONFIG_SMP
+/* Returns effective CPU energy utilization, as seen by the scheduler */
+unsigned long sched_cpu_util(int cpu, unsigned long max);
+#endif /* CONFIG_SMP */
+
 #ifdef CONFIG_SCHED_TUNE
 extern int set_stune_task_threshold(int threshold);
 #endif
