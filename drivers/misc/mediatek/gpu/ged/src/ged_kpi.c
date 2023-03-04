@@ -258,7 +258,7 @@ static unsigned int gx_dfps; /* variable to fix FPS*/
 static unsigned int gx_frc_mode; /* variable to fix FRC mode*/
 
 #ifdef GED_KPI_CPU_BOOST
-static unsigned int enable_cpu_boost = 1;
+static unsigned int enable_cpu_boost = -1;
 #endif /* GED_KPI_CPU_BOOST */
 static unsigned int enable_gpu_boost = 1;
 static unsigned int is_GED_KPI_enabled = 1;
@@ -271,7 +271,7 @@ module_param(g_fb_dvfs_threshold, int, 0644);
 module_param(gx_dfps, uint, 0644);
 module_param(gx_frc_mode, uint, 0644);
 #ifdef GED_KPI_CPU_BOOST
-module_param(enable_cpu_boost, uint, 0644);
+module_param(enable_cpu_boost, uint, 0444);
 #endif /* GED_KPI_CPU_BOOST */
 module_param(enable_gpu_boost, uint, 0644);
 module_param(is_GED_KPI_enabled, uint, 0644);
@@ -296,12 +296,12 @@ static unsigned long long g_CRemTimeAccu; /*g_cpu_remained_time_accum*/
 static unsigned long long g_gpu_freq_accum;
 static unsigned int g_frame_count;
 
-static int gx_game_mode;
+static int gx_game_mode=0;
 static int gx_boost_on;
 #ifdef GED_KPI_CPU_BOOST
 static int gx_force_cpu_boost;
 static int gx_top_app_pid;
-static int enable_game_self_frc_detect;
+static int enable_game_self_frc_detect=1;
 #endif /* GED_KPI_CPU_BOOST */
 static unsigned int gx_fps;
 static unsigned int gx_cpu_time_avg;
@@ -582,7 +582,7 @@ static void ged_kpi_PushCurFps_and_DetectAppSelfFrc(int fps)
 				GED_LOGE("[AFRC] fps_grp: %d, %d, %d\n",
 					fps_grp[0], fps_grp[1], fps_grp[2]);
 #endif /* GED_KPI_DEBUG */
-				if (reset == 0 && fps_grp[0] < 60) {
+				if (reset == 0 && fps_grp[0] < 90) {
 					target_fps_4_main_head = fps_grp[0];
 					is_game_control_frame_rate = 1;
 				} else {
@@ -595,7 +595,7 @@ static void ged_kpi_PushCurFps_and_DetectAppSelfFrc(int fps)
 		cur_fps_idx++;
 		cur_fps_idx %= G_K_G_S_FRC_D_M_W_S;
 	} else {
-		if (target_fps_4_main_head == 60 ||
+		if (target_fps_4_main_head == 90 ||
 			enable_game_self_frc_detect == 0)
 			is_game_control_frame_rate = 0;
 	}
