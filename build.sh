@@ -16,9 +16,9 @@ git clone --depth 1  https://github.com/rama982/clang  clang
 make O=out ARCH=arm64 RM6785_defconfig
 
 PATH="${PWD}/clang/bin:${PATH}" \
- make -j "$(nproc --all)" O="$HOME/out" CC="clang" \
-    LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip \    CROSS_COMPILE=aarch64-linux-gnu-\	
-			CONFIG_NO_ERROR_ON_MISMATCH=y
+ make -j "$(nproc --all)" O="out" CC="clang" \
+    LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip \
+    CROSS_COMPILE=aarch64-linux-gnu-
 }
 
 function zupload()
