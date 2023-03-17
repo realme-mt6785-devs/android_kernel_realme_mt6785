@@ -21,7 +21,6 @@
 extern struct proc_dir_entry *oppo_info;
 ProjectInfoCDTType_oldcdt *format = NULL;
 
-/*Bin.Li@BSP.Bootloader.Bootflows, 2019/05/09, Add for diff manifest*/
 static const char* nfc_feature = "nfc_feature";
 static const char* feature_src = "/vendor/etc/nfc/com.oppo.nfc_feature.xml";
 
@@ -34,7 +33,6 @@ static ProjectInfoCDTType_oldcdt projectInfo = {
 	.isConfidential         = 1,
 };
 
-/*Bin.Li@BSP.Bootloader.Bootflows, 2019/05/09, Add for diff manifest*/
 static int __init update_feature(void)
 {
 	mm_segment_t fs;
@@ -133,7 +131,6 @@ unsigned int get_project_oldcdt(void)
 		return 0;
 }
 
-/* xiang.fei@PSW.MM.AudioDriver.Machine, 2018/05/28, Add for kernel driver */
 EXPORT_SYMBOL(get_project_oldcdt);
 
 unsigned int is_project_oldcdt(int project )
@@ -400,7 +397,6 @@ static struct file_operations secureType_proc_fops = {
 	.read = secureType_read_proc,
 };
 
-/*Yang.Tan@BSP.Fingerprint.Secure 2018/12/17 Add serialID for fastboot unlock*/
 #define SERIALNO_LEN 16
 extern char *saved_command_line;
 static ssize_t serialID_read_proc(struct file *file, char __user *buf,
@@ -494,7 +490,6 @@ int oppo_project_init_oldcdt(void)
 		pr_err("create secureType proc failed.\n");
 		//goto ERROR_INIT_VERSION;
 	}
-/*Yang.Tan@BSP.Fingerprint.Secure 2018/12/17 Add serialID for fastboot unlock*/
 	pentry = proc_create("serialID", S_IRUGO, oppo_info, &serialID_proc_fops);
 	if(!pentry) {
 		pr_err("create serialID proc failed.\n");
@@ -514,4 +509,4 @@ init_project_fail:
 
 MODULE_DESCRIPTION("OPPO project oldcdt version");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Joshua <>");
+MODULE_AUTHOR("Joshua <gyx@oppo.com>");

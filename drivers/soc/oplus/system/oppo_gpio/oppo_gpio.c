@@ -727,7 +727,7 @@ module_init(oppo_gpio_init);
 module_exit(oppo_gpio_exit);
 
 
-MODULE_AUTHOR("ChenGuoyao, <>");
+MODULE_AUTHOR("ChenGuoyao, <ChenGuoyao@oppo.com>");
 MODULE_DESCRIPTION("oplus gpio controller");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("gpio:oplus-gpio");

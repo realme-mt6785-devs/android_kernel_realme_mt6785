@@ -74,7 +74,6 @@
 
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Add for kpoc charging */
 #include <linux/iio/consumer.h>
 extern struct iio_channel *iio_channel_get(struct device *dev,const char *channel_name);
 extern int fg_read_dts_val(const struct device_node *np, const char *node_srting, int *param, int unit);
@@ -96,7 +95,6 @@ extern int oplus_chg_show_vooc_logo_ornot(void);
 extern bool mt6360_get_vbus_status(void);
 extern int oplus_get_prop_status(void);
 extern bool oplus_chg_check_chip_is_null(void);
-/* Qiao.Hu@EXP.BSP.CHG.basic, 2017/07/20, Add for charger */
 #include <soc/oppo/device_info.h>
 #include <soc/oppo/oppo_project.h>
 #include <linux/gpio.h>
@@ -105,7 +103,7 @@ extern bool is_fuelgauge_apply(void);
 bool is_fuelgauge_apply(void)
 {
 	return fuelgauge_apply;
-}//PengNan@BSP.CHG.basic,2017/07/27, customizing the battery NTC,modify the resistor.
+}
 #define RBAT_PULL_DOWN_R 24000
 EXPORT_SYMBOL(is_fuelgauge_apply);
 #endif /*OPLUS_FEATURE_CHG_BASIC*/
@@ -152,7 +150,6 @@ static int battery_out_data[1] = { 0 };
 static bool g_ADC_Cali;
 
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_HEALTH,
@@ -433,7 +430,6 @@ void battery_update_psd(struct battery_data *bat_data)
 }
 
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYuei@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 static int battery_get_property(struct power_supply *psy,
 	enum power_supply_property psp,
 	union power_supply_propval *val)
@@ -619,7 +615,6 @@ static void disable_fg(void)
 	gm.disableGM30 = 1;
 	gm.ui_soc = 50;
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/04, Delete for charging */
 	battery_main.BAT_CAPACITY = 50;
 #endif
 }
@@ -633,7 +628,6 @@ bool fg_interrupt_check(void)
 	return true;
 }
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/04, Delete for charging */
 void battery_update(struct battery_data *bat_data)
 {
 	struct power_supply *bat_psy = bat_data->psy;
@@ -1258,7 +1252,6 @@ static ssize_t show_Battery_Temperature(
 					       char *buf)
 {
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 	bm_err("%s: %d %d\n",
 		__func__,
 		battery_main.BAT_batt_temp, gm.fixed_bat_tmp);
@@ -1295,7 +1288,6 @@ static ssize_t store_Battery_Temperature(
 			wakeup_fg_algo(FG_INTR_BAT_TMP_HT);
 		}
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 		battery_main.BAT_batt_temp = force_get_tbat(true);
 		bm_err(
 			"%s: fixed_bat_tmp:%d ,tmp:%d!\n",
@@ -1337,7 +1329,6 @@ static ssize_t store_UI_SOC(
 			gm.ui_soc, gm.fixed_uisoc);
 
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 		battery_update(&battery_main);
 #endif /* OPLUS_FEATURE_CHG_BASIC */
 	}
@@ -1675,7 +1666,6 @@ int force_get_tbat_internal(bool update)
 			bat_temperature_val =
 				BattVoltToTemp(bat_temperature_volt, vol_cali);
 //#ifdef OPLUS_FEATURE_CHG_BASIC
-/*#Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for bring up .*/
 			bat_temperature_val = 250;
 //#endif /*OPLUS_FEATURE_CHG_BASIC*/
 			bm_err("[force_get_tbat_internal] tbat_precise bat_temperature_val:%d\n",
@@ -1686,7 +1676,6 @@ int force_get_tbat_internal(bool update)
 		/*	CHARGING_CMD_GET_BIF_TBAT need fix */
 #endif
 //#ifdef OPLUS_FEATURE_CHG_BASIC
-/*Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for kernel log .*/
 /*
 		bm_notice("[force_get_tbat] %d,%d,%d,%d,%d,%d r:%d %d %d\n",
 		bat_temperature_volt_temp, bat_temperature_volt,
@@ -1713,7 +1702,6 @@ int force_get_tbat_internal(bool update)
 				bat_temperature_val) >= 50)) ||
 				bat_temperature_val >= 580) {
 //#ifdef OPLUS_FEATURE_CHG_BASIC
-/*Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for kernel log .*/
 /*
 				bm_err(
 				"[force_get_tbat][err] current:%d,%d,%d,%d,%d,%d pre:%d,%d,%d,%d,%d,%d\n",
@@ -1733,7 +1721,6 @@ int force_get_tbat_internal(bool update)
 //#endif
 				/*pmic_auxadc_debug(1);*/
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* Fuchun.Liao@BSP.CHG.Basic 2018/01/20 modify to reduce log */
 				WARN_ON_ONCE(1);
 #endif
 			}
@@ -1789,7 +1776,6 @@ int force_get_tbat(bool update)
 
 	while (counts < 5 && bat_temperature_val >= 60) {
 //#ifdef OPLUS_FEATURE_CHG_BASIC
-/*Dongru.Zhao@BSP.CHG.Basic, 2020/07/27, zdr Add for kernel log .*/
 /*
 		bm_err("[%s]over60 count=%d, bat_temp=%d\n",
 			__func__,
@@ -2129,7 +2115,6 @@ int wakeup_fg_algo_atomic(unsigned int flow_state)
 int fg_get_battery_temperature_for_zcv(void)
 {
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Modify for charging */
 	return battery_main.BAT_batt_temp;
 #else
 	return 25;
@@ -3224,7 +3209,6 @@ static ssize_t store_FG_daemon_disable(
 	bm_err("[disable FG daemon]\n");
 	disable_fg();
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 	if (gm.disableGM30 == true)
 		battery_main.BAT_CAPACITY = 50;
 	battery_update(&battery_main);
@@ -3780,7 +3764,6 @@ static int battery_callback(
 /* START CHARGING */
 			fg_sw_bat_cycle_accu();
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 			battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_CHARGING;
 			battery_update(&battery_main);
 #endif /* OPLUS_FEATURE_CHG_BASIC */
@@ -3791,7 +3774,6 @@ static int battery_callback(
 /* STOP CHARGING */
 			fg_sw_bat_cycle_accu();
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 			battery_main.BAT_STATUS =
 			POWER_SUPPLY_STATUS_DISCHARGING;
 			battery_update(&battery_main);
@@ -3802,7 +3784,6 @@ static int battery_callback(
 		{
 /* charging enter error state */
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 		battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_NOT_CHARGING;
 		battery_update(&battery_main);
 #endif /* OPLUS_FEATURE_CHG_BASIC */
@@ -3812,7 +3793,6 @@ static int battery_callback(
 		{
 /* charging leave error state */
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 		battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_CHARGING;
 		battery_update(&battery_main);
 #endif /* OPLUS_FEATURE_CHG_BASIC */
@@ -3869,7 +3849,6 @@ struct file *filp, unsigned int cmd, unsigned long arg)
 	case Set_META_BAT_CAR_TUNE_VALUE:
 	case Set_BAT_DISABLE_NAFG:
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Add for kpoc charging */
 	case Get_FakeOff_Param:
 	case Turn_Off_Charging:
 #endif /*OPLUS_FEATURE_CHG_BASIC*/
@@ -3905,7 +3884,6 @@ static long adc_cali_ioctl(
 	int temp_car_tune;
 	int isdisNAFG = 0;
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Add for kpoc charging */
 	int fakeoff_out_data[5] = {0, 0, 0, 0, 0};
 #endif /*OPLUS_FEATURE_CHG_BASIC*/
 
@@ -4155,7 +4133,6 @@ static long adc_cali_ioctl(
 		break;
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Add for kpoc charging */
 	case Get_FakeOff_Param:
 		user_data_addr = (int *)arg;
 		fakeoff_out_data[0] = oplus_chg_get_ui_soc();
@@ -4233,7 +4210,6 @@ static const struct file_operations adc_cali_fops = {
 
 /*************************************/
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Modify for charging */
 void dis_GM3_SRC_SEL(void)
 {
 	unsigned int reset_sel;
@@ -4249,7 +4225,6 @@ void dis_GM3_SRC_SEL(void)
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
 
-//PengNan@BSP.CHG.Basic, 2017/09/07, add for compatabling two fuelgauge.
 extern int oplus_gauge_get_batt_current(void);
 extern int oplus_chg_get_soc(void);
 extern int oplus_chg_get_ui_soc(void);
@@ -4257,11 +4232,9 @@ extern int oplus_gauge_get_batt_temperature(void);
 extern int pmic_get_battery_voltage(void);
 extern int gauge_get_average_current(bool *valid);
 extern bool gauge_get_current(int *bat_current);
-/* ChaoYing.Chen@EXP.BSP.CHG.basic, 2017/05/16, Add for charge driver */
 int oplus_battery_get_bat_temperature(void)
 {
 #ifdef OPLUS_FEATURE_CHG_BASIC
-    //PengNan@BSP.CHG.Basic, 2017/09/07, add for compatabling two fuelgauge.
     if(is_fuelgauge_apply() == false){
         return oplus_gauge_get_batt_temperature()/10;
     }
@@ -4396,10 +4369,8 @@ static int meter_fg_30_update_soc_smooth_parameter(void)
 #endif
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* Qiao.Hu@EXP.BSP.BaseDrv.CHG.Basic, 2017/08/22, Add for charger full status of FG 3.0 */
 bool last_full = false;
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* Qiao.Hu@EXP.BSP.BaseDrv.CHG.Basic, 2017/08/15, Add for charger full status */
 extern int notify_battery_full(void);
 
 static void meter_fg_30_set_battery_full(bool full)
@@ -4422,7 +4393,6 @@ static void meter_fg_30_set_battery_full(bool full)
 }
 #endif
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* Qiao.Hu@EXP.BSP.BaseDrv.CHG.Basic, 2017/11/29, Add for charger full status of FG 3.0 */
 int oplus_get_rtc_ui_soc(void)
 {
 	int rtc_ui_soc;
@@ -4442,7 +4412,6 @@ int oplus_set_rtc_ui_soc(int value)
 }
 #endif
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* Qiao.Hu@EXP.BSP.BaseDrv.CHG.Basic,, 2016/08/25  Add for use lk vbatt */
 int lk_vbatt;
 
 static int oplus_get_lk_vbatt(char *oplus_vbatt_char)
@@ -4455,7 +4424,6 @@ static int oplus_get_lk_vbatt(char *oplus_vbatt_char)
 __setup("vbatt=", oplus_get_lk_vbatt);
 #endif /*OPLUS_FEATURE_CHG_BASIC*/
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* Qiao.Hu@EXP.BSP.CHG.basic, 2017/07/20, Add for charger */
 enum {
 	BAT_TYPE__UNKNOWN,
 	BAT_TYPE__SDI_4350mV, //50mV~290mV
@@ -4548,7 +4516,6 @@ int battery_type_check(void)
 }
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/*zhongxuejian@Camera.Driver, 20200728, add for flashlight ntc temperature*/
 int battery_get_flashlight_temperature(int *temp)
 {
     int ret = 0;
@@ -4786,17 +4753,14 @@ static int __init battery_probe(struct platform_device *dev)
 	char boot_voltage_tmp[10];
 	int boot_voltage_len = 0;
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* lizhijie@BSP.CHG.basic, 2020/04/04, lzj Add for charge driver */
 	struct oplus_gauge_chip *chip = NULL;
 #endif /* OPLUS_FEATURE_CHG_BASIC */
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/*lizhijie@BSP.CHG.Basic 2020/04/02 lizhijie add for distinguish fuelgague and outlay-gague*/
 	fg_read_dts_val(dev->dev.of_node, "FUELGAGUE_APPLY", &(fuelgauge_apply), 1);
 	bm_err("%s, fuelgauge_apply:%d\n", __func__, fuelgauge_apply);
 #endif
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* lizhijie@BSP.CHG.basic, 2020/04/04, lzj Add for charge driver */
 	if(is_fuelgauge_apply() == true) {
 		chip = (struct oplus_gauge_chip*) kzalloc(sizeof(struct oplus_gauge_chip),
 					GFP_KERNEL);
@@ -4805,7 +4769,6 @@ static int __init battery_probe(struct platform_device *dev)
 			return -ENOMEM;
 		}
 	}
-/* lizhijie@BSP.BaseDrv.CHG.Basic, 2020/04/04, modefy for fastcharger */
 	if(is_fuelgauge_apply() == true) {
 		chip->gauge_ops = &battery_meter_fg_30_gauge;
 		oplus_gauge_init(chip);
@@ -4815,7 +4778,6 @@ static int __init battery_probe(struct platform_device *dev)
 	wakeup_source_init(&battery_lock, "battery wakelock");
 	__pm_stay_awake(&battery_lock);
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* W9004582@BSP.CHG.Basic, 2020/03/07, Add for battery id  */
 	if(is_fuelgauge_apply() == true) {
 		batt_id = iio_channel_get(&dev->dev, "auxadc6-batt_id_v");
 		if (IS_ERR(batt_id)){
@@ -4828,7 +4790,6 @@ static int __init battery_probe(struct platform_device *dev)
 			bm_err("register_battery_devinfo success\n");
 		}
 	} else {
-		/*zhongxuejian@Camera.Driver, 20200728, add for flashlight ntc temperature*/
 		bm_err("20075 flash ntc\n");
 		flash_ntc_id = iio_channel_get(&dev->dev, "auxadc6-batt_id_v");
 		if (IS_ERR(flash_ntc_id)){
@@ -4861,7 +4822,6 @@ static int __init battery_probe(struct platform_device *dev)
 	/* Power supply class */
 #if !defined(CONFIG_MTK_DISABLE_GAUGE)
 #ifndef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Delete for charging */
 	battery_main.psy =
 		power_supply_register(
 			&(dev->dev), &battery_main.psd, NULL);
@@ -4985,7 +4945,6 @@ static int __init battery_probe(struct platform_device *dev)
 	__pm_relax(&battery_lock);
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* Jianchao.Shi@BSP.CHG.Basic, 2018/11/20, sjc Modify for charging */
 	if (is_fuelgauge_apply() == false) {
 		bm_err("disable GM 3.0\n");
 		disable_fg();
@@ -5001,7 +4960,6 @@ static int __init battery_probe(struct platform_device *dev)
 		bm_err("disable GM 3.0\n");
 		disable_fg();
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* LiYue@BSP.CHG.Basic, 2019/09/13, Modify for charging */
 		dis_GM3_SRC_SEL();
 #endif /* OPLUS_FEATURE_CHG_BASIC */
 	} else if (is_recovery_mode())

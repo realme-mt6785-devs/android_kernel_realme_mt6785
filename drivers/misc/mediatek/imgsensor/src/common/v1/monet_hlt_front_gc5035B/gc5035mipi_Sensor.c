@@ -27,9 +27,7 @@
 #include "kd_imgsensor_errcode.h"
 
 #include "gc5035mipi_Sensor.h"
-/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 #include <linux/hardware_info.h>
-/* Zhen.Quan@Camera.Driver, 2019/10/17, add for [otp bringup] */
 #include "imgsensor_read_eeprom.h"
 #define ENABLE_GC5035B_OTP 1
 /**************** Modify Following Strings for Debug ******************/
@@ -88,7 +86,6 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.mipi_pixel_rate = 141600000,
 		.max_framerate = 240,             /*less than 13M(include 13M)*/
 	},
-         /*yang.guo@ODM_WT.Camera.hal, 2020/1/1, mod video setting for tunning request*/
 	.normal_video = {
 		.pclk = 87600000,
 		.linelength = 1460,
@@ -140,7 +137,6 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.video_delay_frame = 2,
 	.hs_video_delay_frame = 2,
 	.slim_video_delay_frame = 2,
-	/*Duilin.Qin@ODM_WT.Camera.Driver.493476, 2019/10/21, modify mclk driving current */
 	.isp_driving_current = ISP_DRIVING_2MA,
 	.sensor_interface_type = SENSOR_INTERFACE_TYPE_MIPI,
 	.mipi_sensor_type = MIPI_OPHY_NCSI2,
@@ -1034,16 +1030,16 @@ static void sensor_init(void)
 	write_cmos_sensor(0x1a, 0x1a);
 	write_cmos_sensor(0x1f, 0x11);
 	write_cmos_sensor(0x20, 0x10);
-	write_cmos_sensor(0x46, 0x83);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0x46, 0x83);
 	write_cmos_sensor(0x4a, 0x04);
 	write_cmos_sensor(0x54, GC5035_RSTDUMMY1);
 	write_cmos_sensor(0x62, 0x00);
-	write_cmos_sensor(0x72, 0x8f);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
-	write_cmos_sensor(0x73, 0x89);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0x72, 0x8f);
+	write_cmos_sensor(0x73, 0x89);
 	write_cmos_sensor(0x7a, 0x05);
 	write_cmos_sensor(0x7d, 0xcc);
 	write_cmos_sensor(0x90, 0x00);
-	write_cmos_sensor(0xce, 0x18);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0xce, 0x18);
 	write_cmos_sensor(0xd0, 0xb2);
 	write_cmos_sensor(0xd2, 0x40);
 	write_cmos_sensor(0xe6, 0xe0);
@@ -1100,7 +1096,7 @@ static void sensor_init(void)
 	write_cmos_sensor(0x4d, 0x00);
 	write_cmos_sensor(0x4e, 0x3c);
 	write_cmos_sensor(0x44, 0x08);
-	write_cmos_sensor(0x48, 0x02);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0x48, 0x02);
 
 	/* Crop */
 	write_cmos_sensor(0xfe, 0x01);
@@ -1194,7 +1190,7 @@ static void preview_setting(void)
 	write_cmos_sensor(0xd5, 0xf0);
 	write_cmos_sensor(0x97, 0x20);
 	write_cmos_sensor(0x1f, 0x19);
-	write_cmos_sensor(0xce, 0x18);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0xce, 0x18);
 	write_cmos_sensor(0xd0, 0xb3);
 	write_cmos_sensor(0xfe, 0x02);
 	write_cmos_sensor(0x14, 0x02);
@@ -1313,7 +1309,7 @@ static void capture_setting(kal_uint16 currefps)
 	write_cmos_sensor(0xd5, 0xfc);
 	write_cmos_sensor(0x97, 0x28);
 	write_cmos_sensor(0x1f, 0x11);
-	write_cmos_sensor(0xce, 0x18);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0xce, 0x18);
 	write_cmos_sensor(0xd0, 0xb2);
 	write_cmos_sensor(0xfe, 0x02);
 	write_cmos_sensor(0x14, 0x01);
@@ -1431,7 +1427,7 @@ static void normal_video_setting(kal_uint16 currefps)
 	write_cmos_sensor(0xd5, 0xfc);
 	write_cmos_sensor(0x97, 0x28);
 	write_cmos_sensor(0x1f, 0x11);
-	write_cmos_sensor(0xce, 0x18);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0xce, 0x18);
 	write_cmos_sensor(0xd0, 0xb2);
 	write_cmos_sensor(0xfe, 0x02);
 	write_cmos_sensor(0x14, 0x01);
@@ -1545,7 +1541,7 @@ static void hs_video_setting(void)
 	write_cmos_sensor(0xd5, 0xf0);
 	write_cmos_sensor(0x97, 0x20);
 	write_cmos_sensor(0x1f, 0x19);
-	write_cmos_sensor(0xce, 0x18);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0xce, 0x18);
 	write_cmos_sensor(0xd0, 0xb3);
 	write_cmos_sensor(0xfe, 0x02);
 	write_cmos_sensor(0x14, 0x02);
@@ -1662,7 +1658,7 @@ static void slim_video_setting(void)
 	write_cmos_sensor(0xd5, 0xf0);
 	write_cmos_sensor(0x97, 0x20);
 	write_cmos_sensor(0x1f, 0x19);
-	write_cmos_sensor(0xce, 0x18);/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/29, modify register setting from fae*/
+	write_cmos_sensor(0xce, 0x18);
 	write_cmos_sensor(0xd0, 0xb3);
 	write_cmos_sensor(0xfe, 0x02);
 	write_cmos_sensor(0x14, 0x02);
@@ -1751,7 +1747,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 				if(!check_otp_data(&monet_hlt_front_gc5035b_eeprom_data, monet_hlt_front_gc5035b_checksum, sensor_id)){
 					break;
 				} else {
-					/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 					//hardwareinfo_set_prop(HARDWARE_BACK_CAM_MOUDULE_ID, "Truly");
 				}
 				gc5035_otp_identify();

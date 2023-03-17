@@ -6,7 +6,6 @@
 **
 ** Version: 1.0
 ** Date : 2019/10/18
-** Author: Zhen.Quan@Camera.Dev
 **
 ** ------------------------------- Revision History: -------------------------------
 **	 <author>		<data>		<version >		<desc>
@@ -143,7 +142,7 @@ static struct stCAM_CAL_DATAINFO_STRUCT monet_hlt_macro_gc2375h_eeprom_data __at
 	.sensorID = GC2375H_SENSOR_ID,
 	.deviceID = 0x10,
 	.dataLength = 0x0776,
-	.sensorVendorid = 0x00100005,/* Zhen.Quan@Camera.Driver, 2019/10/18, add for [otp bringup] */
+	.sensorVendorid = 0x00100005,
 	.vendorPos = 1,
 	.sensorPos = 2,
 	.vendorByte = 1,
@@ -156,7 +155,6 @@ static struct stCAM_CAL_CHECKSUM_STRUCT monet_hlt_macro_gc2375h_checksum[MAX_ITE
 	{LSC_MTK_ITEM, 0x0014, 0x0760, 0x0014, 0x0761, 0x55},
 	{MAX_ITEM, 0xFFFF, 0xFFFF, 0xFFFF, 0x0021, 0x01},
 };
-/* Zhen.Quan@Camera.Driver, 2019/11/4, add for [otp bringup] */
 static struct stCAM_CAL_DATAINFO_STRUCT monet_lh_macro_gc2375h_eeprom_data __attribute((unused))={
 	.sensorID = MONET_LH_MACRO_GC2375H_SENSOR_ID,
 	.deviceID = 0x10,
@@ -275,7 +273,6 @@ static struct stCAM_CAL_CHECKSUM_STRUCT monetx_shengtai_wide_ov8856_checksum[MAX
 	{LDC_ITEM, 0x0CA0, 0x1A10, 0x1A11, 0x1A12, 0x01},
 	{MAX_ITEM, 0xFFFF, 0xFFFF, 0xFFFF, 0x0021, 0x01},
 };
-/* Zhen.Quan@Camera.Driver, 2019/11/7, add for [otp bringup] */
 static struct stCAM_CAL_DATAINFO_STRUCT monetx_hlt_macro_gc2375h_eeprom_data __attribute((unused))={
 	.sensorID = MONETX_HLT_MACRO_GC2375H_SENSOR_ID,
 	.deviceID = 0x10,
@@ -297,11 +294,9 @@ static struct stCAM_CAL_CHECKSUM_STRUCT monetx_hlt_macro_gc2375h_checksum[MAX_IT
 	{AWB_L_SRC_ITEM, 0x0050, 0x0053, 0x0054, 0x0055, 0x01},
 	{BARCODE_ITEM, 0x00E0, 0x00F0, 0x00F1, 0x00F2, 0x01},
 	{LSC_QUA_ITEM, 0x0200, 0x0654, 0x0656, 0x0657, 0x01},
-	/* Tian.Tian@Camera.Driver, 2019/11/17, add for [otp bringup] */
 	{LSC_MTK_ITEM, 0x0C00, 0x134B, 0x134C, 0x134D, 0x01},
 	{MAX_ITEM, 0xFFFF, 0xFFFF, 0xFFFF, 0x0021, 0x01},
 };
-/* Tian.Tian@Camera.Driver, 2019/11/17, add for [otp bringup] */
 static struct stCAM_CAL_DATAINFO_STRUCT monetx_hlt_macro_gc2385_eeprom_data __attribute((unused))={
 	.sensorID = MONETX_HLT_MACRO_GC2385_SENSOR_ID,
 	.deviceID = 0x10,

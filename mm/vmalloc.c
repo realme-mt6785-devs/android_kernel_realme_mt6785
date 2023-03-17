@@ -39,7 +39,6 @@
 
 #include "internal.h"
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_VMALLOC_DEBUG)
-/* Kui.Zhang@BSP.Kernel.MM, 2020-02-26, used for vmalloc_debug */
 static unsigned int save_vmalloc_stack(unsigned long flags, struct vmap_area *va);
 static void dec_vmalloc_stat(struct vmap_area *va);
 #endif
@@ -1380,7 +1379,6 @@ static void setup_vmalloc_vm(struct vm_struct *vm, struct vmap_area *va,
 			      unsigned long flags, const void *caller)
 {
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_VMALLOC_DEBUG)
-	/* Kui.Zhang@BSP.Kernel.MM, 2020-02-26, save vmalloc called stack. */
 	unsigned int handle = save_vmalloc_stack(flags, va);
 #endif
 	spin_lock(&vmap_area_lock);
@@ -1389,7 +1387,6 @@ static void setup_vmalloc_vm(struct vm_struct *vm, struct vmap_area *va,
 	vm->size = va->va_end - va->va_start;
 	vm->caller = caller;
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_VMALLOC_DEBUG)
-	/* Kui.Zhang@BSP.Kernel.MM, 2020-02-26, save stach hash*/
 	vm->hash = handle;
 #endif
 	va->vm = vm;
@@ -2770,7 +2767,7 @@ static int s_show(struct seq_file *m, void *p)
 	seq_printf(m, "0x%pK-0x%pK %7ld",
 		v->addr, v->addr + v->size, v->size);
 
-#ifdef VENDOR_EDIT //wanghao@bsp.drv modify for android.bg get pss too slow
+#ifdef VENDOR_EDIT
     if (v->caller && (strcmp(current->comm, "android.bg") != 0))
 #else
     if (v->caller)
@@ -2837,7 +2834,6 @@ module_init(proc_vmalloc_init);
 
 #ifdef CONFIG_VMALLOC_DEBUG
 #ifdef OPLUS_FEATURE_MEMLEAK_DETECT
-/* Kui.Zhang@BSP.Kernel.MM, 2020-02-26, vmalloc debug used.*/
 #include "malloc_track/vmalloc_track.c"
 #else
 int __init __weak create_vmalloc_debug(struct proc_dir_entry *parent)

@@ -20,7 +20,6 @@
 #include <linux/fs.h>
 #include <linux/atomic.h>
 #include <linux/types.h>
-/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 #include <linux/hardware_info.h>
 
 #include "kd_camera_typedef.h"
@@ -29,7 +28,6 @@
 #include "kd_imgsensor_errcode.h"
 
 #include "gc2375hmipi_Sensor.h"
-/* Zhen.Quan@Camera.Driver, 2019/10/17, add for [otp bringup] */
 #include "imgsensor_read_eeprom.h"
 #define ENABLE_GC2375H_HLT_OTP 1
 
@@ -161,7 +159,7 @@ static struct imgsensor_struct imgsensor = {
 	.current_scenario_id = MSDK_SCENARIO_ID_CAMERA_PREVIEW,
 	.ihdr_en = 0,
 	.i2c_write_id = 0x2e,
-	.frame_lines = 1239,/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+	.frame_lines = 1239,
 };
 
 /* Sensor output window information */
@@ -198,7 +196,7 @@ static void write_cmos_sensor(kal_uint32 addr, kal_uint32 para)
 
 static void set_dummy(void)
 {
-	kal_uint32 vb = 16;/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+	kal_uint32 vb = 16;
 	kal_uint32 basic_line = 1224;
 
 	cam_pr_debug("dummyline = %d\n", imgsensor.dummy_line);
@@ -206,11 +204,9 @@ static void set_dummy(void)
 	vb = imgsensor.frame_length - basic_line;
 	vb = (vb < 16) ? 16 : vb;
 	vb = (vb > 8191) ? 8191 : vb;
-/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae start*/
 	write_cmos_sensor(0x07, (vb >> 8) & 0x1f);
 	write_cmos_sensor(0x08, vb & 0xff);
 	imgsensor.frame_lines = basic_line + vb - 1;
-/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae end*/
 
 }
 
@@ -279,7 +275,6 @@ static void set_shutter(kal_uint16 shutter)
 	if (imgsensor.frame_length > imgsensor_info.max_frame_length)
 		imgsensor.frame_length = imgsensor_info.max_frame_length;
 	spin_unlock(&imgsensor_drv_lock);
-/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae start*/
 	shutter = (shutter < imgsensor_info.min_shutter) ? imgsensor_info.min_shutter : shutter;
 	shutter = (shutter > (imgsensor_info.max_frame_length - imgsensor_info.margin)) ?
 		(imgsensor_info.max_frame_length - imgsensor_info.margin) : shutter;
@@ -290,7 +285,6 @@ static void set_shutter(kal_uint16 shutter)
 		shutter = 16383;
 	if (shutter < 1)
 		shutter = 1;
-/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae end*/
 	/* Update Shutter */
 	write_cmos_sensor(0xfe, 0x00);
 	write_cmos_sensor(0x03, (shutter >> 8) & 0x3F);
@@ -693,7 +687,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 {
 	kal_uint8 i = 0;
 	kal_uint8 retry = 2;
-	/*Quanzhen@ODM_WT.Camera.Driver, 2019/11/4,camera distinction snesor */
 //	if (!check_board_id(board_monetx)){
 //		*sensor_id = 0xFFFFFFFF;
 //		return ERROR_SENSOR_CONNECT_FAIL;
@@ -706,12 +699,10 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 		do {
 			*sensor_id = return_sensor_id();
 			if (*sensor_id == imgsensor_info.sensor_id) {
-				/* Zhen.Quan@Camera.Driver, 2019/10/17, add for [otp bringup] */
 #if 1
 				if(!check_otp_data(&monetx_hlt_macro_gc2375h_eeprom_data, monetx_hlt_macro_gc2375h_checksum, sensor_id)){
 					break;
 				} else {
-					/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 					//hardwareinfo_set_prop(HARDWARE_MONO_CAM_MOUDULE_ID, "Hlt");
 				}
 #endif
@@ -1199,13 +1190,11 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.dummy_line;
 		imgsensor.min_frame_length = imgsensor.frame_length;
 		spin_unlock(&imgsensor_drv_lock);
-		set_dummy();/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+		set_dummy();
 		break;
 	case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae start*/
 		if (framerate == 0)
 			return ERROR_NONE;
-/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae end*/
 		frame_length =
 			imgsensor_info.normal_video.pclk / framerate * 10 /
 			imgsensor_info.normal_video.linelength;
@@ -1221,7 +1210,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.dummy_line;
 		imgsensor.min_frame_length = imgsensor.frame_length;
 		spin_unlock(&imgsensor_drv_lock);
-		set_dummy();/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+		set_dummy();
 		break;
 	case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 		if (imgsensor.current_fps ==
@@ -1263,7 +1252,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
 		}
-		set_dummy();/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+		set_dummy();
 		break;
 	case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
 		frame_length =
@@ -1281,7 +1270,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.dummy_line;
 		imgsensor.min_frame_length = imgsensor.frame_length;
 		spin_unlock(&imgsensor_drv_lock);
-		set_dummy();/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+		set_dummy();
 		break;
 	case MSDK_SCENARIO_ID_SLIM_VIDEO:
 		frame_length =
@@ -1299,7 +1288,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.dummy_line;
 		imgsensor.min_frame_length = imgsensor.frame_length;
 		spin_unlock(&imgsensor_drv_lock);
-		set_dummy();/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+		set_dummy();
 		break;
 	default:	/* coding with  preview scenario by default */
 		frame_length =
@@ -1316,7 +1305,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor_info.pre.framelength + imgsensor.dummy_line;
 		imgsensor.min_frame_length = imgsensor.frame_length;
 		spin_unlock(&imgsensor_drv_lock);
-			set_dummy();/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+			set_dummy();
 		cam_pr_debug("error scenario_id = %d, we use preview scenario\n",
 			scenario_id);
 		break;

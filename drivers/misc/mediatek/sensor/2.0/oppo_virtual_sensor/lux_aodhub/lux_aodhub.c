@@ -5,11 +5,9 @@
 ** Description: Source file for lux_aod sensor linux driver.
 ** Version: 1.0
 ** Date : 2020/03/31
-** Author: Baixue.Jie@PSW.BSP.Sensor
 **
 ** --------------------------- Revision History: ---------------------
 * <version> <date>      <author>                    <desc>
-* Revision 1.0      2020/03/31       Baixue.Jie@PSW.BSP.Sensor      Created
 *******************************************************************/
 #include "lux_aodhub.h"
 #include "sensor_cmd.h"
@@ -171,5 +169,5 @@ module_init(lux_aodhub_init);
 module_exit(lux_aodhub_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("LUX_AODHUB driver");
-MODULE_AUTHOR("");
+MODULE_AUTHOR("qiuzuolin@oppo.com");
 

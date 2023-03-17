@@ -13,7 +13,7 @@
 ##
 ## Version:  1.0
 ## Date:  2018/12/24
-## Author:  
+## Author:  bright.zhang@oppo.com
 ## ----------------- Revision History: ----------------------
 ## <author>       <data>           <desc>
 ## Bright Zhang   2018/12/24       create this file
@@ -77,9 +77,6 @@ static void reinitialze_pet_time_for_debug_build(void)
     }
 
 #ifdef CONFIG_MEMLEAK_DETECT_THREAD
-    /* Kui.Zhang@BSP.Kernel.MM, 2020/8/10, while enable malloc debug, first
-     * booting time need more.
-     */
     if (AGING != get_eng_version())
 	    phx_hlos_wd_pet_time += 60 * 5;
 #endif
@@ -176,7 +173,11 @@ static int phx_pet(void)
 {
     if(phx_is_long_time())
     {
+    #ifdef PHX_PET_TIMEOUT_X2
+        schedule_timeout_interruptible(phx_hlos_wd_pet_time * 3 * HZ);
+    #else
         schedule_timeout_interruptible(phx_hlos_wd_pet_time * HZ);
+    #endif
     }
 
     PHX_KLOG_INFO("phoenix watchdog pet!\n");
@@ -307,4 +308,4 @@ arch_initcall_sync(phoenix_hlos_watchdog_init);
 
 MODULE_DESCRIPTION("OPPO PHOENIX HLOS WATCHDOG");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Bright.Zhang <>");
+MODULE_AUTHOR("Bright.Zhang <bright.zhang@oppo.com>");

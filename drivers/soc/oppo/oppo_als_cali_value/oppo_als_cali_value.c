@@ -7,7 +7,6 @@
  **
  ** Version: 1.0
  ** Date created: 18:03:11,11/21/2018
- ** Author: Chao.Zeng@PSW.BSP.Sensor
  ** --------------------------- Revision History: --------------------------------
  **  <author>	  <data>			<desc>
  **  Chao.Zeng	   11/21/2018	  create the file
@@ -547,4 +546,4 @@ module_init(oppo_als_cali_data_init);
 module_exit(oppo_als_cali_data_clean);
 MODULE_DESCRIPTION("OPPO custom version");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Chao.Zeng <>");
+MODULE_AUTHOR("Chao.Zeng <zengchao@oppo.com>");

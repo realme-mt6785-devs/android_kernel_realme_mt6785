@@ -78,7 +78,6 @@ CONFIG_MTK_STATIC_POWER=y
 CONFIG_MTK_UNIFY_POWER=y
 CONFIG_MTK_CM_MGR=y
 CONFIG_MTK_THERMAL_PA_VIA_ATCMD=y
-/*GaoWang@Cam.Drv add for 20682 camera BringUp 20200918*/
 CONFIG_CAMERA_LDO=y
 CONFIG_CUSTOM_KERNEL_IMGSENSOR="imx682_mipi_raw s5kgm1sp_mipi_raw sarter_qtech_main_s5kgm1sp imx471_mipi_raw1 ov8856_mipi_raw ov02b10_mipi_raw ov02b1b_mipi_mono s5kgw1_mipi_raw s5k3p9sp_mipi_raw gc2375h_mipi_raw_19661 gc02m0_mipi_mono gc02k0_mipi_raw salaa_qtech_main_s5kgm1sp sala_wide_ov8856""
 CONFIG_CUSTOM_KERNEL_CAM_CAL_DRV="BRCB032GWZ_3 GT24c32a cat24c16"
@@ -97,7 +96,6 @@ CONFIG_MTK_JPEG=y
 CONFIG_MTK_SMI_EXT=y
 CONFIG_MTK_LCM=y
 #ifndef ODM_HQ_EDIT
-#liyan@ODM.Multimedia.LCD  2019/08/27 add for LCD bring up
 #CONFIG_CUSTOM_KERNEL_LCM="otm1911a_fhdp_dsi_vdo_truly_rt4801 hx83112b_fhdp_dsi_vdo_auo_rt4801"
 #else #ODM_HQ_EDIT
 CONFIG_CUSTOM_KERNEL_LCM="nt36672c_fhdp_dsi_vdo_tianma_zal1878 nt36672c_fhdp_dsi_vdo_jdi_zal1878 nt36672c_fhdp_dsi_vdo_tianma_zal1852 nt36672c_fhdp_dsi_vdo_jdi_zal1852 nt36672c_fhdp_dsi_vdo_boe_zal1852"
@@ -105,11 +103,9 @@ CONFIG_CUSTOM_KERNEL_LCM="nt36672c_fhdp_dsi_vdo_tianma_zal1878 nt36672c_fhdp_dsi
 CONFIG_MTK_FB=y
 CONFIG_MTK_LCM_PHYSICAL_ROTATION="0"
 #ifndef ODM_HQ_EDIT
-#longyajun@ODM.Multimedia.LCD  2020/01/14 add for round corner remove
 #CONFIG_MTK_ROUND_CORNER_SUPPORT is not set
 #endif #ODM_HQ_EDIT
 #ifndef OPLUS_FEATURE_LCD
-#liyan@ODM.Multimedia.LCD  2019/08/27 add for LCD bring up
 #CONFIG_LCM_HEIGHT="2160"
 #else #OPLUS_FEATURE_LCD
 CONFIG_LCM_HEIGHT="2400"
@@ -129,14 +125,12 @@ CONFIG_CUSTOM_KERNEL_MAGNETOMETER=y
 CONFIG_MTK_MAGHUB=y
 CONFIG_MTK_HWMON=y
 #ifdef VENDOR_EDIT
-#Yan.Chen@BSP.sensor,2018/11/08,remove no-user sensortype
 #CONFIG_CUSTOM_KERNEL_BAROMETER=y
 #CONFIG_MTK_BAROHUB=y
 #endif
 
 CONFIG_CUSTOM_KERNEL_SENSOR_FUSION=y
 #ifdef VENDOR_EDIT
-#Yan.Chen@BSP.sensor,2018/11/08,remove no-user sensortype
 #CONFIG_CUSTOM_KERNEL_GRV_SENSOR=y
 #CONFIG_CUSTOM_KERNEL_GMRV_SENSOR=y
 #CONFIG_CUSTOM_KERNEL_RV_SENSOR=y
@@ -180,7 +174,6 @@ CONFIG_MTK_ACCDET=y
 CONFIG_ACCDET_EINT_IRQ=y
 CONFIG_ACCDET_SUPPORT_EINT0=y
 #ifdef HQ_ODM_EDIT
-#liuyong@RM.CM.BSP.Charger 2020/07/27 add for charger adc
 #CONFIG_MTK_AUXADC=y
 #endif /*HQ_ODM_EDIT*/
 CONFIG_MTK_LENS=y
@@ -209,7 +202,6 @@ CONFIG_MTK_USB_TYPEC_U3_MUX=y
 CONFIG_TCPC_MT6360=y
 CONFIG_MTK_TYPEC_WATER_DETECT=y
 #ifdef ODM_HQ_EDIT
-#Liu.Yong@RM.CM.Charger 2020/07/27 modified for water detect
 # CONFIG_MTK_TYPEC_WATER_DETECT_BY_PCB is not set
 #endif
 CONFIG_TCPC_CLASS=y
@@ -259,7 +251,6 @@ CONFIG_PPP_ASYNC=y
 CONFIG_PPP_SYNC_TTY=y
 # CONFIG_KEYBOARD_ATKBD is not set
 CONFIG_KEYBOARD_MTK=y
-#/* Yonghai.Wang@BSP.bootloader.bootflow, 2020/9/17, add for key function */
 # CONFIG_ONEKEY_REBOOT_NORMAL_MODE=y
 # CONFIG_ONEKEY_REBOOT_OTHER_MODE=y
 CONFIG_TWOKEY_REBOOT_NORMAL_MODE=y
@@ -269,14 +260,12 @@ CONFIG_KPD_PWRKEY_USE_PMIC=y
 CONFIG_INPUT_TOUCHSCREEN=y
 #CONFIG_TOUCHSCREEN_MTK_TOUCH="GT9886 GT1151"
 #ifdef OPLUS_FEATURE_TP_BASIC
-#/*Xiaofei.Gong@BSP.TP.Function, 2020/09/15, bringup add for sala touchscreen.*/
 CONFIG_TOUCHPANEL_NOVA=y
 CONFIG_TOUCHPANEL_NOVA_NT36672C_NOFLASH=y
 CONFIG_TOUCHPANEL_ALGORITHM=y
 CONFIG_TOUCHPANEL_MTK_PLATFORM=y
 CONFIG_INPUT_MISC=y
 CONFIG_INPUT_UINPUT=y
-#/*Xiaofei.Gong@BSP.TP.Function, 2020/09/15, bringup add for sala touchscreen.*/
 #endif OPLUS_FEATURE_TP_BASIC
 # CONFIG_SERIO is not set
 # CONFIG_VT is not set
@@ -326,7 +315,6 @@ CONFIG_SND_USB_AUDIO=y
 CONFIG_SND_SOC=y
 CONFIG_SND_SOC_MT6785_MT6359=y
 CONFIG_SND_SOC_MTK_BTCVSD=y
-# wuhui@ODM.CM.Multimedia.Audio 2020/09/08 modified for audio bringup
 #CONFIG_SND_SOC_MT6660 is not set
 CONFIG_HIDRAW=y
 CONFIG_HID_A4TECH=y
@@ -442,40 +430,32 @@ CONFIG_MTK_SCHED_TRACERS=y
 CONFIG_CRYPTO_TWOFISH=y
 # CONFIG_CRYPTO_HW is not set
 #ifdef VENDOR_EDIT
-# Long.Liu@PSW.BSP.Fingerprint.Basic, 2018/9/25, Add for fingerprint driver
 CONFIG_OPPO_FINGERPRINT=y
 CONFIG_OPPO_FINGERPRINT_MTK=y
 CONFIG_OPPO_FINGERPRINT_GOODIX=y
 CONFIG_OPPO_FINGERPRINT_FPC=y
 
-# wuhui@ODM.CM.Multimedia.Audio 2020/09/24 modified for dsp bringup
 CONFIG_MTK_AUDIODSP_SUPPORT=y
 CONFIG_SND_SOC_MTK_AUDIO_DSP=y
-#wuhui@ODM.CM.Multimedia.Audio 2020/09/08 added for aw87339 bringup
 CONFIG_SND_SOC_AW87339=y
-#wuhui@ODM.CM.Multimedia.Audio 2020/09/08 added for aw87359 bringup
 CONFIG_SND_SOC_AW87359=y
 #endif /*VENDOR_EDIT*/
 CONFIG_CRC8=y
 #ifdef VENDOR_EDIT
-# wanghao@BSP.Kernel.Driver, 2020/03/26, add for common soft
 CONFIG_OPPO_COMMON_SOFT=y
 CONFIG_OPPO_DEVICE_IFNO=y
 CONFIG_SECTION_MISMATCH_WARN_ONLY=y
 #endif
 #ifdef VENDOR_EDIT
-#wen.luo@BSP.Kernel.Stability, 2020/03/26, all system oplus feature writer here
 CONFIG_OPLUS_FEATURE_OPROJECT=y
 #endif
 
 #ifdef VENDOR_EDIT
-##Ping.Liu@BSP.Fingerprint.Secure, 2020/05/18, add for open trustonic tee, config tee.
 CONFIG_TEE=y
 CONFIG_TRUSTONIC_TEE_SUPPORT=y
 CONFIG_MTK_TEE_GP_SUPPORT=y
 CONFIG_TRUSTONIC_TEE_VERSION=500
 ##endif /*VENDOR_EDIT*/
-# Liu.Yong@RM.CM.Charger 2020/07/27 modified for bring up charging
 CONFIG_OPLUS_HQ_CHARGER=y
 CONFIG_OPLUS_CHARGER_MT6370_TYPEC=y
 CONFIG_OPLUS_CHARGER=y
@@ -498,7 +478,6 @@ CONFIG_OPLUS_SMART_CHARGER_SUPPORT=y
 #endif
 
 #ifdef OPLUS_FEATURE_SENSOR_ALGORITHM
-#/*xiebaixue@PSW.BSP.Sensor, 2020/04/16, Add for oppo sensor algo*/
 CONFIG_OPLUS_FEATURE_CAMERA_PROTECT=y
 CONFIG_OPLUS_FEATURE_FREE_FALL=y
 CONFIG_OPLUS_FEATURE_PICKUP_DETECT=y
@@ -509,24 +488,19 @@ CONFIG_OPLUS_FEATURE_TP_GESTURE=y
 #endif /*OPLUS_FEATURE_SENSOR_ALGORITHM*/
 
 #ifdef OPLUS_FEATURE_ACTIVITY_RECOGNITION
-#pengqingqing@ANDROID.AITECH,2020/07/01, add for oppo_activity_recognition
 CONFIG_OPLUS_FEATURE_ACTIVITY_RECOGNITION=y
 #endif //OPLUS_FEATURE_ACTIVITY_RECOGNITION
 
 #ifdef OPLUS_FEATURE_ELEVATOR_DETECT
-#pengqingqing@ANDROID.AITECH,2020/07/29, add for elevator_detect
 CONFIG_OPLUS_FEATURE_ELEVATOR_DETECT=y
 #endif //OPLUS_FEATURE_ELEVATOR_DETECT
 #ifdef ODM_HQ_EDIT
-# wangtao@ODM_HQ.BSP.Kernel.Boot,2019/10/24,Add for ODM_HQ_EDIT macro for kernel usage
 CONFIG_ODM_HQ_EDIT=y
 #endif
-#jason.tang@TECH.BSP.Kernel.Storage, 2019-10-25, enable EXT4_FSYNC
 CONFIG_EXT4_FSYNC=y
 #ifdef VENDOR_EDIT//Fanhong.Kong@ProDrv.CHG,add 2016/6/20 for kernel 4.14 exfat
 CONFIG_EXFAT_FS=y
 #endif
-#ifdef OPLUS_FEATURE_TP_BASIC Xuhang.Li@BSP.TP, 20200726, add touchpanel driver
 CONFIG_OPPO_ARCH_FILE=y
 CONFIG_OPPO_DEVICE_IFNO=y
 CONFIG_OPPO_COMMON_SOFT=y
@@ -543,25 +517,20 @@ CONFIG_TOUCHPANEL_SYNAPTICS_TCM_ONCELL=y
 CONFIG_MTK_ENABLE_GENIEZONE=y
 
 #ifdef OPLUS_FEATURE_PROCESS_RECLAIM
-#Kui.Zhang@BSP.Kernel.MM, 2020-05-20 add process memry reclaim
 CONFIG_PROCESS_RECLAIM=y
 #endif
 #ifdef OPLUS_FEATURE_HANS_FREEZE
-#Kun.Zhou@ANDROID.RESCONTROL, 2019/09/23, add for hans freeze manager
 CONFIG_OPPO_HANS=y
 #endif /*OPLUS_FEATURE_HANS_FREEZE*/
 #ifdef VENDOR_EDIT
-#LinJunBin@CONNECTIVITY.NFC.BASIC , 2020/09/19, add for : add NXP NFC driver
 CONFIG_NFC_PN553_DEVICES=y
 #endif
 
 #ifdef OPLUS_FEATURE_SECURITY_COMMON
-#Shupeng.Zhou@BSP.Security.Basic, 2020/09/08, Enable SecureBoot Fuse
 CONFIG_MTK_SECURITY_SW_SUPPORT=y
 #endif /*OPLUS_FEATURE_SECURITY_COMMON*/
 
 #ifdef OPLUS_FEATURE_SECURITY_COMMON
-#Shupeng.Zhou@BSP.Security.Basic, 2020/09/30, Add for mtk encryption feature  */
 CONFIG_FS_ENCRYPTION_INLINE_CRYPT=y
 CONFIG_BLK_INLINE_ENCRYPTION=y
 CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK=y
@@ -571,34 +540,28 @@ CONFIG_MMC_CRYPTO_LEGACY=y
 #endif  /* OPLUS_FEATURE_SECURITY_COMMON */
 
 #ifdef OPLUS_FEATURE_PHOENIX
-#Fuchun.Liao@BSP.Kernel.Stability add for enable phoenix
 CONFIG_OPLUS_FEATURE_PHOENIX=y
 #endif
 
 #ifdef VENDOR_EDIT
-#/*Chendai.Liang@BSP.Sensor.Basic, add oppo als cali value*/
 CONFIG_OPPO_ALS_CALI=y
 #endif
 
 #Move all oplus feature to here,TODO ...
 #ifdef VENDOR_EDIT
-#wen.luo@BSP.Kernel.Stability, 2020/03/26, all system oplus feature writer here
 CONFIG_DETECT_HUNG_TASK=y
 CONFIG_OPLUS_FEATURE_HUNG_TASK_ENHANCE=y
 CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=60
 #endif
 
 #ifdef OPLUS_FEATURE_UIFIRST
-#// XuHaifeng@BSP.KERNEL.PERFORMANCE, 2020/08/18, Add for UIFirst(slide boost)
 CONFIG_SCHED_WALT=y
 #endif
 
 #ifdef OPLUS_FEATURE_HEALTHINFO
-#/* Liujie.Xie@TECH.Kernel.Sched, 2020-05-20, add jank info monitor support*/
 CONFIG_OPPO_JANK_INFO=y
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 #ifdef OPLUS_FEATURE_HEALTHINFO
-#/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-07-07, add alloc wait monitor support*/
 CONFIG_OPPO_MEM_MONITOR=y
 CONFIG_FG_TASK_UID=y
 CONFIG_OPPO_HEALTHINFO=y
@@ -606,22 +569,18 @@ CONFIG_SCHEDSTATS=y
 #endif /*OPLUS_FEATURE_HEALTHINFO*/
 
 #ifdef VENDOR_EDIT
-#Qiwu.Chen@BSP.Kernel.Stability, 2020/10/9, enable shutdown detect
 CONFIG_OPLUS_FEATURE_SHUTDOWN_DETECT=y
 #endif
 
 #ifdef OPLUS_FEATURE_FEEDBACK
-#zhouhengguo@BSP.Kernel.Stability, 2020/09/27, add feedback feature
 CONFIG_OPLUS_FEATURE_FEEDBACK=y
 #endif /*OPLUS_FEATURE_FEEDBACK*/
 
 #ifdef OPLUS_FEATURE_FG_IO_OPT
-#wangtao@BSP.Kernel.mm 2020/08/24, increase priority of foreground IO
 CONFIG_OPPO_FG_IO_OPT=y
 #endif
 
 #ifdef VENDOR_EDIT
-#/* LiYue@BSP.CHG.Basic, 2019/09/11, add for Joystick */
 CONFIG_INPUT_JOYSTICK=y
 CONFIG_JOYSTICK_XPAD=y
 CONFIG_JOYSTICK_XPAD_FF=y
@@ -630,33 +589,27 @@ CONFIG_JOYSTICK_XPAD_LEDS=y
 CONFIG_SECURITY_SELINUX_DEVELOP=y
 
 #ifdef OPLUS_FEATURE_ACM
-#Yuwei.Guan@BSP.Kernel.FS,2020/07/08, Add for acm
 CONFIG_OPLUS_FEATURE_ACM=y
 CONFIG_OPLUS_FEATURE_ACM_LOGGING=y
 #endif /* OPLUS_FEATURE_ACM */
 
 #ifdef OPLUS_FEATURE_SECURITY_COMMON
-#Shupeng.Zhou@BSP.Security.Basic, 2020/09/30, Add for enable avb 2.0
 CONFIG_MTK_AVB20_SUPPORT = y
 #endif  /* OPLUS_FEATURE_SECURITY_COMMON */
 
 #ifdef OPLUS_FEATURE_SECURITY_COMMON
-#Shupeng.Zhou@BSP.Security.Basic, 2020/11/20, add for widevine L1
 CONFIG_MTK_SEC_VIDEO_PATH_SUPPORT=y
 CONFIG_MTK_DRM_KEY_MNG_SUPPORT=y
 #endif /* OPLUS_FEATURE_SECURITY_COMMON */
 
 #ifdef OPLUS_FEATURE_SDCARD
-#Zhenxi.Wei@BSP.Storage.Sdcard add for sdcard support
 CONFIG_OPLUS_FEATURE_SDCARD=y
 #endif
 
-#//yh@PSW.BSP.Storage.EXT4, 2018-11-26 add for ext4 async discard suppot
 CONFIG_EXT4_ASYNC_DISCARD_SUPPORT=y
 #endif
 
 #ifdef VENDOR_EDIT
-#/* huangjianan@TECH.Storage.FS, 2020/06/03, Add for fs feature */
 CONFIG_OPLUS_FEATURE_EXT4_FSYNC=y
 #endif
 
@@ -667,7 +620,6 @@ CONFIG_PGTABLE_MAPPING=y
 #endif /* OPLUS_FEATURE_ZRAM_OPT */
 
 #ifdef OPLUS_ARCH_EXTENDS
-#xijing.Zhou@MM.AUDIODRIVER.FEATURE, 2020/10/16, modify for VOW
 CONFIG_MTK_VOW_SUPPORT=y
 CONFIG_MTK_VOW_BARGE_IN_SUPPORT=y
 CONFIG_MTK_VOW_AMAZON_SUPPORT=y
@@ -675,14 +627,12 @@ CONFIG_MTK_VOW_GVA_SUPPORT=y
 #endif /* OPLUS_ARCH_EXTENDS */
 
 #ifdef OPLUS_FEATURE_SIM
-#Yuchun.Luo@NETWORK.SIM, 2020/12/16, modify for sim detect
 CONFIG_SIM_DETECT=y
 #endif
 
 #ifdef OPLUS_FEATURE_SECURITY_COMMON
-#Qingyu.Li@BSP.Security.Basic, ModuleSig, Fix the MTK issue, resulting in the signed .ko not being correctly placed in the vendor.img. 2021-03-04
-#CONFIG_MODULE_SIG=y
-#CONFIG_MODULE_SIG_FORCE=y
-#CONFIG_MODULE_SIG_ALL=y
-#CONFIG_MODULE_SIG_SHA512=y
+CONFIG_MODULE_SIG=y
+CONFIG_MODULE_SIG_FORCE=y
+CONFIG_MODULE_SIG_ALL=y
+CONFIG_MODULE_SIG_SHA512=y
 #endif /* OPLUS_FEATURE_SECURITY_COMMON */

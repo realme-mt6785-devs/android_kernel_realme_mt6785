@@ -180,4 +180,4 @@ module_init(pedo_minutehub_init);
 module_exit(pedo_minutehub_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("ACTIVITYHUB driver");
-MODULE_AUTHOR("");
+MODULE_AUTHOR("zhq@oppo.com");

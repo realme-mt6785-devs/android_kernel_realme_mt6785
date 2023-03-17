@@ -1118,7 +1118,6 @@ static irqreturn_t bq2589x_irq_handler(int irq, void *data)
 		}else{
 			bq2589x_enable_hvdcp(bq);
 		}
-		//Junbo.Guo@ODM_WT.BSP.CHG, 2020/05/06, Modify for fix OTG can not connect when QC plugout
 		bq2589x_switch_to_hvdcp(g_bq, HVDCP_DPF_DMF);
 		Charger_Detect_Release();
 		cancel_delayed_work_sync(&bq->bq2589x_aicr_setting_work);
@@ -1151,7 +1150,6 @@ static irqreturn_t bq2589x_irq_handler(int irq, void *data)
 			}else{
 				bq2589x_enable_hvdcp(bq);
 			}
-			//Junbo.Guo@ODM_WT.BSP.CHG, 2020/05/06, Modify for fix OTG can not connect when QC plugout
 			bq2589x_switch_to_hvdcp(g_bq, HVDCP_DPF_DMF);
 			memset(&bq->ptime[0], 0, sizeof(struct timespec));
 			memset(&bq->ptime[1], 0, sizeof(struct timespec));
@@ -1177,6 +1175,9 @@ static irqreturn_t bq2589x_irq_handler(int irq, void *data)
 	if((bq->is_bq2589x == false) && (bq->chg_type != CHARGER_UNKNOWN) &&
 					(prev_pg && bq->power_good) && (prev_chg_type != bq->chg_type)) {
 			chip->charger_type = bq->oplus_chg_type;
+			pr_err("[%s]: charger_exist !\n", __func__);
+			g_oplus_chip->charger_exist = true;
+			bq2589x_inform_charger_type(bq);
 	}
 
 	return IRQ_HANDLED;
@@ -1658,7 +1659,6 @@ static int bq2589x_enable_chgdet(struct charger_device *chg_dev, bool en)
 		}else{
 			bq2589x_enable_hvdcp(bq);
 		}
-		//Junbo.Guo@ODM_WT.BSP.CHG, 2020/05/06, Modify for fix OTG can not connect when QC plugout
 		bq2589x_switch_to_hvdcp(g_bq, HVDCP_DPF_DMF);
 		Charger_Detect_Release();
 		memset(&bq->ptime[0], 0, sizeof(struct timespec));

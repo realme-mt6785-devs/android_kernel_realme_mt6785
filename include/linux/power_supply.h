@@ -93,7 +93,6 @@ enum {
 enum power_supply_property {
 	/* Properties of type `int' */
 
-/* LiYue@BSP.CHG.Basic, 2019/09/02, Add for charging */
 	POWER_SUPPLY_PROP_AUTHENTICATE,
 	POWER_SUPPLY_PROP_CHARGE_TIMEOUT,
 	POWER_SUPPLY_PROP_BATTERY_REQUEST_POWEROFF,
@@ -108,7 +107,7 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_BATTERY_CC,
 	POWER_SUPPLY_PROP_BATTERY_RM,
 	POWER_SUPPLY_PROP_BATTERY_NOTIFY_CODE,
-	POWER_SUPPLY_PROP_ICHG_COOL_DOWN,        //zhangchao@ODM.HQ.Charger 2019/12/04 modified for limit charging current in vooc when calling 
+	POWER_SUPPLY_PROP_ICHG_COOL_DOWN,
 	POWER_SUPPLY_PROP_CHARGER_IC,
 	POWER_SUPPLY_PROP_FAST_CHG_TYPE,
 	POWER_SUPPLY_PROP_COOL_DOWN,
@@ -186,7 +185,6 @@ enum power_supply_property {
 	/* Local extensions of type int64_t */
 	POWER_SUPPLY_PROP_CHARGE_COUNTER_EXT,
 
-/* LiYue@BSP.CHG.Basic, 2019/09/03, Add for charging */
         POWER_SUPPLY_PROP_ADAPTER_FW_UPDATE,
         /* Add for capacity node */
         POWER_SUPPLY_PROP_INTERNAL_CAPACITY,

@@ -187,7 +187,6 @@ static ssize_t power_supply_store_property(struct device *dev,
 /* Must be in the same order as POWER_SUPPLY_PROP_* */
 static struct device_attribute power_supply_attrs[] = {
 	/* Properties of type `int' */
-/* LiYue@BSP.CHG.Basic, 2019/09/02, Add for charging */
 	POWER_SUPPLY_ATTR(authenticate),
 	POWER_SUPPLY_ATTR(charge_timeout),
 	POWER_SUPPLY_ATTR(battery_request_poweroff),
@@ -202,7 +201,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(batt_cc),
 	POWER_SUPPLY_ATTR(batt_rm),
 	POWER_SUPPLY_ATTR(notify_code),
-	POWER_SUPPLY_ATTR(cool_down),              //zhangchao@ODM.HQ.Charger 2019/12/04 modified for limit charging current in vooc when calling
+	POWER_SUPPLY_ATTR(cool_down),
 	POWER_SUPPLY_ATTR(charger_ic),
 	POWER_SUPPLY_ATTR(fast_chg_type),
 	POWER_SUPPLY_ATTR(cool_down),
@@ -280,7 +279,6 @@ static struct device_attribute power_supply_attrs[] = {
 	/* Local extensions of type int64_t */
 	POWER_SUPPLY_ATTR(charge_counter_ext),
 
-/* LiYue@BSP.CHG.Basic, 2019/09/03, Add for charging */
         POWER_SUPPLY_ATTR(adapter_fw_update),
 
         /* Add for capacity node */

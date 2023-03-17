@@ -20,7 +20,6 @@
 #include <linux/fs.h>
 #include <linux/atomic.h>
 #include <linux/types.h>
-/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 #include <linux/hardware_info.h>
 
 //#include "kd_camera_hw.h"
@@ -113,7 +112,6 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.max_framerate = 300,
 	},
 
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 	.custom1 = {
 		.pclk = 39000000,
 		.linelength  = 934,
@@ -125,7 +123,6 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.mipi_data_lp2hs_settle_dc = 85,
 		.max_framerate = 240,
 	},
-     //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 
 	.margin = 3,//1,			/*sensor framelength & shutter margin*/
 	.min_shutter = 2,		/*min shutter*/
@@ -141,14 +138,13 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.ihdr_le_firstline = 0,  /*1,le first ; 0, se first*/
 
 	/*support sensor mode num ,don't support Slow motion*/
-	.sensor_mode_num = 6,       //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
+	.sensor_mode_num = 6,
 	.cap_delay_frame = 3,		/*enter capture delay frame num*/
 	.pre_delay_frame = 3,		/*enter preview delay frame num*/
 	.video_delay_frame = 3,		/*enter video delay frame num*/
 	.hs_video_delay_frame = 3, /*enter high speed video  delay frame num*/
 	.slim_video_delay_frame = 3,/*enter slim video delay frame num*/
-	.custom1_delay_frame = 3,//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam  */
-	/*Xiaojun.Pu@ODM_WT.Camera.Driver.493476, 2019/10/28, modify mclk driving current */
+	.custom1_delay_frame = 3,
 	.isp_driving_current = ISP_DRIVING_2MA, /*mclk driving current*/
 
 	/*Sensor_interface_type*/
@@ -161,7 +157,6 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.mipi_settle_delay_mode = 0, //0,MIPI_SETTLEDELAY_AUTO; 1,MIPI_SETTLEDELAY_MANNUAL
 
 	/*sensor output first pixel color*/
-	/*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/15,modify for camera flip*/
 	.sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_MONO,
 
 	.mclk = 24,/*mclk value, suggest 24 or 26 for 24Mhz or 26Mhz*/
@@ -326,7 +321,7 @@ static void set_shutter_frame_length(kal_uint16 shutter, kal_uint16 frame_length
 
 	/* Update Shutter*/
 	LOG_INF("Add for N3D! shutterlzl =%d, framelength =%d,realtime_fps=%d\n", shutter, imgsensor.frame_length,realtime_fps);
-	shutter=shutter*1;//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add debug    for dual cam ae sync */
+	shutter=shutter*1;
 	write_cmos_sensor(0xfd, 0x01);
 	write_cmos_sensor(0x04, (shutter) & 0xFF);
 	write_cmos_sensor(0x03, (shutter >> 8) & 0xFF);
@@ -402,7 +397,7 @@ static void set_shutter(kal_uint16 shutter)
 	}
 
 	/* Update Shutter*/
-	shutter=shutter*1;//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add debug    for dual cam ae sync */
+	shutter=shutter*1;
 	write_cmos_sensor(0xfd, 0x01);
 	write_cmos_sensor(0x04, (shutter) & 0xFF);
 	write_cmos_sensor(0x03, (shutter >> 8) & 0xFF);
@@ -443,7 +438,7 @@ static kal_uint16 set_gain(kal_uint16 gain)
 	spin_unlock(&imgsensor_drv_lock);
 	LOG_INF("gain = %d, reg_gain = 0x%x\n ", gain, reg_gain);
 
-	reg_gain=reg_gain*1;//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add debug    for dual cam ae sync */
+	reg_gain=reg_gain*1;
 	LOG_INF("gain = %d, reg_gain = 0x%x\n ", gain, reg_gain);
 	write_cmos_sensor(0xfd, 0x01);
 	write_cmos_sensor(0x24, (reg_gain & 0xFF));
@@ -619,12 +614,12 @@ static void sensor_init(void)
 	write_cmos_sensor(0x19, 0xf1);
 	write_cmos_sensor(0x29, 0x01);
 	write_cmos_sensor(0xfd, 0x01);
-	write_cmos_sensor(0x9d, 0x6a);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0x9d, 0x6a);
 	write_cmos_sensor(0xa0, 0x29);
 	write_cmos_sensor(0xa1, 0x04);
-	write_cmos_sensor(0xad, 0x22);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xae, 0x01);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xaf, 0xc1);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0xad, 0x22);
+	write_cmos_sensor(0xae, 0x01);
+	write_cmos_sensor(0xaf, 0xc1);
 	write_cmos_sensor(0xb1, 0x01);
 	write_cmos_sensor(0x8e, 0x06);
 	write_cmos_sensor(0x8f, 0x40);
@@ -643,7 +638,7 @@ static void sensor_init(void)
 	write_cmos_sensor(0xf1, 0x40);
 	write_cmos_sensor(0xf2, 0x40);
 	write_cmos_sensor(0xf3, 0x40);
-	write_cmos_sensor(0x3f, 0x00); /*Zhen.Quan@ODM_WT.CAMERA.Driver.2019/10/23,modify for camera flip*/
+	write_cmos_sensor(0x3f, 0x00);
 }	/*	sensor_init  */
 
 /*************************************************************************
@@ -725,12 +720,12 @@ static void preview_setting(void)
 	write_cmos_sensor(0x19, 0xf1);
 	write_cmos_sensor(0x29, 0x01);
 	write_cmos_sensor(0xfd, 0x01);
-	write_cmos_sensor(0x9d, 0x6a);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0x9d, 0x6a);
 	write_cmos_sensor(0xa0, 0x29);
 	write_cmos_sensor(0xa1, 0x04);
-	write_cmos_sensor(0xad, 0x22);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xae, 0x01);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xaf, 0xc1);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0xad, 0x22);
+	write_cmos_sensor(0xae, 0x01);
+	write_cmos_sensor(0xaf, 0xc1);
 	write_cmos_sensor(0xb1, 0x01);
 	write_cmos_sensor(0x8e, 0x06);
 	write_cmos_sensor(0x8f, 0x40);
@@ -749,7 +744,7 @@ static void preview_setting(void)
 	write_cmos_sensor(0xf1, 0x40);
 	write_cmos_sensor(0xf2, 0x40);
 	write_cmos_sensor(0xf3, 0x40);
-	write_cmos_sensor(0x3f, 0x00); /*Zhen.Quan@ODM_WT.CAMERA.Driver.2019/10/23,modify for camera flip*/
+	write_cmos_sensor(0x3f, 0x00);
 }	/*	preview_setting  */
 /*************************************************************************
 * FUNCTION
@@ -832,12 +827,12 @@ static void capture_setting(kal_uint16 currefps)
 	write_cmos_sensor(0x19, 0xf1);
 	write_cmos_sensor(0x29, 0x01);
 	write_cmos_sensor(0xfd, 0x01);
-	write_cmos_sensor(0x9d, 0x6a);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0x9d, 0x6a);
 	write_cmos_sensor(0xa0, 0x29);
 	write_cmos_sensor(0xa1, 0x04);
-	write_cmos_sensor(0xad, 0x22);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xae, 0x01);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xaf, 0xc1);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0xad, 0x22);
+	write_cmos_sensor(0xae, 0x01);
+	write_cmos_sensor(0xaf, 0xc1);
 	write_cmos_sensor(0xb1, 0x01);
 	write_cmos_sensor(0x8e, 0x06);
 	write_cmos_sensor(0x8f, 0x40);
@@ -856,10 +851,9 @@ static void capture_setting(kal_uint16 currefps)
 	write_cmos_sensor(0xf1, 0x40);
 	write_cmos_sensor(0xf2, 0x40);
 	write_cmos_sensor(0xf3, 0x40);
-	write_cmos_sensor(0x3f, 0x00); /*Zhen.Quan@ODM_WT.CAMERA.Driver.2019/10/23,modify for camera flip*/
+	write_cmos_sensor(0x3f, 0x00);
 }
 
-//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 
 
 /*************************************************************************
@@ -942,12 +936,12 @@ static void custom1_setting(kal_uint16 currefps)
 	write_cmos_sensor(0x19, 0xf1);
 	write_cmos_sensor(0x29, 0x01);
 	write_cmos_sensor(0xfd, 0x01);
-	write_cmos_sensor(0x9d, 0x6a);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0x9d, 0x6a);
 	write_cmos_sensor(0xa0, 0x29);
 	write_cmos_sensor(0xa1, 0x04);
-	write_cmos_sensor(0xad, 0x22);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xae, 0x01);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xaf, 0xc1);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0xad, 0x22);
+	write_cmos_sensor(0xae, 0x01);
+	write_cmos_sensor(0xaf, 0xc1);
 	write_cmos_sensor(0xb1, 0x01);
 	write_cmos_sensor(0x8e, 0x06);
 	write_cmos_sensor(0x8f, 0x40);
@@ -966,12 +960,11 @@ static void custom1_setting(kal_uint16 currefps)
 	write_cmos_sensor(0xf1, 0x40);
 	write_cmos_sensor(0xf2, 0x40);
 	write_cmos_sensor(0xf3, 0x40);
-	write_cmos_sensor(0x3f, 0x00); /*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/21,modify for camera flip*/
-	write_cmos_sensor(0xfd, 0x01); /*yaoguizhen@ODM_WT.Camera.hal, 2019/12/4, add customer setting  for dual cam ,init  fps=24 */
-	write_cmos_sensor(0x05, 0x02); /*yaoguizhen@ODM_WT.Camera.hal, 2019/12/4, add customer setting  for dual cam ,init  fps=24 */
-	write_cmos_sensor(0x06, 0x04); /*yaoguizhen@ODM_WT.Camera.hal, 2019/12/4, add customer setting  for dual cam ,init  fps=24 */
+	write_cmos_sensor(0x3f, 0x00);
+	write_cmos_sensor(0xfd, 0x01);
+	write_cmos_sensor(0x05, 0x02);
+	write_cmos_sensor(0x06, 0x04);
 }
-//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 /*************************************************************************
 * FUNCTION
 *	Video
@@ -1051,12 +1044,12 @@ static void vga_setting_120fps(void)
 	write_cmos_sensor(0x19, 0xf1);
 	write_cmos_sensor(0x29, 0x01);
 	write_cmos_sensor(0xfd, 0x01);
-	write_cmos_sensor(0x9d, 0x6a);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0x9d, 0x6a);
 	write_cmos_sensor(0xa0, 0x29);
 	write_cmos_sensor(0xa1, 0x04);
-	write_cmos_sensor(0xad, 0x22);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xae, 0x01);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
-	write_cmos_sensor(0xaf, 0xc1);/*HuangMiao@ODM_WT.Camera.Driver, 2019/11/12, Modify clock addr */
+	write_cmos_sensor(0xad, 0x22);
+	write_cmos_sensor(0xae, 0x01);
+	write_cmos_sensor(0xaf, 0xc1);
 	write_cmos_sensor(0xb1, 0x01);
 	write_cmos_sensor(0x8e, 0x06);
 	write_cmos_sensor(0x8f, 0x40);
@@ -1120,7 +1113,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 			write_cmos_sensor(0xfd, 0x00);
 			*sensor_id = ((read_cmos_sensor(0x0200) << 8) | read_cmos_sensor(0x0300)) + 1;
 			if (*sensor_id == imgsensor_info.sensor_id) {
-				/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 				//hardwareinfo_set_prop(HARDWARE_BACK_SUB_CAM_MOUDULE_ID, "Hlt");
 				LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id, *sensor_id);
 				return ERROR_NONE;
@@ -1401,7 +1393,6 @@ static kal_uint32 slim_video(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 	return ERROR_NONE;
 }	/*	slim_video	 */
 
-//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 static kal_uint32 custom1(
 			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 			MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
@@ -1417,7 +1408,6 @@ static kal_uint32 custom1(
 	custom1_setting(imgsensor.current_fps);
 	return ERROR_NONE;
 }
-//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 
 
 static kal_uint32 get_resolution(MSDK_SENSOR_RESOLUTION_INFO_STRUCT *sensor_resolution)
@@ -1433,12 +1423,10 @@ static kal_uint32 get_resolution(MSDK_SENSOR_RESOLUTION_INFO_STRUCT *sensor_reso
 	sensor_resolution->SensorHighSpeedVideoHeight	 = imgsensor_info.hs_video.grabwindow_height;
 	sensor_resolution->SensorSlimVideoWidth	 = imgsensor_info.slim_video.grabwindow_width;
 	sensor_resolution->SensorSlimVideoHeight	 = imgsensor_info.slim_video.grabwindow_height;
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 	sensor_resolution->SensorCustom1Width =
 		imgsensor_info.custom1.grabwindow_width;
 	sensor_resolution->SensorCustom1Height =
 		imgsensor_info.custom1.grabwindow_height;
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 	return ERROR_NONE;
 }	/*	get_resolution	*/
 
@@ -1520,14 +1508,12 @@ static kal_uint32 get_info(enum MSDK_SCENARIO_ID_ENUM scenario_id,
 			sensor_info->MIPIDataLowPwr2HighSpeedSettleDelayCount =
 				imgsensor_info.slim_video.mipi_data_lp2hs_settle_dc;
 			break;
-   //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 	case MSDK_SCENARIO_ID_CUSTOM1:
 			sensor_info->SensorGrabStartX = imgsensor_info.custom1.startx;
 			sensor_info->SensorGrabStartY = imgsensor_info.custom1.starty;
 			sensor_info->MIPIDataLowPwr2HighSpeedSettleDelayCount =
 				imgsensor_info.custom1.mipi_data_lp2hs_settle_dc;
 			break;
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 	default:
 			sensor_info->SensorGrabStartX = imgsensor_info.pre.startx;
 			sensor_info->SensorGrabStartY = imgsensor_info.pre.starty;
@@ -1563,11 +1549,9 @@ static kal_uint32 control(enum MSDK_SCENARIO_ID_ENUM scenario_id,
 	case MSDK_SCENARIO_ID_SLIM_VIDEO:
 			slim_video(image_window, sensor_config_data);
 			break;
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 	case MSDK_SCENARIO_ID_CUSTOM1:
 				custom1(image_window, sensor_config_data);
 			break;
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 	default:
 			LOG_INF("Error ScenarioId setting");
 			preview(image_window, sensor_config_data);
@@ -1678,7 +1662,6 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
 			break;
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 	case MSDK_SCENARIO_ID_CUSTOM1:
 			frame_length = imgsensor_info.custom1.pclk / framerate * 10;
 			frame_length /= imgsensor_info.custom1.linelength;
@@ -1691,7 +1674,6 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
 			break;
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 	default:  /*coding with  preview scenario by default*/
 			frame_length = imgsensor_info.pre.pclk / framerate * 10 / imgsensor_info.pre.linelength;
 			spin_lock(&imgsensor_drv_lock);
@@ -1729,12 +1711,10 @@ static kal_uint32 get_default_framerate_by_scenario(
 	case MSDK_SCENARIO_ID_SLIM_VIDEO:
 			*framerate = imgsensor_info.slim_video.max_framerate;
 			break;
-   //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 	case MSDK_SCENARIO_ID_CUSTOM1:
 			*framerate = imgsensor_info.custom1.max_framerate;
 			break;
 	default:
-   //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 			break;
 	}
 	return ERROR_NONE;

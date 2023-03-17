@@ -49,11 +49,8 @@
 #include "ov12a10mipiraw_Sensor.h"
 #include <soc/oppo/oppo_project.h>
 
-/* Zhen.Quan@Camera.Driver, 2019/10/12, add for [otp bringup] */
 #include "cam_cal_define.h"
-/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 #include <linux/hardware_info.h>
-/* Zhen.Quan@Camera.Driver, 2019/10/17, add for [otp bringup] */
 #include "imgsensor_read_eeprom.h"
 #define ENABLE_OV12A10_MONETD_OTP 1
 
@@ -77,7 +74,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width =  2048,
 		.grabwindow_height = 1536,
 		.mipi_data_lp2hs_settle_dc = 21,
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 300,
 	},
 	.cap = {
@@ -89,7 +86,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width =  4096,
 		.grabwindow_height = 3072,
 		.mipi_data_lp2hs_settle_dc = 21,  //80   30-120
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 300,
 	},
 	/*size@15fps, same as capture*/
@@ -102,7 +99,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 4096,
 		.grabwindow_height = 3072,
 		.mipi_data_lp2hs_settle_dc = 21, //80
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 150,
 	},
 	.cap2 = {
@@ -114,7 +111,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width =  4096,
 		.grabwindow_height = 3072,
 		.mipi_data_lp2hs_settle_dc = 21,
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 240,
 	},
 	.normal_video = {
@@ -126,7 +123,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width =  4096,
 		.grabwindow_height = 3072,
 		.mipi_data_lp2hs_settle_dc = 21,
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 300,
 	},
 	.hs_video = {
@@ -150,7 +147,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 2048,
 		.grabwindow_height = 1536,
 		.mipi_data_lp2hs_settle_dc = 21,
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 300,
 	},
 	.custom1 = {
@@ -162,7 +159,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 2048,
 		.grabwindow_height = 1536,
 		.mipi_data_lp2hs_settle_dc = 21,
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 300,
 	},
 	#if 0
@@ -178,7 +175,6 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.max_framerate = 300,
 	},
 	#else
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 	.custom2 = {
 		.pclk = 108000000,
 		.linelength =  1064,
@@ -188,11 +184,10 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 3264,
 		.grabwindow_height = 2448,
 		.mipi_data_lp2hs_settle_dc = 21,
-		.mipi_pixel_rate = 467200000,//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+		.mipi_pixel_rate = 467200000,
 		.max_framerate = 240,//24.001838481
 		//.mipi_pixel_rate = 467200000
 	},
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 	#endif
 	.margin = 8,
 	.min_shutter = 0x4,        //min shutter check
@@ -200,7 +195,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.ae_shut_delay_frame = 0,  //check
 	.ae_sensor_gain_delay_frame = 0,  //check
 	.ae_ispGain_delay_frame = 2,
-	.frame_time_delay_frame = 2,//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam */
+	.frame_time_delay_frame = 2,
 	.ihdr_support = 0,
 	.ihdr_le_firstline = 0,
 	.sensor_mode_num = 7,
@@ -212,12 +207,10 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.slim_video_delay_frame = 2,
 	.custom1_delay_frame = 2,
 	.custom2_delay_frame = 2,
-	/*Duilin.Qin@ODM_WT.Camera.Driver.493476, 2019/10/21, modify mclk driving current */
 	.isp_driving_current = ISP_DRIVING_2MA, //mclk driving current
 	.sensor_interface_type = SENSOR_INTERFACE_TYPE_MIPI,
 	.mipi_sensor_type = MIPI_OPHY_NCSI2,
 	.mipi_settle_delay_mode = 1,
-	/*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/15,modify for camera rotation 180*/
 	.sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_B,
 	.mclk = 24,//mclk value, suggest 24 or 26 for 24Mhz or 26Mhz
 	.mipi_lane_num = SENSOR_MIPI_4_LANE,//mipi lane num
@@ -238,7 +231,6 @@ static struct imgsensor_struct imgsensor = {
 	.current_scenario_id = MSDK_SCENARIO_ID_CAMERA_PREVIEW,
 	.ihdr_en = 0,
 	.i2c_write_id = 0x6c,
-        /*Yuan.Yuan@ODM_WT.CAMERA.Driver  20191226 modify for exiting long shutter not correctly when shutter is in 0.5s~1.5s*/
         .current_ae_effective_frame = 1,//N+1
 
 };
@@ -255,7 +247,7 @@ static struct SENSOR_WINSIZE_INFO_STRUCT imgsensor_winsize_info[10] = {
 	8,    8, 4096, 3072,    0,    0, 4096, 3072},
 //hs-video
 	{ 4112, 3088,   0,   800,  4096, 1472,   2048,
-        736,  384,    8,   1280,  720,  0,   0,   1280,  720},/*yang.guo@ODM_WT.Camera.hal, 2019/12/21, mod customer setting  for hs video cam  */
+        736,  384,    8,   1280,  720,  0,   0,   1280,  720},
 //slim-video
 	{ 4112, 3088,  0, 0, 4112,   3088,   2056,  1544,
 	4, 4,  2048,  1536,  0,   0,   2048,  1536},
@@ -268,10 +260,9 @@ static struct SENSOR_WINSIZE_INFO_STRUCT imgsensor_winsize_info[10] = {
 	8,    8, 4096, 3072,    0,    0, 4096, 3072},
 	#else
 //custom2
-	{ 4112, 3088,    0,    264, 4112, 2560, 4112, 2560,424,   56, 3264, 2448,    0,    0, 3264, 2448}, //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam  */
+	{ 4112, 3088,    0,    264, 4112, 2560, 4112, 2560,424,   56, 3264, 2448,    0,    0, 3264, 2448},
 	#endif
 };
-/*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/18,Add for camera PDAF*/
 static struct SET_PD_BLOCK_INFO_T imgsensor_pd_info = {
 	 .i4OffsetX = 0,
 	 .i4OffsetY = 0,
@@ -393,7 +384,6 @@ static void set_max_framerate(UINT16 framerate, kal_bool min_framelength_en)
 
 	set_dummy();  //adjust the fps and write it to the sensor
 }
-/*Yuan.Yuan@ODM_WT.CAMERA.Driver  20191226 modify for exiting long shutter not correctly when shutter is in 0.5s~1.5s*/
 static int frame_skip = -1;
 static void write_shutter(kal_uint32 shutter)
 {
@@ -522,7 +512,6 @@ static void write_shutter(kal_uint32 shutter)
         shutter, imgsensor.frame_length, realtime_fps);
 }
 
-/*Weiwei.Cui@Camera.Driver, 2019/11/8, modify for [long shutter settings] */
 static void set_shutter(kal_uint32 shutter)//check out
 {
 	unsigned long flags;
@@ -664,7 +653,7 @@ static kal_uint16 set_gain(kal_uint16 gain)//check out
 
 	LOG_INF("gain = %d , reg_gain = 0x%x\n ", gain, reg_gain);
 	if(reg_gain<(0x7c0/2))
-	    reg_gain=reg_gain*1;//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add for dual aesync  debug */
+	    reg_gain=reg_gain*1;
 	LOG_INF("gain = %d , reg_gain = 0x%x\n ", gain, reg_gain);
 	write_cmos_sensor(0x03508, (reg_gain >> 8));
 	write_cmos_sensor(0x03509, (reg_gain&0xff));
@@ -784,7 +773,7 @@ static kal_uint16 addr_data_pair_init_ov12a10[] = {
 	0x3815, 0x01,
 	0x3816, 0x01,
 	0x3817, 0x01,
-	0x3820, 0xb0, /*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/15,modify for camera rotation 180*/
+	0x3820, 0xb0,
 	0x3821, 0x00,
 	0x3822, 0x91,
 	0x3823, 0x18,
@@ -1074,7 +1063,7 @@ static kal_uint16 addr_data_pair_preview_ov12a10[] = {
 	0x3813, 0x04,
 	0x3814, 0x03,
 	0x3816, 0x03,
-	0x3820, 0xb3, /*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/15,modify for camera rotation 180*/
+	0x3820, 0xb3,
 	0x4009, 0x0d,
 	0x4050, 0x04,
 	0x4051, 0x0b,
@@ -1082,9 +1071,9 @@ static kal_uint16 addr_data_pair_preview_ov12a10[] = {
 	0x5002, 0x45,
 	0x3501, 0x69,
 	0x3502, 0x20,
-	0x3820, 0xb3, /*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/15,modify for camera rotation 180*/
-	0x3811, 0x04, /*Tian.Tian@ODM_WT.CAMERA.Driver.2019/11/29,modify for camera color*/
-	0x3813, 0x04  /*Tian.Tian@ODM_WT.CAMERA.Driver.2019/11/29,modify for camera color*/
+	0x3820, 0xb3,
+	0x3811, 0x04,
+	0x3813, 0x04
 };
 #endif
 
@@ -1293,7 +1282,7 @@ static kal_uint16 addr_data_pair_capture_30fps_ov12a10[] = {
 	0x3813, 0x0a,
 	0x3814, 0x01,
 	0x3816, 0x01,
-	0x3820, 0xb0, /*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/15,modify for camera rotation 180*/
+	0x3820, 0xb0,
 	0x4009, 0x0f,
 	0x4050, 0x04,
 	0x4051, 0x0b,
@@ -1571,7 +1560,6 @@ static void normal_video_setting(kal_uint16 currefps)
 }
 
 #if MULTI_WRITE
-/*yang.guo@ODM_WT.Camera.hal, 2019/12/21, mod customer setting  for hs video cam  */
 static  kal_uint16 addr_data_pair_hs_video_ov12a10[] = {
         0x3642,0x10,
         0x3666,0x00,
@@ -1749,7 +1737,6 @@ static void custom1_setting(void)
 #endif
 }
 
-//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
 #if MULTI_WRITE
 static kal_uint16 addr_data_pair_custom2_24fps_ov12a10[] = {
 	0x3631, 0x00,
@@ -1783,7 +1770,7 @@ static kal_uint16 addr_data_pair_custom2_24fps_ov12a10[] = {
 	0x380e, 0x10,
 	0x380f, 0x85,
 	0x3810, 0x01,
-	0x3811, 0xaa,/*qinduilin@ODM_WT.Camera.driver, 2019/12/03, modify for dual camera opposit color*/
+	0x3811, 0xaa,
 	0x3813, 0x38,
 	0x3814, 0x01,
 	0x3816, 0x01,
@@ -1797,7 +1784,6 @@ static kal_uint16 addr_data_pair_custom2_24fps_ov12a10[] = {
 	0x3502, 0x00
 };
 #endif
-//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
 static void custom2_setting(void)//jack yan check
 {
 	LOG_INF("CUSTOM2_setting 3264*2448_24fps\n");
@@ -1808,12 +1794,10 @@ static void custom2_setting(void)//jack yan check
 		sizeof(addr_data_pair_capture_30fps_ov12a10) /
 		sizeof(kal_uint16));
     #else
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam start */
     ov12a10_table_write_cmos_sensor(
 		addr_data_pair_custom2_24fps_ov12a10,
 		sizeof(addr_data_pair_custom2_24fps_ov12a10) /
 		sizeof(kal_uint16));
-    //*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, add customer setting  for dual cam end */
     #endif
 #else
 	write_cmos_sensor(0x3631, 0x00);
@@ -1933,7 +1917,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 				if(!check_otp_data(&monetd_truly_main_ov12a10_eeprom_data, monetd_truly_main_ov12a10_checksum, sensor_id)){
 					break;
 				} else {
-					/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 					//hardwareinfo_set_prop(HARDWARE_BACK_CAM_MOUDULE_ID, "Truly");
 				}
 				head_id = read_head_id();
@@ -2014,7 +1997,6 @@ static kal_uint32 open(void) //check out
 
 static kal_uint32 close(void)
 {
-        /*HuangMiao@ODM_WT.Camera.Driver.494898, 2019/10/28, ADD streaming_control */
         LOG_INF("E\n");
 	streaming_control(KAL_FALSE);
 	return ERROR_NONE;
@@ -2466,9 +2448,8 @@ static kal_uint32 set_max_framerate_by_scenario(
 			set_dummy();
 	break;
 	case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
-/*Liangtao.Hu@Camera.Driver, 2019/11/18, mod for when linelengths of register setting are same, setting is error*/
 #if 1
-		if (imgsensor.current_fps == imgsensor_info.cap1.max_framerate) {//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, fix bug for preview cannot come  to 30 fps */
+		if (imgsensor.current_fps == imgsensor_info.cap1.max_framerate) {
 			frameHeight = imgsensor_info.cap1.pclk /
 				framerate * 10 / imgsensor_info.cap1.linelength;
 			spin_lock(&imgsensor_drv_lock);
@@ -2481,7 +2462,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 				imgsensor.dummy_line;
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
-		}	else if	(imgsensor.current_fps == imgsensor_info.cap2.max_framerate) {//*yaoguizhen@ODM_WT.Camera.hal, 2019/11/21, fix bug for preview cannot come  to 30 fps */
+		}	else if	(imgsensor.current_fps == imgsensor_info.cap2.max_framerate) {
 			frameHeight = imgsensor_info.cap2.pclk /
 				framerate * 10 / imgsensor_info.cap2.linelength;
 			spin_lock(&imgsensor_drv_lock);
@@ -2867,7 +2848,6 @@ static kal_uint32 feature_control(
 			set_shutter(*feature_data);
 		streaming_control(KAL_TRUE);
 	break;
-        ///*Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview*/
 	case SENSOR_FEATURE_GET_MIPI_PIXEL_RATE:
         {
                 kal_uint32 rate;
@@ -2897,8 +2877,6 @@ static kal_uint32 feature_control(
                 *(MUINT32*)(uintptr_t)(*(feature_data + 1)) = rate;
         }
 	break;
-        ///*Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview*/
-        /*Yuan.Yuan@ODM_WT.CAMERA.Driver  20191226 modify for exiting long shutter not correctly when shutter is in 0.5s~1.5s*/
         case SENSOR_FEATURE_GET_AE_EFFECTIVE_FRAME_FOR_LE:
             *feature_return_para_32 = imgsensor.current_ae_effective_frame;
         break;

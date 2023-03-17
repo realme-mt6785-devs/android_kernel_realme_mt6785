@@ -347,7 +347,6 @@ static void acc_complete_set_string(struct usb_ep *ep, struct usb_request *req)
 	char *string_dest = NULL;
 	int length = req->actual;
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* tongfeng.Huang@BSP.CHG.Basic, 2018/11/17,  Add for dump issue */
 	unsigned long flags;
 #endif
 	if (req->status != 0) {
@@ -375,7 +374,6 @@ static void acc_complete_set_string(struct usb_ep *ep, struct usb_request *req)
 		string_dest = dev->serial;
 		break;
 #ifdef OPLUS_FEATURE_CHG_BASIC
-/* tongfeng.Huang@BSP.CHG.Basic, 2018/11/17,  Add for dump issue */
 	default:
 		pr_err("unknown accessory string index %d\n",
 				dev->string_index);
@@ -384,7 +382,6 @@ static void acc_complete_set_string(struct usb_ep *ep, struct usb_request *req)
 	}
 
 #ifdef VENDOR_EDIT
-/* tongfeng.Huang@BSP.CHG.Basic, 2018/11/17,  Add for dump issue */
 	if (!length) {
 		pr_debug("zero length for accessory string index %d\n",
 				dev->string_index);
@@ -947,6 +944,11 @@ int acc_ctrlrequest(struct usb_composite_dev *cdev,
 	 */
 	if (!dev)
 		return -ENODEV;
+
+//#ifdef OPLUS_BUG_STABILITY
+	if (!dev)
+		goto err;
+//#endif /*OPLUS_BUG_STABILITY*/
 
 	if (b_requestType == (USB_DIR_OUT | USB_TYPE_VENDOR)) {
 		if (b_request == ACCESSORY_START) {

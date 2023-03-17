@@ -199,4 +199,4 @@ module_init(oppo_activity_recognitionhub_init);
 module_exit(oppo_activity_recognitionhub_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("ACTIVITYHUB driver");
-MODULE_AUTHOR("");
+MODULE_AUTHOR("pengqingqing@oppo.com");

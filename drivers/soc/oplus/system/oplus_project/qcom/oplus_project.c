@@ -516,7 +516,6 @@ static int project_read_func(struct seq_file *s, void *v)
 
     switch(Ptr2UINT32(p)) {
     case PROJECT_VERSION:
-        //chenguanhua@BSP.bootloader.bootflow, 2020/09/30, modify for compatible of hexadecimal project model
         if (get_project() > 0x20000) {
             seq_printf(s, "%X", get_project());
         } else {
@@ -739,4 +738,4 @@ arch_initcall(oppo_project_init);
 
 MODULE_DESCRIPTION("OPPO project version");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Joshua <>");
+MODULE_AUTHOR("Joshua <gyx@oppo.com>");

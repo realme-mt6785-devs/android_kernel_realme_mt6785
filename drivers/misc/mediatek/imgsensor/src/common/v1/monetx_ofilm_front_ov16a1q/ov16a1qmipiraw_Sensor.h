@@ -35,11 +35,9 @@ enum IMGSENSOR_MODE {
 	IMGSENSOR_MODE_VIDEO,
 	IMGSENSOR_MODE_HIGH_SPEED_VIDEO,
 	IMGSENSOR_MODE_SLIM_VIDEO,
-	/* Tian.Tian@Camera.Driver, 2019/11/10, add for remosaic start */
 	IMGSENSOR_MODE_CUSTOM1,
 	IMGSENSOR_MODE_CUSTOM2,
 	IMGSENSOR_MODE_CUSTOM3,
-	/* Tian.Tian@Camera.Driver, 2019/11/10, add for remosaic end */
 	IMGSENSOR_MODE_CUSTOM4,
 };
 
@@ -57,7 +55,7 @@ struct imgsensor_mode_struct {
 	 * different scenario	*/
 	kal_uint8 mipi_data_lp2hs_settle_dc;
 
-	kal_uint32 mipi_pixel_rate;//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+	kal_uint32 mipi_pixel_rate;
 
 	/*	 following for GetDefaultFramerateByScenario()	*/
 	kal_uint16 max_framerate;
@@ -110,13 +108,11 @@ struct imgsensor_info_struct {
 	    hs_video; /*high speed video scenario relative information*/
 	struct imgsensor_mode_struct
 	    slim_video; /*slim video for VT scenario relative information*/
-	// Tian.Tian@Camera.Driver, 2019/11/10, add for remosaic start
 	struct imgsensor_mode_struct custom1;
 	struct imgsensor_mode_struct custom2;
 	struct imgsensor_mode_struct custom3;
 	struct imgsensor_mode_struct custom4;
 	struct imgsensor_mode_struct custom5;
-	// Tian.Tian@Camera.Driver, 2019/11/10, add for remosaic end
 	kal_uint8 ae_shut_delay_frame; /*shutter delay frame for AE cycle*/
 	kal_uint8
 	    ae_sensor_gain_delay_frame; /*sensor gain delay frame for AE cycle*/
@@ -131,7 +127,6 @@ struct imgsensor_info_struct {
 	kal_uint8
 	    hs_video_delay_frame; /*enter high speed video  delay frame num*/
 	kal_uint8 slim_video_delay_frame; /*enter slim video delay frame num*/
-	/* Tian.Tian@Camera.Driver, 2019/11/10, add for remosaic start*/
 	kal_uint8 custom3_delay_frame;
 	kal_uint8 custom4_delay_frame;
 

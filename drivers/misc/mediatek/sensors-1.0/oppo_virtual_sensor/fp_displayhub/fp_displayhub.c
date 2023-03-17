@@ -5,11 +5,9 @@
 ** Description: Source file for fp_display sensor linux driver.
 ** Version: 1.0
 ** Date : 2020/03/31
-** Author: Baixue.Jie@PSW.BSP.Sensor
 **
 ** --------------------------- Revision History: ---------------------
 * <version> <date>      <author>                    <desc>
-* Revision 1.0      2020/03/31       Baixue.Jie@PSW.BSP.Sensor      Created
 *******************************************************************/
 
 #include "fp_displayhub.h"
@@ -182,5 +180,5 @@ module_init(fp_displayhub_init);
 module_exit(fp_displayhub_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("ACTIVITYHUB driver");
-MODULE_AUTHOR("");
+MODULE_AUTHOR("cheny@oppo.com");
 

@@ -46,7 +46,6 @@ extern ProjectInfoCDTType_oldcdt *format;
 static ProjectInfoOCDT *g_project = NULL;
 static int newcdt = -1;
 
-/*Bin.Li@BSP.Bootloader.Bootflows, 2019/05/09, Add for diff manifest*/
 static const char* nfc_feature = "nfc_feature";
 static const char* feature_src = "/vendor/etc/nfc/com.oppo.nfc_feature.xml";
 
@@ -549,7 +548,6 @@ static void __init update_manifest(struct proc_dir_entry *parent_1, struct proc_
     set_fs(fs);
 }
 
-/*Bin.Li@BSP.Bootloader.Bootflows, 2019/05/09, Add for diff manifest*/
 static int __init update_feature(void)
 {
     mm_segment_t fs;
@@ -806,4 +804,4 @@ arch_initcall(oppo_project_init);
 
 MODULE_DESCRIPTION("OPPO project version");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Joshua <>");
+MODULE_AUTHOR("Joshua <gyx@oppo.com>");

@@ -159,7 +159,6 @@ struct fuse_file {
 	bool flock:1;
 
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	/* the read write file */
 	struct file *rw_lower_file;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
@@ -244,7 +243,6 @@ struct fuse_args {
 		struct fuse_arg args[2];
 	} out;
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	/** fuse shortcircuit file  */
 	struct file *private_lower_rw_file;
 	char *iname;
@@ -402,7 +400,6 @@ struct fuse_req {
 	struct file *stolen_file;
 
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	/** fuse shortcircuit file  */
 	struct file *private_lower_rw_file;
 	char *iname;
@@ -568,7 +565,6 @@ struct fuse_conn {
 	unsigned handle_killpriv:1;
 
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	/** Shortcircuited IO. */
 	unsigned shortcircuit_io:1;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
@@ -947,6 +943,7 @@ int fuse_allow_current_process(struct fuse_conn *fc);
 
 u64 fuse_lock_owner_id(struct fuse_conn *fc, fl_owner_t id);
 
+void fuse_flush_time_update(struct inode *inode);
 void fuse_update_ctime(struct inode *inode);
 
 int fuse_update_attributes(struct inode *inode, struct file *file);
@@ -1029,7 +1026,6 @@ int fuse_set_acl(struct inode *inode, struct posix_acl *acl, int type);
 extern int sct_mode;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
 #ifdef CONFIG_OPLUS_FEATURE_ACM
-//Yuwei.Guan@BSP.Kernel.FS,2020/07/08, Add for acm
 void acm_fuse_init_cache(void);
 void acm_fuse_free_cache(void);
 #endif

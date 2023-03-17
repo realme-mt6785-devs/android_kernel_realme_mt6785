@@ -14,7 +14,6 @@
 		"nt35595_fhd_dsi_cmd_truly_nt50358_drv";
 };
 //#ifdef OPLUS_FEATURE_TP_BASIC
-/*Xiaofei.Gong@BSP.TP.Function, 2020/09/15, bringup add for sala touchscreen.*/
 &spi3 {
 	novatek@0 {
                 compatible = "novatek,nf_nt36672c";
@@ -71,7 +70,6 @@
 	};
 };
 
-/*Xiaofei.Gong@BSP.TP.Function, 2020/09/15, bringup add for sala touchscreen.*/
 //#endif OPLUS_FEATURE_TP_BASIC
 &i2c2 {
 	clock-frequency = <400000>;
@@ -123,7 +121,6 @@
 	led6:led@6 {
 		compatible = "mediatek,lcd-backlight";
 		//#ifndef ODM_HQ_EDIT
-		//liyan@ODM.Multimedia.LCD  2019/08/27 modify for lcd-bl mode
 		//led_mode = <5>;
 		//#else
 		led_mode = <4>;
@@ -140,9 +137,7 @@
 	usb_c_pinctrl:usb_c_pinctrl {
 		compatible = "mediatek,usb_c_pinctrl";
 	};
-	/* Yonghai.Wang@BSP.bootloader.bootflow, 2020/9/17, add for keypad volume up and volume down */
 	//#ifdef OPLUS_BUG_STABILITY
-	/* yulianghan@BSP.bootloader.bootflow, 2020/10/31, remove vol up eint mode*/
 	/*
 	kpd_volume_up:kpd_volume_up {
 		compatible = "mediatek, VOLUME_UP-eint";
@@ -161,14 +156,12 @@
 		status = "okay";
 	};
 	//#ifdef OPLUS_FEATURE_SIM
-	/* Yuchun.Luo@NETWORK.SIM, 2020/12/16, modify for sim detect */
 	oplus_sim_detect {
 		compatible = "oplus, sim_detect";
 		Hw,sim_det = <&pio 140 0x00>;
 	};
 	//#endif /* OPLUS_FEATURE_SIM */
 /* sensor start */
-/*Fei.Mo@PSW.BSP.Sensor, 2017/12/18, Add for sensor device tree */
 	/*
 	enum {
 		LIS3DH,
@@ -304,20 +297,17 @@
 /* sensor end */
 
 /*VNDOR_EDIT oppo project start */
-/*Kun.Wang@BSP.Kernel.Debug, 2019/10/09, Add for oppo project & devinfo*/
 	oplus_project:oplus_project {
 		compatible = "oppo,oplus_project";
 	};
 	oplus_devinfo:oplus_devinfo {
 		compatible = "oppo-devinfo";
 //#ifdef OPLUS_FEATURE_SDCARD
-//WeiZhenXi@BSP.Storage.Sdcard, 2020/09/27, Modify for enable sdcard
 		sdcard-gpio = <&pio 8 0>;
 //#endif /* OPLUS_FEATURE_SDCARD */
 	};
 
     //#ifdef OPLUS_FEATURE_NFC_CONSOFT
-    //WangYukun@CONNECTIVITY.NFC.BASIC, 2020/04/16, add for: add oppo nfc chipset for FC CONSOFT
     nfc_chipset:nfc_chipset {
         compatible = "oppo-nfc-chipset";
         chipset-20682-146 = "NQ310";
@@ -396,7 +386,7 @@
 		regulator-name = "VTP";
 		regulator-min-microvolt = <1200000>;
 		regulator-max-microvolt = <3600000>;
-		regulator-always-on;//zuoqiquan@ODM.BSP.Sensors 20191105 for LDO2 up
+		regulator-always-on;
 	};
 };
 &mt6360_ldo {
@@ -459,7 +449,6 @@
 };
 
 /* accdet start */
-// wuhui@MULTIMEDIA.AUDIODRIVER 2020.11.05 accdet bringup
 &accdet {
 	/* accdet micbias voltage: 0x09:2.85v 0x08:2.8v 0x07,
 	 * 2.7v;0x05,2.5v;0x02,1.9v
@@ -520,7 +509,6 @@
 /* accdet end */
 
 /* AUDIODSP Feature */
-// wuhui@MULTIMEDIA.AUDIODRIVER 2020.11.05 add for audio dsp config
 &snd_audio_dsp {
 	mtk_dsp_voip = <0x0 0x1 0xffffffff 0xffffffff 0x30000>;
 	mtk_dsp_primary = <0x0 0x0 0xffffffff 0xffffffff 0x30000>;
@@ -541,7 +529,6 @@
 };
 /* AUDIODSP end*/
 
-// wuhui@ODM.CM.Multimedia.Audio 2020/09/08 modified for aw87339 bringup
 &i2c6 {
 	aw87339@58 {
 		compatible = "awinic,aw87339_pa";
@@ -549,7 +536,6 @@
 		reset-gpio = <&pio 24 0>;
 		status = "okay";
 	};
-	// wuhui@ODM.CM.Multimedia.Audio 2020/09/08 add for aw87359 bringup
 	aw87359@59 {
 		compatible = "awinic,aw87359_pa";
 		reg = <0x59>;
@@ -558,7 +544,6 @@
 };
 
 //#ifdef OPLUS_FEATURE_NFC_BRINGUP
-//LinJunBin@CONNECTIVITY.NFC.BASIC , 2020/09/19, add for : add NXP devices
 &i2c3 {
        status = "okay";
        nfc_nxp@28 {
@@ -572,7 +557,6 @@
 };
 //#endif /* OPLUS_FEATURE_NFC_BRINGUP */
 
-/* liu.Yong@RM.CM.Charger 2020/07/28 modified for bring up charging begin*/
 &mt6360_pmu {
 	mt6360,intr_gpio_num = <16>; /* direct defined GPIO num */
 	mt6360,intr_gpio = <&pio 16 0x0>;
@@ -721,9 +705,7 @@
 	};
 };
 /* USB SWITCH GPIO end */
-/* liu.Yong@RM.CM.Charger 2020/07/28 modified for bring up charging end*/
 
-/* Yonghai.Wang@BSP.bootloader.bootflow, 2020/9/17, add for keypad volume up and volume down */
 &keypad {
 	keypad,volume-up	= <&pio 59 0x00>;
 	keypad,volume-down	= <&pio 60 0x00>;
@@ -758,7 +740,6 @@
 		pins_cmd_dat {
 			pinmux = <PINMUX_GPIO155__FUNC_GPIO155>;
                         //#ifndef VENDOR_EDIT
-                        //Wenjie.Liu@PSW.CN.GPS.Hardware.Power.1202743, 2017/12/29,
                         //modify for: [GPS_LNA gpio's output direction is out]
                         /*
 			slew-rate = <0>;
@@ -796,7 +777,6 @@
 /* CONSYS end */
 
 //#ifdef OPLUS_FEATURE_FINGERPRINT
-//Qi.zhang@BSP.Biometrics.Fingerprint 2020/09/25 add  fingerprint driver
 /*the fpc device config start.*/
 &pio {
 	fpc_reset_default: fpc_reset_default {
@@ -956,7 +936,6 @@
 };
 //#endif /* OPLUS_FEATURE_FINGERPRINT */
 
-/* liu.Yong@RM.CM.Charger 2020/07/28 modified for bring up charging */
 &odm {
 	vooc_ap_data:vooc_ap_data {
 		compatible = "mediatek, VOOC_AP_DATA-eint";
@@ -1127,7 +1106,6 @@
 	};
 };
 
-/* Jiao.Yang@CM.BSP.CHG.Basic, 2020/12/09, Add for uart0 */
 &apuart0 {
 	pinctrl-names = "uart0_rx_gpio",
 			"uart0_tx_gpio";

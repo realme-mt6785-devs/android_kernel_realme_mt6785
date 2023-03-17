@@ -61,7 +61,6 @@
 #include <mach/pseudo_m4u.h>
 #endif
 #ifdef OPLUS_FEATURE_HEALTHINFO
-//Jiheng.Xie@TECH.BSP.Performance, 2019/07/11, add for ion wait monitor
 #include <linux/oppo_healthinfo/memory_monitor.h>
 #include <linux/oppo_healthinfo/oppo_ion.h>
 #endif /* OPLUS_FEATURE_HEALTHINFO */
@@ -411,17 +410,11 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	}
 exit:
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_DUMP_TASKS_MEM)
-	/*Kui.Zhang@BSP.Kernel.MM, 2020-05-29, record creator before
-	 * the buffer inster to heap.
-	 */
 	buffer->tsk = current->group_leader;
 	get_task_struct(buffer->tsk);
 	atomic64_add(buffer->size, &buffer->tsk->ions);
 #endif
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_MEMLEAK_DETECT_THREAD) && defined(CONFIG_OPPO_SVELTE)
-	/* Kui.Zhang@BSP.Kernel.MM, 2020-05-20 add record the buffer
-	 * create time and calc the buffer age on dump.
-	 */
 	buffer->jiffies = jiffies;
 #endif
 	mutex_lock(&dev->buffer_lock);
@@ -430,7 +423,6 @@ exit:
 	atomic_long_add(len, &total_heap_bytes);
 	atomic_long_add(len, &heap->total_allocated);
 #ifdef OPLUS_FEATURE_HEALTHINFO
-/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-06-26, add ion total used account*/
 	if (ion_cnt_enable)
 		atomic_long_add(buffer->size, &ion_total_size);
 #endif /* OPLUS_FEATURE_HEALTHINFO */
@@ -450,13 +442,11 @@ void ion_buffer_destroy(struct ion_buffer *buffer)
 		buffer->heap->ops->unmap_kernel(buffer->heap, buffer);
 	}
 #ifdef OPLUS_FEATURE_HEALTHINFO
-/* Huacai.Zhou@PSW.BSP.Kernel.MM, 2018-06-26, add ion total used account*/
 	if (ion_cnt_enable)
 		atomic_long_sub(buffer->size, &ion_total_size);
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 	atomic_long_sub(buffer->size, &buffer->heap->total_allocated);
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_DUMP_TASKS_MEM)
-	/* Peifeng.Li@PSW.BSP.Kernel.MM, 2019-09-5, accounts process-real-phymem*/
 	if (buffer->tsk) {
 		atomic64_sub(buffer->size, &buffer->tsk->ions);
 		put_task_struct(buffer->tsk);
@@ -715,7 +705,6 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 	unsigned long long start, end;
 	unsigned int heap_mask = ~0;
 #ifdef OPLUS_FEATURE_HEALTHINFO
-//Jiheng.Xie@TECH.BSP.Performance, 2019/07/11, add for ion wait monitor
 #if defined(CONFIG_OPPO_HEALTHINFO) && defined (CONFIG_OPPO_MEM_MONITOR)
 	unsigned long oppo_ionwait_start = jiffies;
 #endif
@@ -840,7 +829,6 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 	do_div(handle->dbg.user_ts, 1000000);
 	memcpy(buffer->alloc_dbg, client->dbg_name, ION_MM_DBG_NAME_LEN);
 #ifdef OPLUS_FEATURE_HEALTHINFO
-//Jiheng.Xie@TECH.BSP.Performance, 2019/07/11, add for ion wait monitor
 #if defined(CONFIG_OPPO_HEALTHINFO) && defined (CONFIG_OPPO_MEM_MONITOR)
 		oppo_ionwait_monitor(jiffies_to_msecs(jiffies - oppo_ionwait_start));
 #endif
@@ -1033,8 +1021,6 @@ static int ion_debug_client_show(struct seq_file *s, void *unused)
 	}
 
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	if (!down_read_trylock(&dev->client_lock)) {
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	if (!down_read_trylock(&dev->lock)) {
@@ -1049,8 +1035,6 @@ static int ion_debug_client_show(struct seq_file *s, void *unused)
 			   client);
 		IONMSG("%s:client invalid\n", __func__);
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 		up_read(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		up_read(&dev->lock);
@@ -1081,8 +1065,6 @@ static int ion_debug_client_show(struct seq_file *s, void *unused)
 	}
 	mutex_unlock(&client->lock);
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	up_read(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_read(&dev->lock);
@@ -1195,8 +1177,6 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 		goto err_free_client;
 
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	down_write(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	down_write(&dev->lock);
@@ -1206,8 +1186,6 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 		GFP_KERNEL, "%s-%d", name, client->display_serial);
 	if (!client->display_name) {
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 		up_write(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		up_write(&dev->lock);
@@ -1253,8 +1231,6 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 #endif
 
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	up_write(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_write(&dev->lock);
@@ -1300,8 +1276,6 @@ void ion_client_destroy(struct ion_client *client)
 	idr_destroy(&client->idr);
 
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	down_write(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	down_write(&dev->lock);
@@ -1316,8 +1290,6 @@ void ion_client_destroy(struct ion_client *client)
 	proc_remove(client->proc_root);
 #endif
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	up_write(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_write(&dev->lock);
@@ -1928,12 +1900,6 @@ static int ion_dma_buf_begin_cpu_access(struct dma_buf *dmabuf,
 static int ion_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 				      enum dma_data_direction direction)
 {
-	struct ion_buffer *buffer = dmabuf->priv;
-
-	mutex_lock(&buffer->lock);
-	ion_buffer_kmap_put(buffer);
-	mutex_unlock(&buffer->lock);
-
 	return 0;
 }
 #endif
@@ -2183,8 +2149,6 @@ int ion_query_heaps(struct ion_client *client, struct ion_heap_query *query)
 	memset(&hdata, 0, sizeof(hdata));
 
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	down_read(&dev->heap_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	down_read(&dev->lock);
@@ -2219,8 +2183,6 @@ int ion_query_heaps(struct ion_client *client, struct ion_heap_query *query)
 	query->cnt = cnt;
 out:
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	up_read(&dev->heap_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_read(&dev->lock);
@@ -2324,8 +2286,6 @@ static int ion_debug_heap_show(struct seq_file *s, void *unused)
 	seq_puts(s, "----------------------------------------------------\n");
 
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	down_read(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	down_read(&dev->lock);
@@ -2365,8 +2325,6 @@ static int ion_debug_heap_show(struct seq_file *s, void *unused)
 		client->dbg_hnd_cnt = 0;
 	}
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	up_read(&dev->client_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_read(&dev->lock);
@@ -2548,8 +2506,6 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 
 	heap->dev = dev;
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	down_write(&dev->heap_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	down_write(&dev->lock);
@@ -2624,8 +2580,6 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 
 	dev->heap_cnt++;
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	up_write(&dev->heap_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 	up_write(&dev->lock);
@@ -2684,7 +2638,6 @@ static int ion_init_sysfs(void)
 }
 
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_MEMLEAK_DETECT_THREAD) && defined(CONFIG_OPPO_SVELTE)
-/* Kui.Zhang@BSP.Kernel.MM, 2020-05-20 remember the ion device */
 #include "ion_track/ion_track.h"
 #endif
 struct ion_device *ion_device_create(long (*custom_ioctl)
@@ -2755,8 +2708,6 @@ procfs_done:
 	idev->buffers = RB_ROOT;
 	mutex_init(&idev->buffer_lock);
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 	init_rwsem(&idev->client_lock);
 	init_rwsem(&idev->heap_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
@@ -2765,7 +2716,6 @@ procfs_done:
 	plist_head_init(&idev->heaps);
 	idev->clients = RB_ROOT;
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_MEMLEAK_DETECT_THREAD) && defined(CONFIG_OPPO_SVELTE)
-	/* Kui.Zhang@BSP.Kernel.MM, 2020-05-20 remember the ion device */
 	update_internal_dev(idev);
 #endif
 	return idev;
@@ -2897,8 +2847,6 @@ struct ion_heap *ion_drv_get_heap(struct ion_device *dev,
 
 	if (need_lock) {
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 		if (!down_read_trylock(&dev->heap_lock)) {
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		if (!down_read_trylock(&dev->lock)) {
@@ -2917,8 +2865,6 @@ struct ion_heap *ion_drv_get_heap(struct ion_device *dev,
 
 	if (need_lock)
 #ifdef OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK
-/* Hailong.Liu@BSP.Kernel.MM, 2020-09-07, use two separate locks for heaps and
- * clients in ion_device */
 		up_read(&dev->heap_lock);
 #else /* OPLUS_FEATURE_MTK_ION_SEPARATE_LOCK */
 		up_read(&dev->lock);
@@ -2957,9 +2903,6 @@ file2buf_exit:
 }
 
 #if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_MEMLEAK_DETECT_THREAD) && defined(CONFIG_OPPO_SVELTE)
-/* Kui.Zhang@BSP.Kernel.MM, 2020-05-20 add ion memleak detect dameon,
- * need CONFIG_DUMP_TASKS_MEM first.
- */
 #include "ion_track/ion_track.c"
 #endif
 /* ===================================== */

@@ -171,4 +171,4 @@ static void __exit mdmrst_exit(void)
 module_init(mdmrst_init);
 module_exit(mdmrst_exit);
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Geliang Tang <>");
+MODULE_AUTHOR("Geliang Tang <geliang.tang@oppo.com>");

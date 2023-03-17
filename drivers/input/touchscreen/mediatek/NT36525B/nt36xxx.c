@@ -23,7 +23,6 @@
 #include <linux/input/mt.h>
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/11/20,solve novatek build error
 #include <linux/pm_wakeirq.h>
 #include <linux/pm_wakeup.h>
 #else
@@ -48,7 +47,6 @@
 #include <linux/headset_notifier.h>
 
 #ifdef ODM_WT_EDIT
-//Tongxing.Liu@ODM_WT.BSP.TP.FUNCTION.2019/10/07, add write hardwareinfo dmess.
 #include <linux/hardware_info.h>
 #endif
 
@@ -86,12 +84,10 @@ static unsigned long nvt_tp_headset_state = 0;
 static char Ctp_name[64];
 
 #ifdef ODM_WT_EDIT
-//Tongxing.Liu@ODM_WT.BSP.TP.FUNCTION.2019/10/07, add write hardwareinfo dmess.
 static char version[20] = {"0"};
 #endif
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 //int	power_flag =  0; /* 0 disable ; 1 enable;no unblance*/
 #endif
 
@@ -100,7 +96,6 @@ extern int32_t nvt_extra_proc_init(void);
 #endif
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04, add hardware_info
 extern char Ctp_name[HARDWARE_MAX_ITEM_LONGTH];
 #endif
 
@@ -168,7 +163,6 @@ const struct mtk_chip_config spi_ctrdata = {
 #endif
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/04,Add skyw novatek TP IC
 struct upgrade_fw_info nvt_fw_list[] = {
     {HLT_BOE, "HLT", BOOT_UPDATE_FIRMWARE_HLT_BOE_NAME,  MP_UPDATE_FIRMWARE_HLT_BOE_NAME, up_fw_kernel_hlt_boe, sizeof(up_fw_kernel_hlt_boe), OPPO_BOOT_UPDATE_FIRMWARE_HLT_BOE_NAME},
     {HLT_BOE_GG3, "HLT", BOOT_UPDATE_FIRMWARE_HLT_BOE_GG3_NAME,  MP_UPDATE_FIRMWARE_HLT_BOE_GG3_NAME, up_fw_kernel_hlt_boe_gg3, sizeof(up_fw_kernel_hlt_boe_gg3), OPPO_BOOT_UPDATE_FIRMWARE_HLT_BOE_GG3_NAME},
@@ -298,7 +292,6 @@ void nvt_rest_ddi(void)
 
 #ifdef ODM_WT_EDIT
 #if 0
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 /*******************************************************
 Description:
 	Novatek touchscreen POWER ON function.
@@ -1069,7 +1062,6 @@ enum {	/* oppo gesture type */
 #define FUNCPAGE_GESTURE         1
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/11/20,solve novatek build error
 //static struct wake_lock gestrue_wakelock;
 #else
 static struct wake_lock gestrue_wakelock;
@@ -1470,7 +1462,6 @@ static int32_t nvt_enable_jitter_mode(bool enable)
 }
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/04/24,add HOPPING_POLLING
 int32_t nvt_enable_hopping_polling_mode(bool enable)
 {
     int32_t ret = -1;
@@ -1579,7 +1570,6 @@ static void nvt_esd_check_func(struct work_struct *work)
 		NVT_ERR("do ESD recovery, timer = %d, retry = %d\n", timer, esd_retry);
 		/* do esd recovery, reload fw */
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/04,Add skyw novatek TP IC
 		nvt_update_firmware(fw->firmware_name);
 #endif
 		mutex_unlock(&ts->lock);
@@ -1599,7 +1589,7 @@ static bool nvt_corner_point_process(int i)
     int j;
 	int flag = 0;
 	if (ts->nvt_oppo_proc_data->edge_limit.limit_00 == 0) {
-		//½Úµã/proc/touchpanel/oppo_tp_limit_enableµÄbit1Î»À´¿ØÖÆ¿ØÖÆ
+		//Â½ÃšÂµÃ£/proc/touchpanel/oppo_tp_limit_enableÂµÃ„bit1ÃŽÂ»Ã€Â´Â¿Ã˜Ã–Ã†Â¿Ã˜Ã–Ã†
 		if ((ts->nvt_oppo_proc_data->edge_limit.limit_lu) &&
 			(ts->nvt_oppo_proc_data->nvt_point_info[i].x < ts->nvt_oppo_proc_data->nvt_limit_area.area_xlu &&
 			ts->nvt_oppo_proc_data->nvt_point_info[i].y < ts->nvt_oppo_proc_data->nvt_limit_area.area_ylu)) {
@@ -1614,7 +1604,7 @@ static bool nvt_corner_point_process(int i)
 			flag = 1;
 
         }
-         //½Úµã/proc/touchpanel/oppo_tp_limit_enableµÄbit2Î»À´¿ØÖÆ¿ØÖÆ
+         //Â½ÃšÂµÃ£/proc/touchpanel/oppo_tp_limit_enableÂµÃ„bit2ÃŽÂ»Ã€Â´Â¿Ã˜Ã–Ã†Â¿Ã˜Ã–Ã†
         if ((ts->nvt_oppo_proc_data->edge_limit.limit_ru)  &&
 			(ts->nvt_oppo_proc_data->nvt_point_info[i].x > ts->nvt_oppo_proc_data->nvt_limit_area.area_xru &&
 			ts->nvt_oppo_proc_data->nvt_point_info[i].y < ts->nvt_oppo_proc_data->nvt_limit_area.area_yru)) {
@@ -1629,7 +1619,7 @@ static bool nvt_corner_point_process(int i)
 			flag = 1;
 
         }
-         //½Úµã/proc/touchpanel/oppo_tp_limit_enableµÄbit3Î»À´¿ØÖÆ¿ØÖÆ
+         //Â½ÃšÂµÃ£/proc/touchpanel/oppo_tp_limit_enableÂµÃ„bit3ÃŽÂ»Ã€Â´Â¿Ã˜Ã–Ã†Â¿Ã˜Ã–Ã†
        if ((ts->nvt_oppo_proc_data->edge_limit.limit_lb) &&
 	   	(ts->nvt_oppo_proc_data->nvt_point_info[i].x < ts->nvt_oppo_proc_data->nvt_limit_area.area_xlb &&
 	   	ts->nvt_oppo_proc_data->nvt_point_info[i].y > ts->nvt_oppo_proc_data->nvt_limit_area.area_ylb)) {
@@ -1644,7 +1634,7 @@ static bool nvt_corner_point_process(int i)
 			flag = 1;
 
         }
-         //½Úµã/proc/touchpanel/oppo_tp_limit_enableµÄbit4Î»À´¿ØÖÆ¿ØÖÆ
+         //Â½ÃšÂµÃ£/proc/touchpanel/oppo_tp_limit_enableÂµÃ„bit4ÃŽÂ»Ã€Â´Â¿Ã˜Ã–Ã†Â¿Ã˜Ã–Ã†
        if ((ts->nvt_oppo_proc_data->edge_limit.limit_rb) &&
 	   	(ts->nvt_oppo_proc_data->nvt_point_info[i].x > ts->nvt_oppo_proc_data->nvt_limit_area.area_xrb &&
 	   	ts->nvt_oppo_proc_data->nvt_point_info[i].y > ts->nvt_oppo_proc_data->nvt_limit_area.area_yrb)) {
@@ -1660,7 +1650,7 @@ static bool nvt_corner_point_process(int i)
 			flag = 1;
 
         }
-        //×ø±êµãÎª·Ç±ß½ÇÇøÓòÊ±£¬µ¯ÆðÇ°Ãæ¼ÇÂ¼µÄ±ß½Ç×ø±êµã
+        //Ã—Ã¸Â±ÃªÂµÃ£ÃŽÂªÂ·Ã‡Â±ÃŸÂ½Ã‡Ã‡Ã¸Ã“Ã²ÃŠÂ±Â£Â¬ÂµÂ¯Ã†Ã°Ã‡Â°ÃƒÃ¦Â¼Ã‡Ã‚Â¼ÂµÃ„Â±ÃŸÂ½Ã‡Ã—Ã¸Â±ÃªÂµÃ£
         if (ts->nvt_oppo_proc_data->nvt_point_info[i].type != NVT_AREA_CORNER) {
 
             if (ts->nvt_oppo_proc_data->nvt_limit_area.which_area == NVT_AREA_CORNER) {
@@ -1768,7 +1758,6 @@ static void nvt_ts_work_func(void)
    if (nvt_wdt_fw_recovery(point_data)) {
        NVT_ERR("Recover for fw reset, %02X\n", point_data[1]);
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/04,Add skyw novatek TP IC
        nvt_update_firmware(fw->firmware_name);
 #endif
        goto XFER_ERROR;
@@ -1825,7 +1814,6 @@ static void nvt_ts_work_func(void)
 					if(input_p_bak == input_p)
 					input_p++;
 #ifdef ODM_WT_EDIT
-//bin.su@ODM_WT.BSP.Tp,2019/08/12,solver probleml for RTC 2224750
 					input_w++;
 #endif
 					input_p_bak = input_p;
@@ -1971,7 +1959,6 @@ static irqreturn_t nvt_ts_irq_handler(int32_t irq, void *dev_id)
 #if WAKEUP_GESTURE
 	if (bTouchIsAwake == 0) {
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/11/20,solve novatek build error
 		pm_wakeup_event(&ts->input_dev->dev, 5000);
 #else
 		wake_lock_timeout(&gestrue_wakelock, msecs_to_jiffies(5000));
@@ -2080,7 +2067,6 @@ static int __maybe_unused tid_get_lockdown_info(struct device *dev, char *out_va
 static void nvt_resume_workqueue(struct work_struct *work)
 {
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 //	int pwr;
 #endif
 
@@ -2100,7 +2086,6 @@ static void nvt_resume_workqueue(struct work_struct *work)
 	gpio_set_value(ts->reset_gpio, 1);
 #endif
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/04,Add skyw novatek TP IC
 	nvt_update_firmware(fw->firmware_name);
 #endif
 	nvt_check_fw_reset_state(RESET_STATE_REK);
@@ -2110,7 +2095,6 @@ static void nvt_resume_workqueue(struct work_struct *work)
 		//enable_irq(ts->client->irq);
 		nvt_irq_enable(1);
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 //		pwr = nvt_power_on(ts, true);
 //		if(pwr != 0)
 //			NVT_ERR("nvt_power_on failed\n");
@@ -2122,7 +2106,6 @@ static void nvt_resume_workqueue(struct work_struct *work)
 	nvt_irq_enable(1);
 #endif
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 //	if(power_flag == 0){
 //		pwr = nvt_power_on(ts, true);
 //		if(pwr != 0)
@@ -2168,7 +2151,6 @@ void nvt_lcd_esd_resume_func(void)
 	NVT_LOG("do ESD recovery, Begain to load firmware");
 	/* do esd recovery, reload fw */
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/04,Add skyw novatek TP IC
 	nvt_update_firmware(fw->firmware_name);
 #endif
 	nvt_check_fw_reset_state(RESET_STATE_REK);
@@ -2333,7 +2315,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 {
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.Tp,2018/10/11,Add touch-info file function
 //	struct touch_info_dev *tid;
 //	struct touch_info_dev_operations *tid_ops;
 //	struct device *dev= &client->dev;
@@ -2345,7 +2326,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #endif
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.Tp.Init.1644722,2018/11/21,Bringup nt36525b+huaxian tp
 	char *temp = NULL;
 	//char * cmdline_tp = NULL;
 	int nt_ctpmodule = 0;
@@ -2406,7 +2386,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->client = client;
 	spi_set_drvdata(client, ts);
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.Tp,2018/11/21,Add touch-info file function
 /*	tid = devm_tid_and_ops_allocate(dev);
 	if (unlikely(!tid))
 		return -ENOMEM;
@@ -2418,7 +2397,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->oppo_baseline_test_flag = 0;
 	ts->irq_enable_time = 1;
 	ts->irq_enable_flag = 0;
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/04,Add skyw novatek TP IC
 	ts->vendor_id = nt_ctpmodule;
 	NVT_LOG("vendor_id is %d",ts->vendor_id);
 
@@ -2472,7 +2450,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	}
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 //	ret = power_init(ts, true);
 //	if (ret) {
 //		NVT_ERR("Novtek power init fail\n");
@@ -2553,7 +2530,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);    //area = 255
 	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
 
-	//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/08/16,adjust ABS_MT_POSITION_X,ABS_MT_POSITION_Y value
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max-1, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max-1, 0, 0);
 #if MT_PROTOCOL_B
@@ -2572,13 +2548,11 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #if WAKEUP_GESTURE
 	ts->gesture_enable = 0;
 #ifdef ODM_WT_EDIT
-	//Tongxing.Liu@ODM_WT.BSP.TP.FUNCTION.2019/10/07, add tp_gesture flag.
 	tp_gesture = 0;
 #endif
 	memset(&ts->gesture, 0, sizeof(struct gesture_info));
 	input_set_capability(ts->input_dev, EV_KEY, KEY_F4);
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/11/20,solve novatek build error
 	//device_init_wakeup(&ts->input_dev->dev, true);
 #else
 	wake_lock_init(&gestrue_wakelock, WAKE_LOCK_SUSPEND, "poll-wake-lock");
@@ -2689,7 +2663,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #endif
 
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.Tp,2018/11/21,Add touch-info file function
 //	ret = devm_tid_register(dev, tid);
 //	if (unlikely(ret))
 //		return ret;
@@ -2812,7 +2785,6 @@ static int32_t nvt_ts_suspend(struct device *dev)
 {
 	//uint8_t buf[4] = {0};
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 //	int pwr;
 #endif
 #if MT_PROTOCOL_B
@@ -2834,7 +2806,6 @@ static int32_t nvt_ts_suspend(struct device *dev)
 			nvt_irq_enable(false);
 //#ifdef ODM_WT_EDIT
 #if 0
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2019/07/04,add power on function
 			pwr = nvt_power_on(ts, false);
 			if(pwr != 0) {
 				NVT_ERR("power off fail\n");
@@ -3054,7 +3025,6 @@ static void __exit nvt_driver_exit(void)
 
 #if BOOT_UPDATE_FIRMWARE
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/13, solve crash when boot errors
 	cancel_delayed_work_sync(&ts->nvt_fwu_work);
 #endif
 	if (nvt_fwu_wq)
@@ -3063,7 +3033,6 @@ static void __exit nvt_driver_exit(void)
 
 #if NVT_TOUCH_ESD_PROTECT
 #ifdef ODM_WT_EDIT
-//Bin.Su@ODM_WT.BSP.TP.FUNCTION.2018/12/13, solve crash when boot errors
 	cancel_delayed_work_sync(&nvt_esd_check_work);
 #endif
 	if (nvt_esd_check_wq)

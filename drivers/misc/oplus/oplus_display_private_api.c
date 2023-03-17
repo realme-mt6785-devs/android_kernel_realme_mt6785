@@ -5,7 +5,6 @@
 ** Description : oppo display private api implement
 ** Version : 1.0
 ** Date : 2018/03/20
-** Author : Jie.Hu@PSW.MM.Display.Stability
 **
 ** ------------------------------- Revision History: -----------
 **  <author>        <data>        <version >        <desc>
@@ -23,8 +22,6 @@
 #include <linux/of_fdt.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
-/* Zhijun.ye@PSW.MM.Display.LCD.Stability, 2019/11/22,
- * add for enable dc by default on special version */
 #include <soc/oppo/oppo_project.h>
 
 /*
@@ -62,7 +59,6 @@ bool oppo_display_aod_ramless_support; /* if ramless aod feature is supported */
 bool oppo_display_aodlight_support; /* if aod light mode( high-light or low-light) option is supported */
 #endif
 #ifdef OPLUS_FEATURE_MULTIBITS_BL
-/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for multibits backlight */
 bool oplus_display_tenbits_support;
 bool oplus_display_elevenbits_support;
 bool oplus_display_twelvebits_support;
@@ -80,7 +76,6 @@ u32 oppo_display_tp_fw_reload_on_lcd_esd_recovery = 0;
 /* need recover backlight after esd recovery if value is 1(cmd sent withous cmdq handle) */
 u32 oppo_display_dyn_data_rate = 0;
 u32 oppo_display_dyn_dsi_hbp = 0;
-/*Zhijun.Ye@PSW.MM.Display.LCD.Feature, 2020/01/09, add for special lcd resolution */
 u32 oppo_display_lcd_height = 0; /* for projects which share the same lcd driver file but have different resolution height */
 
 extern int primary_display_aod_backlight(int level);
@@ -98,7 +93,6 @@ extern int panel_serial_number_read(char cmd, uint64_t *buf, int num);
 extern int __attribute((weak)) primary_display_read_serial(char addr, uint64_t *buf, int lenth) { return 1;};
 extern int __attribute((weak)) primary_display_set_cabc_mode(unsigned int level) { return 0;};
 
-/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
 int oplus_mtkfb_custom_data_init(struct platform_device *pdev)
 {
 	int of_ret = 0;
@@ -109,7 +103,6 @@ int oplus_mtkfb_custom_data_init(struct platform_device *pdev)
 	}
 
 	#ifdef OPLUS_FEATURE_MULTIBITS_BL
-	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for multibits backlight */
 	oplus_display_tenbits_support = of_property_read_bool(pdev->dev.of_node, "oplus_display_tenbits_support");
 	oplus_display_elevenbits_support = of_property_read_bool(pdev->dev.of_node, "oplus_display_elevenbits_support");
 	oplus_display_twelvebits_support = of_property_read_bool(pdev->dev.of_node, "oplus_display_twelvebits_support");
@@ -582,7 +575,6 @@ enum{
 };
 
 #if defined(CONFIG_MACH_MT6768) || defined(CONFIG_MACH_MT6785)
-//Jiantao.Liu@ODM_WT.MM.Display.Lcd, 2020/07/30, Modify  DRE&CABC for backlight hight light mode
 bool backlight_high_light_dre_cabc = true;
 #else
 bool backlight_high_light_dre_cabc = false;
@@ -718,8 +710,6 @@ static int __init oplus_display_private_api_init(void)
 {
 	int retval;
 
-	/* Zhijun.ye@PSW.MM.Display.LCD.Stability, 2019/11/22,
-	 * add for enable dc by default on special version */
 	/*if (get_eng_version() == 1)
 		oppo_dc_enable = 1;*/
 
@@ -743,4 +733,4 @@ static void __exit oplus_display_private_api_exit(void)
 module_init(oplus_display_private_api_init);
 module_exit(oplus_display_private_api_exit);
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Hujie <>");
+MODULE_AUTHOR("Hujie <hujie@oppo.com>");

@@ -5,11 +5,9 @@
 ** Description: Source file for pickup sensor linux driver.
 ** Version: 1.0
 ** Date : 2020/03/31
-** Author: Baixue.Jie@PSW.BSP.Sensor
 **
 ** --------------------------- Revision History: ---------------------
 * <version> <date>      <author>                    <desc>
-* Revision 1.0      2020/03/31       Baixue.Jie@PSW.BSP.Sensor      Created
 *******************************************************************/
 #include "pickup_detecthub.h"
 #include "sensor_cmd.h"
@@ -177,5 +175,5 @@ module_init(pickup_detecthub_init);
 module_exit(pickup_detecthub_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("ACTIVITYHUB driver");
-MODULE_AUTHOR("");
+MODULE_AUTHOR("zhq@oppo.com");
 

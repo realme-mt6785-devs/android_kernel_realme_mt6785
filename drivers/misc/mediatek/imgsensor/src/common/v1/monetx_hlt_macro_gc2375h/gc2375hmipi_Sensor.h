@@ -87,7 +87,7 @@ struct imgsensor_struct {
 	enum MSDK_SCENARIO_ID_ENUM current_scenario_id;
 	kal_uint8  ihdr_en;
 	kal_uint8 i2c_write_id;
-	kal_uint16 frame_lines;/*Duilin.Qin@ODM_WT.Camera.Driver, 2019/10/30, modify by fae*/
+	kal_uint16 frame_lines;
 };
 
 /* SENSOR PRIVATE STRUCT FOR CONSTANT */

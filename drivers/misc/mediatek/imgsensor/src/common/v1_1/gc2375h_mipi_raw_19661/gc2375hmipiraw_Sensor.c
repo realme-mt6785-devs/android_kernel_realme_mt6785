@@ -49,7 +49,6 @@
 #endif
 
 #ifdef VENDOR_EDIT
-/*Degao.Lan@Camera.DRV add for register device info 20191108*/
 #define DEVICE_VERSION_GC2375H    "gc2375h"
 //extern void register_imgsensor_deviceinfo(char *name, char *version, u8 module_id);
 //extern kal_uint8 check_eeprom_awb_golden(kal_uint16 sensor_id, kal_uint8 i2c_addr);
@@ -779,7 +778,6 @@ static kal_uint32 streaming_control(kal_bool enable)
 }
 
 #ifdef VENDOR_EDIT
-/*Degao.Lan@Camera.DRV add for register device info 20191108*/
 static kal_uint16 read_module_id(void)
 {
 kal_uint16 get_byte=0;
@@ -822,7 +820,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
             if (*sensor_id == GC2375H_SENSOR_ID) {
                *sensor_id = imgsensor_info.sensor_id;
                 #ifdef VENDOR_EDIT
-                /*Degao.Lan@Camera.DRV add for register device info 20191108*/
                 imgsensor_info.module_id = read_module_id();
                 if (deviceInfo_register_value == 0x00) {
                     //if (check_eeprom_awb_golden(*sensor_id, 0xA5)) {
@@ -1108,7 +1105,7 @@ static kal_uint32 custom1(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
         spin_unlock(&imgsensor_drv_lock);
         custom1_setting();
         return ERROR_NONE;
-} /*Cong.Zhou@ODM_HQ.Camera.Driver.20190222 add for shuimitao dual camera*/  
+}  
 
 static kal_uint32 get_resolution(MSDK_SENSOR_RESOLUTION_INFO_STRUCT *sensor_resolution)
 {
@@ -1129,7 +1126,6 @@ static kal_uint32 get_resolution(MSDK_SENSOR_RESOLUTION_INFO_STRUCT *sensor_reso
     sensor_resolution->SensorSlimVideoWidth     = imgsensor_info.slim_video.grabwindow_width;
     sensor_resolution->SensorSlimVideoHeight     = imgsensor_info.slim_video.grabwindow_height;
 
-    //Cong.Zhou@ODM_HQ.Camera.Driver.20190222 add for shuimitao dual camera
     sensor_resolution->SensorCustom1Width         = imgsensor_info.custom1.grabwindow_width;
     sensor_resolution->SensorCustom1Height         = imgsensor_info.custom1.grabwindow_height;
     return ERROR_NONE;
@@ -1451,7 +1447,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
     LOG_INF("feature_id = %d\n", feature_id);
     switch (feature_id) {
     #ifdef OPLUS_FEATURE_CAMERA_COMMON
-    //dingpeifei@camera 20201203 add for dual camera ccu error
         case SENSOR_FEATURE_GET_FRAME_CTRL_INFO_BY_SCENARIO:
             *(feature_data + 1) = 1; /* margin info by scenario */
             *(feature_data + 2) = imgsensor_info.margin;

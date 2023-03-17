@@ -1,9 +1,9 @@
 /*
  *  linux/drivers/soc/oppo/oppo_midas/midas_proc.h
  *
- *  Copyright (C) 2020 Fang Xiang <>
+ *  Copyright (C) 2020 Fang Xiang <fangxiang@oppo.com>
  *
- *  June 2020 - Fang Xiang <>
+ *  June 2020 - Fang Xiang <fangxiang@oppo.com>
  *      Added MIDAS drivers
  *
  * This program is free software; you can redistribute it and/or modify

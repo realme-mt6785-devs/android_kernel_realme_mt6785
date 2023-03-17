@@ -43,4 +43,4 @@ struct PMICHistoryStruct *get_pmic_history(void)
 
 MODULE_DESCRIPTION("OPPO ocp status");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Lee <>");
+MODULE_AUTHOR("Lee <lijiang14@oppo.com>");

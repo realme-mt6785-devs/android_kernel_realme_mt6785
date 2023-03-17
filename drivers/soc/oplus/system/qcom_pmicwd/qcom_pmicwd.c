@@ -41,7 +41,7 @@
 #define QPNP_PON_WD_RESET_PET_MASK		BIT(0)
 
 #define OPPO_PMIC_WD_DEFAULT_TIMEOUT 254
-#define OPPO_PMIC_WD_DEFAULT_ENABLE 0  //wen.luo@BSP.Kernel.Stability, 2019-8-15 add for enable pmic, enable in criticallog_config.xml
+#define OPPO_PMIC_WD_DEFAULT_ENABLE 0
 
 const struct dev_pm_ops qpnp_pm_ops;
 struct qpnp_pon *sys_reset_dev;
@@ -150,9 +150,6 @@ static int pmicwd_kthread(void *arg)
 		dev_info(pon->dev, "pmicwd_kthread PET wd suspend state %d\n", pon->suspend_state);
 		qpnp_pon_wd_pet();
 
-		/* yanghao@PSW.Kernel.Stability for detect the suspend resume block issue
-		 * add at least 128 seconds ~ 256 seconds during resume suspend
-		 */
 		if((pon->suspend_state & 0x0F) >= 1)
 			panic("oppo suspend resume state %d\n", pon->suspend_state);
 		else if(pon->suspend_state & 0xF0)
@@ -262,7 +259,6 @@ static ssize_t pmicwd_proc_write(struct file *file, const char __user *buf,
 	return count;
 }
 
-/* yanghao@PSW.Kernel.Stability add for debug suspend crash problem */
 void oppo_set_pmicWd_state(int enable)
 {
 	struct qpnp_pon *pon = sys_reset_dev;
@@ -418,7 +414,6 @@ static void pmicwd_debugfs_init(struct qpnp_pon *pon)
 
 void pmicwd_init(struct platform_device *pdev, struct qpnp_pon *pon, bool sys_reset)
 {
-/*xing.xiong@BSP.Kernel.Driver, 2019/07/31, Add for get pwr status when power on*/
 	u32 pon_rt_sts = 0;
 	int rc;
 
@@ -457,14 +452,12 @@ void pmicwd_init(struct platform_device *pdev, struct qpnp_pon *pon, bool sys_re
 		}
 		#endif
 
-		//yanghao@PSW.Kernel.Stability for detect the suspend resume block issue 2020-1-2
 		rc = register_pm_notifier(&pmicWd_pm_nb);
 		if (rc) {
 			dev_err(pon->dev, "%s: pmicWd power state notif error %d\n", __func__, rc);
 		}
 	}
 
-	/*xing.xiong@BSP.Kernel.Driver, 2019/07/31, Add for get pwr status when power on*/
 	regmap_read(pon->regmap, QPNP_PON_RT_STS(pon), &pon_rt_sts);
 	dev_info(pon->dev, "probe keycode = 116, key_st = 0x%x\n", pon_rt_sts);
 

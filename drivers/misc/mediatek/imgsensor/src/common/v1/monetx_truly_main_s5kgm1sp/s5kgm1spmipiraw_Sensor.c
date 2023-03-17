@@ -30,12 +30,10 @@
 #include <linux/fs.h>
 #include <linux/atomic.h>
 #include <linux/types.h>
-/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 #include <linux/hardware_info.h>
 //#include "kd_camera_hw.h"
 
 #include "s5kgm1spmipiraw_Sensor.h"
-/* Zhen.Quan@Camera.Driver, 2019/10/17, add for [otp bringup] */
 #include "imgsensor_read_eeprom.h"
 #define ENABLE_S5KGM_OTP 1
 //#ifndef S5KGM1SP_VENDOR_EDIT
@@ -43,9 +41,7 @@
 //#endif
 
 #if 0 //ifdef S5KGM1SP_VENDOR_EDIT
-/*Feng.Hu@Camera.Driver 20170815 add for multi project using one build*/
 #include <soc/oppo/oppo_project.h>
-/* Henry.Chang@Camera.Driver add for preview flower screen 20190318*/
 #include <mmdvfs_mgr.h>
 #include <linux/pm_qos.h>
 //#ifdef CONFIG_MTK_QOS_SUPPORT
@@ -73,14 +69,11 @@ static kal_uint32 streaming_control(kal_bool enable);
 #if 0//ifdef S5KGM1SP_VENDOR_EDIT
 /* Add by LiuBin for register device info at 20160616 */
 #define DEVICE_VERSION_S5KGM1SP    "s5kgm1sp"
-/*Caohua.Lin@Camera.Driver , 20181230, add for ITS--sensor_fusion*/
 //#define OFFSET_TO_START_OF_EXPOSURE     3256000
 extern void register_imgsensor_deviceinfo(char *name, char *version, u8 module_id);
 static kal_uint8 deviceInfo_register_value = 0x00;
-/*Longyuan.Yang@Camera.Driver add for s5kgm1 second resource 20190304*/
 static kal_uint16 gmodule_id = 0xFFFF;
 #endif
-/*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/21,Modify for camera shutter*/
 static bool bNeedSetNormalMode = KAL_FALSE;
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 
@@ -154,7 +147,7 @@ static imgsensor_info_struct imgsensor_info = {
 		.mipi_pixel_rate = 460800000,
 		.max_framerate = 300,
 	},
-	.hs_video = {/*yang.guo@ODM_WT.Camera.hal, 2019/12/26, mod customer setting  for hs video cam  */
+	.hs_video = {
 		.pclk = 492000000,				//record different mode's pclk
 		.linelength  = 5024,				//record different mode's linelength
 		.framelength = 816,			//record different mode's framelength
@@ -168,7 +161,7 @@ static imgsensor_info_struct imgsensor_info = {
 		.max_framerate = 1200,	
 		.mipi_pixel_rate = 145600000,
 	},
-	.slim_video = {	/* slim video yang.guo@ODM_WT.Camera.hal, 2020/03/14, mod customer setting  for 1080P 60fps  */
+	.slim_video = {
 		.pclk = 482000000,				//record different mode's pclk
 		.linelength  = 5024,				//record different mode's linelength
 		.framelength = 1596,			//record different mode's framelength
@@ -211,13 +204,12 @@ static imgsensor_info_struct imgsensor_info = {
 	.slim_video_delay_frame = 3,                            /*enter slim video delay frame num*/
 	.custom1_delay_frame = 3,   /* enter custom1 delay frame num */
 	.frame_time_delay_frame = 1,
-	/*Duilin.Qin@ODM_WT.Camera.Driver.493476, 2019/10/21, modify mclk driving current */
 	.isp_driving_current = ISP_DRIVING_2MA,
 	.sensor_interface_type = SENSOR_INTERFACE_TYPE_MIPI,
 	.mipi_sensor_type = MIPI_OPHY_NCSI2, //0,MIPI_OPHY_NCSI2;  1,MIPI_OPHY_CSI2
 	.mipi_settle_delay_mode = 0, //0,MIPI_SETTLEDELAY_AUTO; 1,MIPI_SETTLEDELAY_MANNUAL
 	.sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_Gr,
-	.mclk = 24, /*Tian.Tian@ODM_WT.CAMERA.Driver.2020/02/04, Add for ITS test test_read_write */
+	.mclk = 24,
 	.mipi_lane_num = SENSOR_MIPI_4_LANE,
 	.i2c_addr_table = {0x5A,0xff},
 	.i2c_speed = 400,
@@ -251,7 +243,6 @@ static struct imgsensor_struct imgsensor = {
 	.ihdr_mode = 0, //sensor need support LE, SE with HDR feature
 	.i2c_write_id = 0x5A,
 //#ifdef S5KGM1SP_VENDOR_EDIT
-	/*Chengtian.Ding@Camera, 2019-01-30 add for n+2 long exposure*/
 	.current_ae_effective_frame = 2,
 //#endif
 };
@@ -262,10 +253,9 @@ static struct SENSOR_WINSIZE_INFO_STRUCT imgsensor_winsize_info[6] =
 {
 	{4000, 3000,  0,   0, 4000, 3000, 2000, 1500, 0000, 0000, 2000, 1500, 0, 0, 2000, 1500},	/* Preview */
 	{4000, 3000,  0,   0, 4000, 3000, 4000, 3000, 0000, 0000, 4000, 3000, 0, 0, 4000, 3000},	/* capture */
-	/*Tian.Tian@ODM_WT.CAMERA.Driver.2019/11/27,modify for camera PDAF*/
 	{4000, 3000,  0,   0, 4000, 3000, 4000, 3000, 0000, 0000, 4000, 3000, 0, 0, 4000, 3000},	/* capture */
-        {4000, 3000, 80, 420, 3840, 2160, 1280,  720,    0,    0, 1280,  720, 0, 0, 1280,  720},/*hight speed video yang.guo@ODM_WT.Camera.hal, 2019/12/26, mod customer setting  for hs video cam  */
-	{4000, 3000, 80, 420, 3840, 2160, 1920, 1080, 0000, 0000, 1920, 1080, 0, 0, 1920, 1080},	/* slim video yang.guo@ODM_WT.Camera.hal, 2020/03/14, mod customer setting  for 1080P 60fps  */
+        {4000, 3000, 80, 420, 3840, 2160, 1280,  720,    0,    0, 1280,  720, 0, 0, 1280,  720},
+	{4000, 3000, 80, 420, 3840, 2160, 1920, 1080, 0000, 0000, 1920, 1080, 0, 0, 1920, 1080},
 	{4000, 3000,  0,   0, 4000, 3000, 4000, 3000, 0000, 0000, 4000, 3000, 0, 0, 4000, 3000},	/* custom1 */
 };
 
@@ -325,9 +315,7 @@ extern int iWriteReg(u16 a_u2Addr , u32 a_u4Data , u32 a_u4Bytes , u16 i2cId);
 extern void kdSetI2CSpeed(u16 i2cSpeed);
 
 #if 0 //ifdef S5KGM1SP_VENDOR_EDIT
-/*Henry.Chang@Camera.Driver add for ModuleSN*/
 static kal_uint8 gS5kgm1_SN[CAMERA_MODULE_SN_LENGTH];
-/*Riqin.Wei@Camera.Driver, 2019/08/08, add for google ARCode Feature verify*/
 #define  CAMERA_MODULE_INFO_LENGTH  (8)
 static kal_uint8 gS5kgm1_CamInfo[CAMERA_MODULE_INFO_LENGTH];
 static void read_eeprom_CamInfo(void)
@@ -360,7 +348,6 @@ static void read_eeprom_SN(void)
 	}
 }
 
-/*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
 #define   WRITE_DATA_MAX_LENGTH     (16)
 static kal_int32 table_write_eeprom_30Bytes(kal_uint16 addr, kal_uint8 *para, kal_uint32 len)
 {
@@ -404,7 +391,6 @@ static kal_uint16 s5kgm1_i2c_protect(void)
 	return ret;
 }
 
-/*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
 static kal_int32 write_Module_data(ACDK_SENSOR_ENGMODE_STEREO_STRUCT * pStereodata)
 {
 	kal_int32  ret = IMGSENSOR_RETURN_SUCCESS;
@@ -429,7 +415,6 @@ static kal_int32 write_Module_data(ACDK_SENSOR_ENGMODE_STEREO_STRUCT * pStereoda
 					pData[1557], pData[1558], pData[1559], pData[1560]);
 			idx = data_length/WRITE_DATA_MAX_LENGTH;
 			idy = data_length%WRITE_DATA_MAX_LENGTH;
-			/*Longyuan.Yang@Camera.Driver add new module id if there are new modules 20190304*/
 			if(gmodule_id == 0x02){
 				s5kgm1_i2c_unprotect();
 				msleep(6);
@@ -467,7 +452,6 @@ static kal_int32 write_Module_data(ACDK_SENSOR_ENGMODE_STEREO_STRUCT * pStereoda
 			pr_debug("tail4 0x1C58:0x%x\n", read_cmos_eeprom_8(0x1C58));
 			msleep(6);
 			pr_debug("s5kgm1write_Module_data Write end\n");
-			/*Longyuan.Yang@Camera.Driver add new module id if there are new modules 20190304*/
 			if(gmodule_id == 0x02){
 				s5kgm1_i2c_protect();
 				msleep(6);
@@ -612,9 +596,7 @@ static void write_shutter(kal_uint32 shutter)
 {
 
 	kal_uint16 realtime_fps = 0;
-	/*Tian.Tian@ODM_WT.CAMERA.Driver.2019/10/21,Modify for camera shutter*/
 	unsigned long long CintR = 0;
-	/*Add by Chengtian.Ding@Camera 2018-12-28 for n+1 long exposure*/
 	unsigned long long Time_Farme = 0;
 
 	spin_lock(&imgsensor_drv_lock);
@@ -689,7 +671,6 @@ static void write_shutter(kal_uint32 shutter)
 		//write_cmos_sensor(0x0100, 0x0100);
 		//streaming_control(KAL_TRUE);
 
-		/*Chengtian.Ding@Camera, 2018-01-29 add for n+2 long exposure*/
 		/* Frame exposure mode customization for LE*/
 		//imgsensor.ae_frm_mode.frame_mode_1 = IMGSENSOR_AE_MODE_SE;
 		//imgsensor.ae_frm_mode.frame_mode_2 = IMGSENSOR_AE_MODE_SE;
@@ -711,7 +692,6 @@ static void write_shutter(kal_uint32 shutter)
 		write_cmos_sensor(0x0340, imgsensor.frame_length);
 		write_cmos_sensor(0x0202, imgsensor.shutter);
 
-		/*Chengtian.Ding@Camera, 2018-01-29 add for n+2 long exposure*/
 		imgsensor.current_ae_effective_frame = 2;
 	}
 
@@ -3971,7 +3951,6 @@ static void preview_setting(void)
 	write_cmos_sensor(0x6F12, 0x0100);
 	write_cmos_sensor(0x6028, 0x4000);
 	write_cmos_sensor(0x0D00, 0x0101);
-	/*Miao.Huang@ODM_WT.CAMERA.Driver.2019/11/25,Modify for video recording working*/
 	write_cmos_sensor(0x0D02, 0x0001);
 	write_cmos_sensor(0x0114, 0x0300);
 	write_cmos_sensor(0xF486, 0x0000);
@@ -5223,7 +5202,7 @@ static void slim_video_setting(void)
 
 
 
-static void hs_video_setting(void)/*yang.guo@ODM_WT.Camera.hal, 2019/12/26, mod customer setting  for hs video cam  */
+static void hs_video_setting(void)
 
 {
 	LOG_INF("hs_video_setting E\n");
@@ -5973,20 +5952,16 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 			*sensor_id = ((read_cmos_sensor_8(0x0000) << 8) | read_cmos_sensor_8(0x0001));
 			pr_err("read_0x0000=0x%x, 0x0001=0x%x,0x0000_0001=0x%x\n",read_cmos_sensor_8(0x0000),read_cmos_sensor_8(0x0001),read_cmos_sensor(0x0000));
 			if (*sensor_id == imgsensor_info.sensor_id) {
-				/* Zhen.Quan@Camera.Driver, 2019/10/17, add for [otp bringup] */
 #if 1
 				if(!check_otp_data(&monetx_truly_main_s5kgm1sp_eeprom_data, monetx_truly_main_s5kgm1sp_hecksum, sensor_id)){
 					break;
 				} else {
-					/*xiaojun.Pu@Camera.Driver, 2019/10/15, add for [add hardware_info for factory]*/
 					//hardwareinfo_set_prop(HARDWARE_BACK_CAM_MOUDULE_ID, "Truly");
 				}
 #endif
 				#if 0 //ifdef S5KGM1SP_VENDOR_EDIT
 				module_id = read_module_id();
-				/*Longyuan.Yang@Camera.Driver add for s5kgm1 second resource 20190304*/
 				gmodule_id = module_id;
-				/*Riqin.Wei@Camera.Driver, 2019/08/08, add for google ARCode Feature verify*/
 				read_eeprom_CamInfo();
 				read_eeprom_SN();
 				if(deviceInfo_register_value == 0x00){
@@ -6676,15 +6651,12 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 	struct SENSOR_VC_INFO_STRUCT *pvcinfo;
 	//SET_SENSOR_AWB_GAIN *pSetSensorAWB=(SET_SENSOR_AWB_GAIN *)feature_para;
 	MSDK_SENSOR_REG_INFO_STRUCT *sensor_reg_data=(MSDK_SENSOR_REG_INFO_STRUCT *) feature_para;
-        /*Yang.Guo@Camera.Driver , 20200224, add for ITS--sensor_fusion start*/
 //	MINT32 offset1 = 0;
 //	MUINT32 offset2 = 0;
-        /*Yang.Guo@Camera.Driver , 20200224, add for ITS--sensor_fusion end*/
 
 	/*LOG_INF("feature_id = %d\n", feature_id);*/
 	switch (feature_id) {
 		#if 0 //ifdef S5KGM1SP_VENDOR_EDIT
-		/*Riqin.Wei@Camera.Driver, 2019/08/08, add for google ARCode Feature verify*/
 		case SENSOR_FEATURE_GET_MODULE_INFO:
 		LOG_INF("s5kgm1 GET_MODULE_CamInfo:%d %d\n", *feature_para_len, *feature_data_32);
 		*(feature_data_32 + 1) = (gS5kgm1_CamInfo[1] << 24)
@@ -6696,7 +6668,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 					| (gS5kgm1_CamInfo[7] << 8)
 					| (gS5kgm1_CamInfo[6] & 0xFF);
 		break;
-		/*Henry.Chang@Camera.Driver add for ModuleSN*/
 		case SENSOR_FEATURE_GET_MODULE_SN:
 			LOG_INF("s5kgm1 GET_MODULE_SN:%d %d\n", *feature_para_len, *feature_data_32);
 			if (*feature_data_32 < CAMERA_MODULE_SN_LENGTH/4) {
@@ -6706,7 +6677,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 							| (gS5kgm1_SN[4*(*feature_data_32)] & 0xFF);
 		}
 			break;
-		/*Henry.Chang@camera.driver 20181129, add for sensor Module SET*/
 		case SENSOR_FEATURE_SET_SENSOR_OTP:
 		{
 			kal_int32 ret = IMGSENSOR_RETURN_SUCCESS;
@@ -6719,7 +6689,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 
 		}
 		#endif
-		/*Yang.Guo@Camera.Driver , 20200224, add for ITS--sensor_fusion start*/
 		/*case SENSOR_FEATURE_GET_OFFSET_TO_START_OF_EXPOSURE:
 			LOG_INF("Real SENOSR_FEATURE_GET_OFFSET_TO_START_OF_EXPOSURE\n");
 			offset1 = -5500000;
@@ -6727,7 +6696,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 			LOG_INF("Real offset1=%d, offset1=0x%x, offset2=0x%x\n", offset1, offset1, offset2);
 			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) = offset2;
 			break;*/
-		/*Yang.Guo@Camera.Driver , 20200224, add for ITS--sensor_fusion end*/
 		case SENSOR_FEATURE_GET_PERIOD_BY_SCENARIO:
 			switch (*feature_data) {
 			case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
@@ -6780,7 +6748,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 			break;
 
 		#if 0 //ifdef S5KGM1SP_VENDOR_EDIT
-		/*zhengjiang.zhu@Camera.driver, 2017/10/17	add  for  module id*/
 		case SENSOR_FEATURE_CHECK_MODULE_ID:
 			*feature_return_para_32 = imgsensor_info.module_id;
 			break;
@@ -6973,7 +6940,6 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 				memcpy((void *)pvcinfo,(void *)&SENSOR_VC_INFO[0],sizeof(struct SENSOR_VC_INFO_STRUCT));
 				break;
 			}
-		/*Chengtian.Ding@Camera, 2018-12-27 add for n+1 long exposure*/
 		case SENSOR_FEATURE_GET_AE_EFFECTIVE_FRAME_FOR_LE:
 			*feature_return_para_32 = imgsensor.current_ae_effective_frame;
 			break;

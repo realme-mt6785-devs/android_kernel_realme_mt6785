@@ -5,11 +5,9 @@
 ** Description: Source file for camera_protect sensor linux driver.
 ** Version: 1.0
 ** Date : 2020/03/31
-** Author: Baixue.Jie@PSW.BSP.Sensor
 **
 ** --------------------------- Revision History: ---------------------
 * <version> <date>      <author>                    <desc>
-* Revision 1.0      2020/03/31       Baixue.Jie@PSW.BSP.Sensor      Created
 *******************************************************************/
 
 #include "camera_protecthub.h"
@@ -199,5 +197,5 @@ module_init(camera_protecthub_init);
 module_exit(camera_protecthub_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("ACTIVITYHUB driver");
-MODULE_AUTHOR("");
+MODULE_AUTHOR("zhq@oppo.com");
 

@@ -110,7 +110,6 @@ static struct disp_session_input_config session_input;
 long dts_gpio_state;
 
 #ifdef OPLUS_BUG_STABILITY
-/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
 extern int __attribute((weak)) oplus_mtkfb_custom_data_init(struct platform_device *pdev) { return 0; };
 #endif /* OPLUS_BUG_STABILITY */
 
@@ -969,7 +968,7 @@ unsigned int mtkfb_fm_auto_test(void)
 	}
 
 	if (idle_state_backup) {
-		primary_display_idlemgr_kick(__func__, 0);
+		primary_display_idlemgr_kick(__func__, 1);
 		enable_idlemgr(0);
 	}
 
@@ -1005,6 +1004,7 @@ unsigned int mtkfb_fm_auto_test(void)
 	mtkfb_pan_display_impl(&mtkfb_fbi->var, mtkfb_fbi);
 	msleep(100);
 
+	primary_display_idlemgr_kick(__func__, 1);
 	result = primary_display_lcm_ATA();
 
 	if (idle_state_backup)
@@ -2521,7 +2521,6 @@ static int mtkfb_probe(struct platform_device *pdev)
 #endif
 
 	#ifdef OPLUS_BUG_STABILITY
-	/* Zhijun.Ye@MM.Display.LCD.Machine, 2020/09/23, add for lcd */
 	oplus_mtkfb_custom_data_init(pdev);
 	#endif
 

@@ -66,7 +66,6 @@
 #endif /* CONFIG_MTK_QOS_FRAMEWORK */
 
 #ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
 #include <linux/uifirst/uifirst_sched_common.h>
 #endif /* OPLUS_FEATURE_UIFIRST */
 
@@ -2149,6 +2148,8 @@ static struct rq *move_queued_task(struct rq *rq, struct rq_flags *rf,
 	dequeue_task(rq, p, DEQUEUE_NOCLOCK);
 	rq_unpin_lock(rq, rf);
 	double_lock_balance(rq, cpu_rq(new_cpu));
+	if (!(rq->clock_update_flags & RQCF_UPDATED))
+		update_rq_clock(rq);
 	set_task_cpu(p, new_cpu);
 	double_rq_unlock(cpu_rq(new_cpu), rq);
 
@@ -4446,7 +4447,6 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 #ifdef OPLUS_FEATURE_SPECIALOPT
-// caichen@TECH.Kernel.Sched, 2020/09/06, add for heavy load task
 	if(!sysctl_cpu_multi_thread)
 #endif
 	trigger_load_balance(rq);
@@ -4788,7 +4788,6 @@ static void __sched notrace __schedule(bool preempt)
 	}
 
 #ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
 	prev->enqueue_time = rq->clock;
 #endif /* OPLUS_FEATURE_UIFIRST */
 
@@ -7661,7 +7660,6 @@ void __init sched_init_smp(void)
 	free_cpumask_var(non_isolated_cpus);
 
 #ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
 	ux_init_cpu_data();
 #endif /* OPLUS_FEATURE_UIFIRST */
 	init_sched_rt_class();
@@ -7783,7 +7781,6 @@ void __init sched_init(void)
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
 #ifdef OPLUS_FEATURE_UIFIRST
-// XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
 		ux_init_rq_data(rq);
 #endif /* OPLUS_FEATURE_UIFIRST */
 #ifdef CONFIG_FAIR_GROUP_SCHED

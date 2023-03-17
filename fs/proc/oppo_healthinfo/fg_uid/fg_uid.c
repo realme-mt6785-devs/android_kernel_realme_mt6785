@@ -111,5 +111,5 @@ module_init(fg_uids_init);
 module_exit(fg_uids_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("zhouhuacai <>");
+MODULE_AUTHOR("zhouhuacai <zhouhuacai@oppo.com>");
 MODULE_DESCRIPTION("optimize foreground process to promote performance");

@@ -55,7 +55,6 @@
 #endif
 
 #ifdef VENDOR_EDIT
-/* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
 static kal_uint8 xtalk_flag = 0;
 #endif
 
@@ -351,7 +350,6 @@ static void write_cmos_sensor(kal_uint32 addr, kal_uint32 para)
 }
 
 #ifdef VENDOR_EDIT
-/* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
 static kal_uint16 read_cmos_eeprom_8(kal_uint16 addr)
 {
     kal_uint16 get_byte=0;
@@ -483,7 +481,6 @@ static void write_shutter(kal_uint16 shutter)
     write_cmos_sensor(0x3501, (shutter >> 4) & 0xFF);
     write_cmos_sensor(0x3502, (shutter<<4)  & 0xF0);
     */
-    /* Shipei.Chen@Cam.Drv, 20200420,  add for shutter register!*/
     write_cmos_sensor(0x3501, (shutter >> 8) & 0xFF);
     write_cmos_sensor(0x3502, (shutter)  & 0xFF);
     LOG_INF("shutter =%d, framelength =%d, realtime_fps =%d\n",
@@ -596,7 +593,6 @@ static void set_shutter_frame_length(kal_uint16 shutter,
     write_cmos_sensor(0x3501, (shutter >> 4) & 0xFF);
     write_cmos_sensor(0x3502, (shutter<<4)  & 0xF0);
     */
-    /* Shipei.Chen@Cam.Drv, 20200420,  add for shutter register!*/
     write_cmos_sensor(0x3501, (shutter >> 8) & 0xFF);
     write_cmos_sensor(0x3502, (shutter)  & 0xFF);
 
@@ -1663,7 +1659,6 @@ static kal_uint16 addr_data_pair_init_ov32a1q[] = {
 };
 #endif
 #if 0
-/* Shipei.Chen@Cam.Drv, 20200403, sensor porting */
 static void set_mirror_flip(kal_uint8 image_mirror)
 {
     static kal_uint16 value_3820=0;
@@ -1672,8 +1667,8 @@ static void set_mirror_flip(kal_uint8 image_mirror)
     value_3821 = read_cmos_sensor(0x3821);
     switch (image_mirror) {
     case IMAGE_NORMAL:
-        write_cmos_sensor(0x3820, value_3820&(~(1<<2)));//bit2Çå0
-        write_cmos_sensor(0x3821, value_3821|(1<<2));//bit2ÖÃ1
+        write_cmos_sensor(0x3820, value_3820&(~(1<<2)));//bit2Ã‡Ã¥0
+        write_cmos_sensor(0x3821, value_3821|(1<<2));//bit2Ã–Ãƒ1
         break;
 
     case IMAGE_V_MIRROR:
@@ -2805,7 +2800,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
                 LOG_INF("ov32a1q read[%s] sensor id: 0x%x\n",
                     __func__, *sensor_id);
                 #ifdef VENDOR_EDIT
-                /* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
                 read_sensor_xtalk();
                 #endif
                 return ERROR_NONE;
@@ -2880,7 +2874,6 @@ static kal_uint32 open(void) //check out
 static kal_uint32 close(void)
 {
     #ifdef VENDOR_EDIT
-    /* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
     xtalk_flag = 0;
     #endif
     return ERROR_NONE;
@@ -3026,7 +3019,6 @@ static kal_uint32 custom3(
     imgsensor.autoflicker_en = KAL_FALSE;
     spin_unlock(&imgsensor_drv_lock);
     #ifdef VENDOR_EDIT
-    /* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
     if (!xtalk_flag) {
         pr_debug("write_sensor_xtalk Start\n");
                 mdelay(67);  //add delay to ensure xtalk wirte success

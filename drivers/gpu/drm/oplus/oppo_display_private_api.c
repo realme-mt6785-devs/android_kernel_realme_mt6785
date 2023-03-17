@@ -5,7 +5,6 @@
 ** Description : oppo display private api implement
 ** Version : 1.0
 ** Date : 2018/03/20
-** Author : Jie.Hu@PSW.MM.Display.Stability
 **
 ** ------------------------------- Revision History: -----------
 **  <author>        <data>        <version >        <desc>
@@ -275,7 +274,6 @@ static ssize_t fingerprint_notify_trigger(struct device *dev,
 
 
 /*
-* LiPing-M@PSW.MM.Display.LCD.Stability, 2019/11/18,
 * add for lcd serial
 */
 int panel_serial_number_read(char cmd, int num)
@@ -386,7 +384,6 @@ static ssize_t panel_serial_store(struct device *dev,
         return count;
 }
 
-/* Zhijun.Ye@PSW.MM.Display.LCD.Machine 2020/10/23, add for dc cmd timing */
 int oplus_dc_threshold = 260;
 int oplus_panel_alpha = 0;
 int oplus_underbrightness_alpha = 0;
@@ -978,4 +975,4 @@ static void __exit oplus_display_private_api_exit(void)
 module_init(oplus_display_private_api_init);
 module_exit(oplus_display_private_api_exit);
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Hujie <>");
+MODULE_AUTHOR("Hujie <hujie@oppo.com>");

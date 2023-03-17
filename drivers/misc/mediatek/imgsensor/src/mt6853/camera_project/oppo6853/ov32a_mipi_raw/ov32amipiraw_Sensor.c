@@ -55,9 +55,7 @@
 	pr_debug(PFX "[%s] " format, __func__, ##args)
 
 #ifdef OPLUS_FEATURE_CAMERA_COMMON
-/* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
 static kal_uint8 xtalk_flag = 0;
-/*Wenjun.Wu@Camera.Driver add for 20075 ,20200716 */
 #define DEVICE_VERSION_OV32A1Q     "ov32a1q"
 //extern void register_imgsensor_deviceinfo(char *name, char *version, u8 module_id);
 //static kal_uint8 deviceInfo_register_value = 0x00;
@@ -386,7 +384,6 @@ static kal_uint16 ov32a1q_burst_write_cmos_sensor(
 	return 0;
 }
 
-/* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
 static kal_uint16 read_cmos_eeprom_8(kal_uint16 addr)
 {
 	kal_uint16 get_byte=0;
@@ -435,7 +432,6 @@ static void read_eeprom_SN(void)
 
 #define  CAMERA_MODULE_INFO_LENGTH  (8)
 static kal_uint8 gOV32A_CamInfo[CAMERA_MODULE_INFO_LENGTH];
-/*Henry.Chang@Camera.Driver add for google ARCode Feature verify 20190531*/
 static void read_eeprom_CamInfo(void)
 {
 	kal_uint16 idx = 0;
@@ -1717,7 +1713,6 @@ kal_uint16 addr_data_pair_init2_ov32a1q[] = {
 };
 
 #if 0
-/* Shipei.Chen@Cam.Drv, 20200403, sensor porting */
 static void set_mirror_flip(kal_uint8 image_mirror)
 {
 	static kal_uint16 value_3820=0;
@@ -1726,8 +1721,8 @@ static void set_mirror_flip(kal_uint8 image_mirror)
 	value_3821 = read_cmos_sensor(0x3821);
 	switch (image_mirror) {
 	case IMAGE_NORMAL:
-		write_cmos_sensor(0x3820, value_3820&(~(1<<2)));//bit2Çå0
-		write_cmos_sensor(0x3821, value_3821|(1<<2));//bit2ÖÃ1
+		write_cmos_sensor(0x3820, value_3820&(~(1<<2)));//bit2Ã‡Ã¥0
+		write_cmos_sensor(0x3821, value_3821|(1<<2));//bit2Ã–Ãƒ1
 		break;
 
 	case IMAGE_V_MIRROR:
@@ -2867,7 +2862,6 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 				printk("ov32a1q read[%s] sensor id: 0x%x\n",
 					__func__, *sensor_id);
 				#ifdef OPLUS_FEATURE_CAMERA_COMMON
-				/* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
 				read_eeprom_xtalk();
 				imgsensor_info.module_id = read_module_id();
                                 /*
@@ -2950,7 +2944,6 @@ static kal_uint32 open(void) //check out
 static kal_uint32 close(void)
 {
 	#ifdef OPLUS_FEATURE_CAMERA_COMMON
-	/* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
 	xtalk_flag = 0;
 	#endif
 	return ERROR_NONE;
@@ -3083,7 +3076,6 @@ static kal_uint32 custom3(
 	imgsensor.autoflicker_en = KAL_FALSE;
 	spin_unlock(&imgsensor_drv_lock);
 	#ifdef OPLUS_FEATURE_CAMERA_COMMON
-	/* Shengguang.Zhu@Rm.Cam.Drv, 20200514,  read the xtalk from eeprom*/
 	if (!xtalk_flag) {
 		write_sensor_xtalk();
 		xtalk_flag = 1;
@@ -3914,7 +3906,6 @@ static kal_uint32 feature_control(
 	    get_imgsensor_id(feature_return_para_32);
 	break;
 	#ifdef OPLUS_FEATURE_CAMERA_COMMON
-	/*Wenjun.Wu@Camera.Driver add for 20075 ,20200716 */
 	case SENSOR_FEATURE_CHECK_MODULE_ID:
 		*feature_return_para_32 = imgsensor_info.module_id;
 		break;

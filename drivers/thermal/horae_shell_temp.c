@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2019 OPPO, Inc.
- * Author: Fang Xiang <>
+ * Author: Fang Xiang <fangxiang@oppo.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and

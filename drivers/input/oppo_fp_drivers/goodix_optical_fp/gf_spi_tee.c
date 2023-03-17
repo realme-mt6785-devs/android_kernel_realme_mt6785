@@ -162,20 +162,21 @@ struct gf_key_map maps[] = {
 #endif
 };
 
- static void gf_spi_clk_enable(struct gf_dev *gf_dev)
- {
+static int gf_spi_clk_enable(struct gf_dev *gf_dev)
+{
+    int ret = 0;
     #if !defined(CONFIG_MTK_CLKMGR)
     struct spi_device *spi = gf_dev->spi;
     struct mtk_spi *gf_ms = spi_master_get_devdata(spi->master);
-    clk_prepare_enable(gf_ms->spi_clk);
-	pr_info("clk_prepare_enable gf_spi_clk_enable.\n");
-   
+
+    ret = clk_prepare_enable(gf_ms->spi_clk);
+    pr_info("clk_prepare_enable gf_spi_clk_enable,ret = %d.\n", ret);
     #else
     enable_clock(MT_CG_PERI_SPI0, "spi");
-	pr_debug("enable_clock gf_spi_clk_enable.\n");
+    pr_debug("enable_clock gf_spi_clk_enable.\n");
     #endif
-    return;
- }
+    return ret;
+}
 
  static void gf_spi_clk_disable(struct gf_dev *gf_dev)
  {
@@ -565,7 +566,7 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #ifdef AP_CONTROL_CLK
 		gfspi_ioctl_clk_enable(gf_dev);
 #else
-        gf_spi_clk_enable(gf_dev);
+        retval = gf_spi_clk_enable(gf_dev);
 		pr_debug("gf_spi_clk_enable.\n");
 #endif
 		break;

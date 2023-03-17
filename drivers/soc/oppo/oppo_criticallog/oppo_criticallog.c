@@ -3,7 +3,6 @@
 #include <soc/oppo/mmkey_log.h>
 
 //#ifdef VENDOR_EDIT
-//Xiaoshan.Huang@PSW.NW.EM.2415682,2019/10/13
 //modify for modem crash log
 //#include <linux/switch.h>
 #include <criticallog_class.h>
@@ -12,11 +11,9 @@
 #include <linux/kthread.h>
 #include <linux/wait.h>
 
-//John.Xu@PhoneSw.AudioDriver.OppoDebug.CriticalLog, 2016/02/22, Add for critical_log
 
 static int keylog_registered = 0;
 //#ifdef VENDOR_EDIT
-//Xiaoshan.Huang@PSW.NW.EM.2415682,2019/10/13
 //modify for modem crash log
 //static struct switch_dev keylog_swthdev;
 static struct criticallog_dev keylog_swthdev;
@@ -26,7 +23,6 @@ static wait_queue_head_t keylog_thread_wq;
 static struct task_struct *keylog_thread_task = NULL;
 
 #define KEYLOG_BUF_MAX 5
-//Wentian.Mai@PSW.NW.EM.1448074, 2018/06/26
 //Add for monitor modem crash
 #define LOGNAME_BUF_LEN 2148
 
@@ -74,7 +70,6 @@ EXPORT_SYMBOL_GPL(mm_keylog_write);
 EXPORT_SYMBOL_GPL(mm_keylog_write_modemdump);
 
 //#ifdef VENDOR_EDIT
-//Xiaoshan.Huang@PSW.NW.EM.2415682,2019/10/13
 //modify for modem crash log
 static ssize_t mm_keylog_printname(struct criticallog_dev *sdev, char *buf) {
     struct keylog_data *keylog_data = &gKeylog_buf.data[gKeylog_buf.index_read%KEYLOG_BUF_MAX];
@@ -96,7 +91,6 @@ static int keylog_thread(void *data){
             struct keylog_data *keylog_data = &gKeylog_buf.data[gKeylog_buf.index_read%KEYLOG_BUF_MAX];
             pr_err("logname lenth = %d\n", (int)strlen(keylog_data->buf));
             //#ifdef VENDOR_EDIT
-            //Xiaoshan.Huang@PSW.NW.EM.2415682,2019/10/13
             //modify for modem crash log
             criticallog_set_state(&keylog_swthdev, keylog_data->id);
             criticallog_set_state(&keylog_swthdev, -keylog_data->id);
@@ -119,7 +113,6 @@ static int __init oppo_criticallog_init(void)
     keylog_swthdev.name = "oppo_critical_log";
     keylog_swthdev.print_name = mm_keylog_printname;
     //#ifdef VENDOR_EDIT
-    //Xiaoshan.Huang@PSW.NW.EM.2415682,2019/10/13
     //modify for modem crash log
     ret = criticallog_dev_register(&keylog_swthdev);
     //else
@@ -148,4 +141,4 @@ arch_initcall(oppo_criticallog_init);
 
 MODULE_DESCRIPTION("OPPO critical log");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("John.Xu <>");
+MODULE_AUTHOR("John.Xu <xuzhaoan@oppo.com>");

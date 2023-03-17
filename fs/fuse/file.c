@@ -8,7 +8,6 @@
 
 #include "fuse_i.h"
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 #include "fuse_shortcircuit.h"
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
 
@@ -25,7 +24,6 @@
 
 static const struct file_operations fuse_direct_io_file_operations;
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 static int fuse_send_open(struct fuse_conn *fc, u64 nodeid, struct file *file,
 			  int opcode, struct fuse_open_out *outargp,
 			  struct file **lower_file)
@@ -93,7 +91,6 @@ struct fuse_file *fuse_file_alloc(struct fuse_conn *fc)
 		return NULL;
 
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	ff->rw_lower_file = NULL;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
 	ff->fc = fc;
@@ -177,7 +174,6 @@ int fuse_do_open(struct fuse_conn *fc, u64 nodeid, struct file *file,
 		int err;
 
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 		err = fuse_send_open(fc, nodeid, file, opcode, &outarg,
 				&(ff->rw_lower_file));
 #else
@@ -312,7 +308,6 @@ void fuse_release_common(struct file *file, bool isdir)
 	int opcode = isdir ? FUSE_RELEASEDIR : FUSE_RELEASE;
 
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	fuse_shortcircuit_release(ff);
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
 	fuse_prepare_release(ff, file->f_flags, opcode);
@@ -985,7 +980,6 @@ static ssize_t fuse_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 	struct inode *inode = iocb->ki_filp->f_mapping->host;
 	struct fuse_conn *fc = get_fuse_conn(inode);
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	struct fuse_file *ff = iocb->ki_filp->private_data;
 	ssize_t ret_val;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
@@ -1006,7 +1000,6 @@ static ssize_t fuse_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
 			return err;
 	}
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	if (ff && ff->rw_lower_file)
 		ret_val = fuse_shortcircuit_read_iter(iocb, to);
 	else
@@ -1254,7 +1247,6 @@ static ssize_t fuse_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	struct file *file = iocb->ki_filp;
 	struct address_space *mapping = file->f_mapping;
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	struct fuse_file *ff = file->private_data;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
 	ssize_t written = 0;
@@ -1264,7 +1256,6 @@ static ssize_t fuse_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	loff_t endbyte = 0;
 
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	if (ff && ff->rw_lower_file) {
 		/* Update size (EOF optimization) and mode (SUID clearing) */
 		err = fuse_update_attributes(mapping->host, file);
@@ -1713,6 +1704,17 @@ int fuse_write_inode(struct inode *inode, struct writeback_control *wbc)
 	struct fuse_inode *fi = get_fuse_inode(inode);
 	struct fuse_file *ff;
 	int err;
+
+	/*
+	 * Inode is always written before the last reference is dropped and
+	 * hence this should not be reached from reclaim.
+	 *
+	 * Writing back the inode from reclaim can deadlock if the request
+	 * processing itself needs an allocation.  Allocations triggering
+	 * reclaim while serving a request can't be prevented, because it can
+	 * involve any number of unrelated userspace processes.
+	 */
+	WARN_ON(wbc->for_reclaim);
 
 	ff = __fuse_write_file_get(fc, fi);
 	err = fuse_flush_times(inode, ff);
@@ -3134,6 +3136,8 @@ out:
 
 	if (lock_inode)
 		inode_unlock(inode);
+
+	fuse_flush_time_update(inode);
 
 	return err;
 }

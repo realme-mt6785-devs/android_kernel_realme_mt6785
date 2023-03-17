@@ -7,7 +7,7 @@ Copyright (C) 2018-2020 Oplus. All rights reserved.
 * Storage the boot log on proc.
 * Version : 1.0
 * Date : 2018-10-18
-* Author : 
+* Author : bright.zhang@oppo.com
 * ---------------- Revision History: --------------------------
 * <author>       <date>           <desc>
 * Bright Zhang   2018/12/24       create this file

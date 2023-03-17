@@ -67,7 +67,7 @@ struct imgsensor_mode_struct {
 	 */
 	kal_uint8 mipi_data_lp2hs_settle_dc;
 
-	kal_uint32 mipi_pixel_rate;//Yang.Guo@ODM_WT.CAMERA.Driver 2557613,2019/12/12, Add PIXEL_RATE test for cts testDualCameraPreview
+	kal_uint32 mipi_pixel_rate;
 
 	/*       following for GetDefaultFramerateByScenario()  */
 	kal_uint16 max_framerate;
@@ -104,7 +104,6 @@ struct imgsensor_struct {
 
 	kal_uint8 pdaf_mode;	/* PDAF enable or disable */
 	kal_uint8 i2c_write_id;	/* record current sensor's i2c write id */
-        /*Yuan.Yuan@ODM_WT.CAMERA.Driver  20191226 modify for exiting long shutter not correctly when shutter is in 0.5s~1.5s*/
         kal_uint8 current_ae_effective_frame;
         struct IMGSENSOR_AE_FRM_MODE ae_frm_mode;
 };

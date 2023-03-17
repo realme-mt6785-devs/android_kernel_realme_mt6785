@@ -46,7 +46,6 @@
 #include <linux/mmc/sd.h>
 
 #ifdef VENDOR_EDIT
-//xiaohua.tian@Prd6.BaseDrv.Sensor,2016/10/31, Add for eMMC and DDR device information
 #include <soc/oppo/device_info.h>
 #endif /* VENDOR_EDIT */
 
@@ -164,7 +163,6 @@ struct mmc_blk_data {
 	struct dentry *status_dentry;
 	struct dentry *ext_csd_dentry;
 #ifdef VENDOR_EDIT
-//runyu.ouyang@BSP.Storage.EMMC, 2019-06-22 add for emmc lifetime
 	struct dentry *sector_count_dentry;
 	struct dentry *life_time_dentry;
 #endif
@@ -3935,6 +3933,7 @@ void mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 					index + 1);
 				atomic_set(&mq->mqrq[index].index,
 					index + 1);
+				atomic_inc(&card->host->areq_cnt);
 			}
 #endif
 			/* Normal request, just issue it */
@@ -4556,7 +4555,6 @@ static const struct file_operations mmc_dbg_ext_csd_fops = {
 };
 
 #ifdef VENDOR_EDIT
-//runyu.ouyang@BSP.Storage.EMMC, 2019-06-22 add for emmc lifetime
 #define SECTOR_COUNT_BUF_LEN 16
 static int mmc_sector_count_open(struct inode *inode, struct file *filp)
 {
@@ -4755,7 +4753,6 @@ static int mmc_blk_add_debugfs(struct mmc_card *card, struct mmc_blk_data *md)
 			return -EIO;
 	}
 #ifdef VENDOR_EDIT
-//runyu.ouyang@BSP.Storage.EMMC, 2019-06-22 add for emmc lifetime
 	if (mmc_card_mmc(card)) {
 		md->sector_count_dentry =
 			debugfs_create_file("sector_count", S_IRUSR, root, card,
@@ -4811,7 +4808,6 @@ static int mmc_blk_probe(struct mmc_card *card)
 	struct mmc_blk_data *md, *part_md;
 	char cap_str[10];
 #ifdef VENDOR_EDIT
-	//chenhui.lai@RM.emmc,2018/10/15, Add for eMMC and DDR device information
 	char * manufacturerid;
     static char temp_version[30] = {0};
 #endif /* VENDOR_EDIT */
@@ -4822,7 +4818,6 @@ static int mmc_blk_probe(struct mmc_card *card)
 		return -ENODEV;
 
 #ifdef VENDOR_EDIT
-//chenhui.lai@RM.emmc,2018/10/15, Add for eMMC and DDR device information
 	switch (card->cid.manfid) {
 		case  0x11:
 			manufacturerid = "TOSHIBA";

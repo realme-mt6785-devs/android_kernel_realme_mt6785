@@ -328,7 +328,7 @@ static int tc_hw_pwron(struct synaptics_ts_data *ts)
         TPD_DEBUG("synaptics:enable the reset_gpio\n");
         gpio_direction_output(ts->reset_gpio, 1);
     }
-    msleep(80); //mingqiang.guo@phone.bsp, 2016/7/7 modify synaptics tp vender need delay 80ms
+    msleep(80);
     return rc;
 }
 
@@ -680,7 +680,6 @@ static int synaptics_rmi4_i2c_write_word(struct i2c_client* client,
     return retval;
 }
 
-//mingqiang.guo@phone.bsp 2016-1-7 add for key press all the time, can not touch up, need force cal
 #ifdef LCD_TRIGGER_KEY_FORCE_CAL
 static int key_press_all_the_time = 0;
 void judge_key_press_all_the_time(void)
@@ -1163,7 +1162,6 @@ const struct file_operations proc_debug =
     .release    = single_release,
 };
 
-//guomingqiang@phone.bsp 2015-12-17 add for touch key debug node
 static ssize_t synaptics_rmi4_baseline_show_s1302(struct device *dev, char *buf, bool savefile)
 {
     int ret = 0;
@@ -1555,7 +1553,6 @@ static const struct file_operations oppo_tp_baseline_image_proc_fops =
     .read = tp_baseline_show,
     .owner = THIS_MODULE,
 };
-//guomingqiang@phone.bsp 2015-12-17 add for touch key debug node  end
 
 static int synaptics_s1302_proc(void)
 {
@@ -1569,11 +1566,9 @@ static int synaptics_s1302_proc(void)
     proc_entry = proc_create_data("reset", 0666, procdir, &proc_reset, NULL);
     proc_entry = proc_create_data("oppo_tp_debug", 0666, procdir, &proc_debug, NULL);
 
-    //guomingqiang@phone.bsp 2015-12-17 add for touch key debug node
     proc_entry = proc_create_data("baseline_test", 0666, procdir, &tp_baseline_test_proc_fops, NULL);
     proc_entry = proc_create_data("oppo_tp_delta_data", 0644, procdir, &oppo_tp_delta_data_proc_fops, NULL);
     proc_entry = proc_create_data("oppo_tp_baseline_image", 0644, procdir, &oppo_tp_baseline_image_proc_fops, NULL);
-    //guomingqiang@phone.bsp 2015-12-17 add for touch key debug node end
 
     TPD_INFO("create nodes is successe!\n");
 
@@ -2239,7 +2234,6 @@ static void speedup_synaptics_resume(struct work_struct *work)
     ret = synaptics_soft_reset(ts);
     msleep(50);
 
-    //guomingqiang@phone.bsp 2016-4-15 add for check touch key firmware mode
     bootloader_mode = synaptics_rmi4_i2c_read_byte(ts->client, F01_RMI_DATA_BASE);
     bootloader_mode = bootloader_mode & 0xff;
     bootloader_mode = bootloader_mode & 0x40;

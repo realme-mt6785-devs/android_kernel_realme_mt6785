@@ -220,7 +220,7 @@ void __exit mm_fb_kevent_module_exit(void) {
 module_init(mm_fb_kevent_module_init);
 module_exit(mm_fb_kevent_module_exit);
 
-MODULE_AUTHOR("deliang.peng <>");
+MODULE_AUTHOR("deliang.peng <pdl@oppo.com>");
 MODULE_DESCRIPTION("mm_kevent@1.0");
 MODULE_VERSION("1.0");
 MODULE_LICENSE("GPL");

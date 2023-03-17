@@ -13,7 +13,7 @@
 ##
 ## Version:  1.0
 ##    Date:  2019/01/15
-##  Author:  
+##  Author:  hukun@oppo.com
 ## ----------------- Revision History: ----------------------
 ## <author>       <data>           <desc>
 ## Kun Hu         2019/01/15      create this file
@@ -62,7 +62,6 @@ typedef struct _phx_keyinfo {
 extern int hang_oppo_recovery_method;
 extern int hang_oppo_main_on;
 
-// Kun.Hu@PSW.TECH.RELIABILTY.1890222, 2019/03/20, remove all fs opreration in kernel, fix extfs crash
 extern int phx_is_system_boot_completed(void);
 extern int phx_is_filesystem_ready(void);
 extern void phx_get_base_info(phx_baseinfo **);

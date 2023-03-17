@@ -8,7 +8,6 @@
 **
 ** Version: 0.1
 ** Date created: 11:28:11,16/01/2019
-** Author: Zhaoan.Xu@PSW.MM.AudioDriver.Criticallog
 **
 ** --------------------------- Revision History: --------------------------------
 ** 	<author>	<data>			<desc>
@@ -60,7 +59,6 @@ static DEVICE_ATTR(name, S_IRUGO, name_show, NULL);
 void criticallog_set_state(struct criticallog_dev *sdev, int state)
 {
   //#ifdef VENDOR_EDIT
-  //chenyihuai@PSW.NW.EM, 2019/12/20 modify for the cause can not contain the detail information
   //modify for modem crash log
   //char name_buf[120];
   //char state_buf[120];
@@ -176,6 +174,6 @@ static void __exit criticallog_class_exit(void)
 module_init(criticallog_class_init);
 module_exit(criticallog_class_exit);
 
-MODULE_AUTHOR("Zhaoan.Xu <>");
+MODULE_AUTHOR("Zhaoan.Xu <xuzhaoan@oppo.com>");
 MODULE_DESCRIPTION("criticallog class driver");
 MODULE_LICENSE("GPL");

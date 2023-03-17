@@ -23,7 +23,6 @@
 #include "ilitek.h"
 
 #ifdef ODM_WT_EDIT
-//Zhonghua.Hu@ODM_WT.BSP.Tp.Init.1372106,2018/5/21,Add for hardware info and compatible txd and hlt ctp
 #include <linux/hardware_info.h>
 //extern char Ctp_name[HARDWARE_MAX_ITEM_LONGTH];
 extern int ili_ctpmodule;
@@ -31,12 +30,10 @@ extern unsigned char* CTPM_FW;
 #endif
 
 #ifdef ODM_WT_EDIT
-//Zhonghua.Hu@ODM_WT.BSP.Tp.Function.1372106,2018/5/21,Add for ctp hardware info
 	char ili_version[20] = {"0"};
 #endif
 
 #ifdef ODM_WT_EDIT
-//Zhonghua.Hu@ODM_WT.BSP.Tp.Init.1372106,2018/5/21,Add for hardware info for OPPO
 extern void devinfo_info_tp_set(char *version, char *manufacture, char *fw_path);
 
 #endif
@@ -71,7 +68,7 @@ static struct ilitek_ic_func_ctrl func_ctrl[FUNC_CTRL_NUM] = {
 	[11] = {"lock_point",  {0x1, 0x13, 0x0}, 3},
 	[12] = {"game_switch", {0x1, 0x13, 0x0}, 3},
 	[13] = {"headset",     {0x1, 0x17, 0x0}, 3},
-	[14] = {"edge_palm",   {0x1, 0x12, 0x01},3},//01:ÊúÆÁ£»02:ºáÆÁ90¶È 00:ºáÆÁ270¶È
+	[14] = {"edge_palm",   {0x1, 0x12, 0x01},3},//01:ÃŠÃºÃ†ÃÂ£Â»02:ÂºÃ¡Ã†Ã90Â¶Ãˆ 00:ÂºÃ¡Ã†Ã270Â¶Ãˆ
 	[15] = {"phone_cover_window", {0xE, 0x0, 0x0}, 3},
 	[16] = {"knock_en", {0x1, 0xA, 0x8, 0x03, 0x0, 0x0}, 6},
 	[17] = {"hopping_ctrl", {0x1, 0x15, 0x0}, 3},
@@ -779,7 +776,6 @@ int ilitek_tddi_ic_get_fw_ver(void)
 	ipio_info("Firmware version = %d.%d.%d.%d\n", buf[1], buf[2], buf[3], buf[4]);
 	idev->chip->fw_ver = buf[1] << 24 | buf[2] << 16 | buf[3] << 8 | buf[4];
 	#ifdef ODM_WT_EDIT
-//Zhonghua.Hu@ODM_WT.BSP.Tp.Init.1372106,2018/5/21,Modify for ito test
 	if ( ili_ctpmodule == 0 ){
 		sprintf(Ctp_name,"XL,ILI9881,FW:0x%x\n",buf[3]);
 	}
@@ -790,7 +786,6 @@ int ilitek_tddi_ic_get_fw_ver(void)
 	}
 #endif
 #ifdef ODM_WT_EDIT
-//Zhonghua.Hu@ODM_WT.BSP.Tp.Function.1372106,2018/5/21,Add for ctp hardware info for OPPO
 	if ( ili_ctpmodule == 0 ) {
 	    sprintf(ili_version,"XL_Ili_%0x",buf[3]);
 	    devinfo_info_tp_set(ili_version, "XL",OPPO_FIRMWARE_XL_AUO_NAME_PATH);

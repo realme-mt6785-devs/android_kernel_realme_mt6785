@@ -32,7 +32,6 @@
 
 /* Camera Hardwareinfo */
 #ifdef VENDOR_EDIT
-/*Degao.Lan@Camera.DRV add for register device info 20191108*/
 #define DEVICE_VERSION_OV02B10  "ov02b10"
 // #define MODULE_ID_OFFSET 0X0000
 #endif
@@ -196,7 +195,7 @@ static struct SENSOR_WINSIZE_INFO_STRUCT imgsensor_winsize_info[6] = {
 };
 
 // #ifdef VENDOR_EDIT
-// /*Degao.Lan@Camera.DRV add for register device info 20191108*/
+//
 // static kal_uint16 read_module_id(void)
 // {
     // kal_uint16 get_byte=0;
@@ -461,7 +460,6 @@ static kal_uint16 set_gain(kal_uint16 gain)
     return gain;
 }    /*    set_gain  */
 
-//quchengzhang@Camera.Drv, 20200509, add for set correct mirror/flip
 static void set_mirror_flip(kal_uint8 image_mirror)
 {
 	LOG_INF("image_mirror = %d\n", image_mirror);

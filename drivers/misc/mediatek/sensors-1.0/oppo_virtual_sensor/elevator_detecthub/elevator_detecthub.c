@@ -5,11 +5,9 @@
 ** Description: Source file for elevator_detect sensor scp driver.
 ** Version: 1.0
 ** Date : 2020/07/29
-** Author: pengqingqing@ANDROID.AITECH
 **
 ** --------------------------- Revision History: ---------------------
 * <version>           <date>             <author>                      <desc>
-* Revision 1.0      2020/07/29       pengqingqing@ANDROID.AITECH       Created
 *******************************************************************/
 #include "elevator_detecthub.h"
 #include "sensor_cmd.h"
@@ -192,4 +190,4 @@ module_init(elevator_detecthub_init);
 module_exit(elevator_detecthub_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("ACTIVITYHUB driver");
-MODULE_AUTHOR("");
+MODULE_AUTHOR("pengqingqing@oppo.com");

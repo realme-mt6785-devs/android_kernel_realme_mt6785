@@ -9,7 +9,6 @@
  **
  ** Version: 1.0
  ** Date created: 18:03:11,07/02/2017
- ** Author: Bin.Li@Prd.BaseDrv
  ** TAG: BSP.bootloader.bootflow
  ** --------------------------- Revision History: --------------------------------
  **  <author>      <data>            <desc>
@@ -713,4 +712,4 @@ late_initcall(oppocustom_init);
 
 MODULE_DESCRIPTION("OPPO custom version");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Joshua <>");
+MODULE_AUTHOR("Joshua <gyx@oppo.com>");

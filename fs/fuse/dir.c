@@ -17,7 +17,6 @@
 #include <linux/posix_acl.h>
 
 #ifdef CONFIG_OPLUS_FEATURE_ACM
-//Yuwei.Guan@BSP.Kernel.FS,2020/07/08, Add for acm
 #include <linux/acm_fs.h>
 #define ACM_DELETE_ERR  999
 #endif
@@ -512,7 +511,6 @@ static int fuse_create_open(struct inode *dir, struct dentry *entry,
 	args.out.args[1].size = sizeof(outopen);
 	args.out.args[1].value = &outopen;
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	args.private_lower_rw_file = NULL;
 	iname = inode_name(dir);
 	if (iname) {
@@ -544,7 +542,6 @@ static int fuse_create_open(struct inode *dir, struct dentry *entry,
 	ff->nodeid = outentry.nodeid;
 	ff->open_flags = outopen.open_flags;
 #ifdef CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT
-//shubin@BSP.Kernel.FS 2020/08/20 improving fuse storage performance
 	if (args.private_lower_rw_file != NULL)
 		ff->rw_lower_file = args.private_lower_rw_file;
 #endif /* CONFIG_OPLUS_FEATURE_FUSE_FS_SHORTCIRCUIT */
@@ -755,11 +752,19 @@ static int fuse_symlink(struct inode *dir, struct dentry *entry,
 	return create_new_entry(fc, &args, dir, entry, S_IFLNK);
 }
 
+void fuse_flush_time_update(struct inode *inode)
+{
+	int err = sync_inode_metadata(inode, 1);
+
+	mapping_set_error(inode->i_mapping, err);
+}
+
 void fuse_update_ctime(struct inode *inode)
 {
 	if (!IS_NOCMTIME(inode)) {
 		inode->i_ctime = current_time(inode);
 		mark_inode_dirty_sync(inode);
+		fuse_flush_time_update(inode);
 	}
 }
 

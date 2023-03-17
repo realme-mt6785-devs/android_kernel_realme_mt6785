@@ -37,7 +37,6 @@
 #endif
 
 #ifdef VENDOR_EDIT
-/*shifan@bsp.tp 2020.0304, pulldown spi7 cs when doing ftm in case of current leakage*/
 #include <mt-plat/mtk_boot_common.h>
 #endif /*VENDOR_EDIT*/
 #ifdef CONFIG_MTK_ROUND_CORNER_SUPPORT
@@ -68,7 +67,6 @@ static int _lcm_i2c_probe(struct i2c_client *client,
 static int _lcm_i2c_remove(struct i2c_client *client);
 
 #ifdef VENDOR_EDIT
-/* shifan@PSW.BSP.TP.Function, 2019/04/26, Add for TP common code */
 extern int tp_gesture_enable_flag(void);
 extern void lcd_queue_load_tp_fw(void);
 void __attribute__((weak)) switch_spi7cs_state(bool normal) {return;}
@@ -80,7 +78,6 @@ static int esd_brightness;
 extern unsigned long oplus_max_normal_brightness;
 extern void disp_aal_set_dre_en(int enable);
 #ifdef VENDOR_EDIT
-/* shiyaqiang@RM.MM.LCD.Driver 20180621 add for keep cabc mode after resume*/
 static int cabc_lastlevel = 0;
 static int last_brightness = 0;
 static void cabc_switch(void *dsi, dcs_write_gce cb,
@@ -602,7 +599,6 @@ static int lcm_unprepare(struct drm_panel *panel)
 	lcm_panel_bias_disable();
 #else
 #ifdef VENDOR_EDIT
-/* shifan@PSW.BSP.TP.Function, 2020/02/20, Add for TP common code */
     pr_info("%s: tp_gesture_enable_flag = %d \n", __func__, tp_gesture_enable_flag());
     if ((0 == tp_gesture_enable_flag())||(esd_flag == 1)) {
 #endif /*VENDOR_EDIT*/
@@ -648,7 +644,6 @@ static int lcm_unprepare(struct drm_panel *panel)
         gpiod_set_value(ctx->bias_en, 0);
         devm_gpiod_put(ctx->dev, ctx->bias_en);*/
 #ifdef VENDOR_EDIT
-/*shifan@bsp.tp, 2020.0303, add for pulldown spi7 cs when doing sleep*/
         if( ctx->is_normal_mode ){
         //    switch_spi7cs_state(false);
         }
@@ -670,7 +665,6 @@ static int lcm_panel_poweron(struct drm_panel *panel)
 	gpiod_set_value(ctx->lcd_1p8_gpio, 1);
 	devm_gpiod_put(ctx->dev, ctx->lcd_1p8_gpio);
 	msleep(1);*/
-		/*liuchao@rm.bsp.tp.basic, 2020.0630, add for restoring spi7 cs when doing wakeup*/	
 	if(ctx->is_normal_mode) {
 	//	switch_spi7cs_state(true);
 	}
@@ -759,7 +753,6 @@ static int lcm_prepare(struct drm_panel *panel)
 	devm_gpiod_put(ctx->dev, ctx->reset_gpio);
 	usleep_range(10 * 1000, 10 * 1000);
 	#ifdef VENDOR_EDIT
-/*shifan@bsp.tp, 2020.0303, add for restoring spi7 cs when doing wakeup*/
 	if(ctx->is_normal_mode) {
 	//	switch_spi7cs_state(true);
 		lcd_queue_load_tp_fw();
@@ -780,7 +773,6 @@ static int lcm_prepare(struct drm_panel *panel)
 	lcm_panel_get_data(ctx);
 #endif
 #ifdef VENDOR_EDIT
-/*shifan@bsp.tp, 2020.0303, add for restoring spi7 cs when doing wakeup*/
 //	if(ctx->is_normal_mode) {
 //		switch_spi7cs_state(true);
 //		lcd_queue_load_tp_fw();
@@ -971,7 +963,6 @@ static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 	}
 	cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));
 #ifdef VENDOR_EDIT
-/* shiyaqiang@RM.MM.LCD.Driver 20180621 add for keep cabc mode after resume*/
 	if ((last_brightness == 0) && (cabc_lastlevel != 0)) {
 		msleep(5);
 		cabc_switch(dsi,cb,handle,cabc_lastlevel);
@@ -1064,7 +1055,6 @@ static void cabc_switch(void *dsi, dcs_write_gce cb,
 		cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));//55 0X
 	}
 #ifdef VENDOR_EDIT
-/* shiyaqiang@RM.MM.LCD.Driver 20180621 add for keep cabc mode after resume*/
 	cabc_lastlevel = cabc_mode;
 #endif
 }
@@ -1254,7 +1244,6 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 		return ret;
 #endif
 #ifdef VENDOR_EDIT
-/*shifan@bsp.tp 2020.0310 add for ftm */
     ctx->is_normal_mode = true;
     if( META_BOOT == get_boot_mode() || FACTORY_BOOT == get_boot_mode() )
         ctx->is_normal_mode = false;
@@ -1296,7 +1285,7 @@ static struct mipi_dsi_driver lcm_driver = {
 
 module_mipi_dsi_driver(lcm_driver);
 
-MODULE_AUTHOR("xxx<>");
+MODULE_AUTHOR("xxx<xxx@realme.com>");
 MODULE_DESCRIPTION("nt36672c tm dphy vdo lcm_drv");
 MODULE_LICENSE("GPL v2");
 

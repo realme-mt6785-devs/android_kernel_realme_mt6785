@@ -26,7 +26,6 @@ static uint32_t temp[5] = {0};
 extern struct ili_gesture_info * gesture_report_data;
 extern unsigned char g_user_buf[PAGE_SIZE];
 #ifdef ODM_WT_EDIT
-//Tongxing.Liu@ODM_WT.BSP.TP.Base,2019/10/05,Add sign firmware function begain
 int sign_firmware = 0;
 #endif
 static ssize_t wt_mptest_read(struct file *filp, char __user *buff, size_t size, loff_t *pos)
@@ -662,7 +661,6 @@ static ssize_t ilitek_proc_read_write_register_write(struct file *filp, const ch
 }
 
 #ifdef ODM_WT_EDIT
-//Tongxing.Liu@ODM_WT.BSP.TP.Base,2019/10/05,Add sign firmware function begain
 /*node to control if upload fireware with sign bin
 *default value is ture
 *when echo 0 to this node ,upload fireware with unsign bin
@@ -693,9 +691,9 @@ static ssize_t ilitek_proc_sign_firmware_write(struct file *filp, const char *bu
 #endif
 
 /*
-*0£º´¥·¢°æ±¾ºÅ²»Í¬¹Ì¼þÉý¼¶
-*1£º´¥·¢¹Ì¼þÇ¿ÖÆÉý¼¶
-*2£º´¥·¢´øÇ©Ãû¹Ì¼þÉý¼¶
+*0Â£ÂºÂ´Â¥Â·Â¢Â°Ã¦Â±Â¾ÂºÃ…Â²Â»ÃÂ¬Â¹ÃŒÂ¼Ã¾Ã‰Ã½Â¼Â¶
+*1Â£ÂºÂ´Â¥Â·Â¢Â¹ÃŒÂ¼Ã¾Ã‡Â¿Ã–Ã†Ã‰Ã½Â¼Â¶
+*2Â£ÂºÂ´Â¥Â·Â¢Â´Ã¸Ã‡Â©ÃƒÃ»Â¹ÃŒÂ¼Ã¾Ã‰Ã½Â¼Â¶
 */
 static ssize_t ilitek_proc_oppo_upgrade_fw_write(struct file *filp, const char *buff, size_t size, loff_t *pPos)
 {
@@ -721,7 +719,6 @@ static ssize_t ilitek_proc_oppo_upgrade_fw_write(struct file *filp, const char *
 	mutex_lock(&idev->touch_mutex);
 
 #ifdef ODM_WT_EDIT
-//Tongxing.Liu@ODM_WT.BSP.TP.Base,2019/10/05,Add sign firmware function begain
 	if ((strncmp(cmd, "0", 1) == 0)||(strncmp(cmd, "1", 1) == 0)) {
 		sign_firmware = 0;
 		idev->need_request_fw = true;
@@ -911,10 +908,10 @@ static ssize_t oppo_proc_i2c_device_read(struct file *file, char *buf,
   }
 
 /*
-*±ßÔµÒÖÖÆ£º
-*direction 0 : ÊúÆÁ       ¹Ì¼þÖ¸Áî01
-*direction 1 : ºáÆÁ90¶È   ¹Ì¼þÖ¸Áî02
-*direction 2 : ºáÆÁ270¶È  ¹Ì¼þÖ¸Áî00
+*Â±ÃŸÃ”ÂµÃ’Ã–Ã–Ã†Â£Âº
+*direction 0 : ÃŠÃºÃ†Ã       Â¹ÃŒÂ¼Ã¾Ã–Â¸ÃÃ®01
+*direction 1 : ÂºÃ¡Ã†Ã90Â¶Ãˆ   Â¹ÃŒÂ¼Ã¾Ã–Â¸ÃÃ®02
+*direction 2 : ÂºÃ¡Ã†Ã270Â¶Ãˆ  Â¹ÃŒÂ¼Ã¾Ã–Â¸ÃÃ®00
 */
 static ssize_t ilitek_limit_control_write(struct file *file, const char __user *buffer, size_t count, loff_t *ppos)
 {
@@ -942,7 +939,6 @@ static ssize_t ilitek_limit_control_write(struct file *file, const char __user *
 	ipio_info("%s,direction = %d\n",__func__,idev->direction);
 	mutex_lock(&idev->touch_mutex);
 #ifdef ODM_WT_EDIT
-//Tongxing.Liu@ODM_WT.BSP.TP.FUNCTION.2019/10/05, add function status value
 		if (idev->suspend==false) {
 			if (idev->direction == 0) {
 				ilitek_tddi_ic_func_ctrl("edge_palm", 0x1);
@@ -1014,7 +1010,6 @@ static ssize_t ilitek_direction_write(struct file *file, const char __user *user
        idev->direction = buf[0] -'0';
        mutex_lock(&idev->touch_mutex);
 #ifdef ODM_WT_EDIT
-//Tongxing.Liu@ODM_WT.BSP.TP.FUNCTION.2019/10/05, add function status value
        if (idev->suspend==false) {
               if (idev->direction == 0) {
                      ilitek_tddi_ic_func_ctrl("edge_palm", 0x1);
@@ -1196,7 +1191,6 @@ static const struct file_operations ilitek_direction_fops = {
 int oppo_proc_init(void)
 {
 	int res = 0;
-	//Zhonghua.Hu@ODM_WT.BSP.Tp.Init.1372106,2018/5/25,Add for oppo factory test
 	struct proc_dir_entry *proc_oppo_upgrade_fw_dir;
 	struct proc_dir_entry *proc_oppo_gesture_dir;
 	struct proc_dir_entry *proc_oppo_irq_depth_dir;
