@@ -129,10 +129,10 @@ obj-$(CONFIG_HAS_IOMEM) += memremap.o
 obj-y += uifirst/
 #endif /* OPLUS_FEATURE_UIFIRST */
 
-#ifdef OPLUS_FEATURE_SPECIALOPT
+ifdef OPLUS_FEATURE_SPECIALOPT
 #Liujie.Xie@TECH.Kernel.Sched, 2020/03/23, add for heavy load task
 obj-y += special_opt/
-#endif /* OPLUS_FEATURE_SPECIALOPT */
+endif /* OPLUS_FEATURE_SPECIALOPT */
 
 $(obj)/configs.o: $(obj)/config_data.h
 

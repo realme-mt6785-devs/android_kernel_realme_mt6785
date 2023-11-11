@@ -1769,9 +1769,9 @@ static struct page *allocate_slab(struct kmem_cache *s, gfp_t flags, int node)
 	kasan_poison_slab(page);
 
 	start = page_address(page);
-
+#ifdef OPLUS_FEATURE_PERFORMANCE
 	setup_page_debug(s, start, order);
-
+#endif
 	shuffle = shuffle_freelist(s, page);
 
 	if (!shuffle) {
