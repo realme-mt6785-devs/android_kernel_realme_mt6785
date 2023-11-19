@@ -20,8 +20,7 @@
 
 #define PT_DLPT_BRINGUP 0
 
-//qinyonghui@SH, 2019/12/02. disable low battery limit
-//#if defined(CONFIG_FPGA_EARLY_PORTING) || PT_DLPT_BRINGUP
+#if defined(CONFIG_FPGA_EARLY_PORTING) || PT_DLPT_BRINGUP
 /* Define for disable low battery protect feature,
  * default no define for enable low battery protect.
  */
@@ -35,14 +34,9 @@
 
 /*Define for DLPT*/
 #define DISABLE_DLPT_FEATURE
-//#endif /* defined(CONFIG_FPGA_EARLY_PORTING) || PT_DLPT_BRINGUP */
+#endif /* defined(CONFIG_FPGA_EARLY_PORTING) || PT_DLPT_BRINGUP */
 
-/* Yang.Jiao@CM.BSP.CHG.Basic, 2020/12/12, modify uvlo from 2.6v to 2.75v */
-#ifndef OPLUS_FEATURE_CHG_BASIC
 #define POWER_UVLO_VOLT_LEVEL 2600
-#else
-#define POWER_UVLO_VOLT_LEVEL 2750
-#endif /* OPLUS_FEATURE_CHG_BASIC */
 #define IMAX_MAX_VALUE 5500
 
 #define POWER_INT0_VOLT 3400
