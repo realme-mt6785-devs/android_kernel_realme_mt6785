@@ -124,10 +124,10 @@ obj-$(CONFIG_TORTURE_TEST) += torture.o
 
 obj-$(CONFIG_HAS_IOMEM) += memremap.o
 
-#ifdef OPLUS_FEATURE_UIFIRST
+ifdef OPLUS_FEATURE_UIFIRST
 #XieLiujie@BSP.KERNEL.PERFORMANCE, 2020/05/25, Add for UIFirst
 obj-y += uifirst/
-#endif /* OPLUS_FEATURE_UIFIRST */
+endif /* OPLUS_FEATURE_UIFIRST */
 
 ifdef OPLUS_FEATURE_SPECIALOPT
 #Liujie.Xie@TECH.Kernel.Sched, 2020/03/23, add for heavy load task
