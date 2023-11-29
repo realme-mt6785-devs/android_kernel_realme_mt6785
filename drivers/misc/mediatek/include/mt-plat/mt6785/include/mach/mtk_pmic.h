@@ -20,6 +20,8 @@
 
 #define PT_DLPT_BRINGUP 0
 
+#define DISABLE_PBM_FEATURE 1
+
 //qinyonghui@SH, 2019/12/02. disable low battery limit
 //#if defined(CONFIG_FPGA_EARLY_PORTING) || PT_DLPT_BRINGUP
 /* Define for disable low battery protect feature,
