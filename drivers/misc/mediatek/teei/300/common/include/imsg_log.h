@@ -28,10 +28,6 @@ enum {
 	IMSG_LV_TRACE
 };
 
-#if defined(CONFIG_MICROTRUST_DEBUG)
-#define IMSG_LOG_LEVEL          IMSG_LV_DEBUG
-#define IMSG_PROFILE_LEVEL      IMSG_LV_TRACE
-#else
 /* DO NOT change the log level, this is for production */
 #define IMSG_LOG_LEVEL          IMSG_LV_WARN
 #define IMSG_PROFILE_LEVEL      IMSG_LV_TRACE
