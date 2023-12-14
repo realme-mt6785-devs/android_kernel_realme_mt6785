@@ -1467,7 +1467,7 @@ static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)
 
 	len += print_time(msg->ts_nsec, buf ? buf + len : NULL);
 
-#ifdef CONFIG_PRINTK_MT_PREFIX
+#if IS_ENABLED(CONFIG_PRINTK_MT_PREFIX)
 	/* if uart printk enabled */
 	if (syslog == false && mt_get_uartlog_status()) {
 		if (buf)
