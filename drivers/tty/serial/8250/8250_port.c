@@ -1717,9 +1717,9 @@ static void serial8250_read_char(struct uart_8250_port *up, unsigned char lsr)
 		/* Enable uart log output on eng load when receive char input */
 		#ifndef CONFIG_FIQ_DEBUGGER
 		#ifdef CONFIG_MTK_ENG_BUILD
-		#ifdef CONFIG_MTK_PRINTK_UART_CONSOLE
+		#if IS_ENABLED(CONFIG_MTK_PRINTK_UART_CONSOLE)
 			if (ch == 'c')
-				mt_enable_uart();
+		//		mt_enable_uart();
 		#endif
 		#endif
 		#endif

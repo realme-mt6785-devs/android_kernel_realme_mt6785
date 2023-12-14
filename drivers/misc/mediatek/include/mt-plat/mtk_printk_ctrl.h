@@ -14,15 +14,15 @@ bool mt_get_uartlog_status(void);
 void mt_disable_uart(void);
 void mt_enable_uart(void);
 #else
-static inline bool mt_get_uartlog_status(void)
+extern inline bool mt_get_uartlog_status(void)
 {
 	return false;
 }
-static inline void mt_disable_uart(void)
+extern inline void mt_disable_uart(void)
 {
 
 }
-static inline void mt_enable_uart(void)
+extern inline void mt_enable_uart(void)
 {
 
 }
