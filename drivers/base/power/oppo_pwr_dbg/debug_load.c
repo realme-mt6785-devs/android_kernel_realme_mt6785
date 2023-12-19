@@ -34,8 +34,8 @@
 #include "debug_load.h"
 
 #define POWER_TUNER_TAG "[POWER_DEBUG]"
-#define POWER_TUNER_INFO(fmt, args...) pr_info(POWER_TUNER_TAG fmt, ##args)
-#define POWER_TUNER_ERR(fmt, args...) pr_info(POWER_TUNER_TAG fmt, ##args)
+#define POWER_TUNER_INFO(fmt, args...) pr_debug(POWER_TUNER_TAG fmt, ##args)
+#define POWER_TUNER_ERR(fmt, args...) pr_err(POWER_TUNER_TAG fmt, ##args)
 #define MAX_PID (32768)
 #define CTP_WINDOW_SZ (5)
 #define NUM_PRINT_HEAVY_LOAD_TASK (10)
