@@ -269,14 +269,14 @@ static void temp_valid_unlock(unsigned long *flags);
 unsigned int  __attribute__((weak))
 mt_gpufreq_get_max_power(void)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 	return 0;
 }
 
 	int __attribute__ ((weak))
 IMM_IsAdcInitReady(void)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 	return 0;
 }
 #if 0
@@ -284,13 +284,13 @@ IMM_IsAdcInitReady(void)
 	void __attribute__ ((weak))
 mt_ppm_cpu_thermal_protect(unsigned int limited_power)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 }
 #else
 	void __attribute__ ((weak))
 mt_cpufreq_thermal_protect(unsigned int limited_power)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 }
 #endif
 #endif
@@ -299,7 +299,7 @@ mt_cpufreq_thermal_protect(unsigned int limited_power)
 mtk_get_gpu_loading(unsigned int *pLoading)
 {
 #ifdef CONFIG_MTK_GPU_SUPPORT
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 #endif
 	return 0;
 }
@@ -307,46 +307,46 @@ mtk_get_gpu_loading(unsigned int *pLoading)
 	void __attribute__ ((weak))
 mt_ptp_lock(unsigned long *flags)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 }
 
 	void __attribute__ ((weak))
 mt_ptp_unlock(unsigned long *flags)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 }
 
 	void __attribute__ ((weak))
 mt_cpufreq_thermal_5A_limit(bool enable)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 }
 
 	unsigned int __attribute__ ((weak))
 mt_gpufreq_get_cur_freq(void)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 	return 0;
 }
 
 	unsigned int __attribute__ ((weak))
 mt_ppm_thermal_get_max_power(void)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 	return 0;
 }
 
 	unsigned int  __attribute__((weak))
 mt_gpufreq_get_seg_max_opp_index(void)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 	return 0;
 }
 
 	unsigned int  __attribute__((weak))
 mt_gpufreq_get_dvfs_table_num(void)
 {
-	pr_notice("E_WF: %s doesn't exist\n", __func__);
+	pr_debug("E_WF: %s doesn't exist\n", __func__);
 	return 0;
 }
 
@@ -1746,7 +1746,7 @@ struct platform_device *dev, pm_message_t state)
 		do {
 			temp = (readl(THAHBST0) >> 16);
 			if ((cnt + 1) % 10 == 0)
-				pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n",
+				pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n",
 							temp, cnt, __LINE__);
 
 			udelay(50);
@@ -1758,7 +1758,7 @@ struct platform_device *dev, pm_message_t state)
 		do {
 			temp = (readl(THAHBST0) >> 16);
 			if ((cnt + 1) % 10 == 0)
-				pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n",
+				pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n",
 							temp, cnt, __LINE__);
 
 			udelay(2);
@@ -1832,7 +1832,7 @@ static int tscpu_thermal_resume(struct platform_device *dev)
 		do {
 			temp = (readl(THAHBST0) >> 16);
 			if ((cnt + 1) % 10 == 0)
-				pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n",
+				pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n",
 							temp, cnt, __LINE__);
 
 			udelay(50);
@@ -1844,7 +1844,7 @@ static int tscpu_thermal_resume(struct platform_device *dev)
 		do {
 			temp = (readl(THAHBST0) >> 16);
 			if ((cnt + 1) % 10 == 0)
-				pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n",
+				pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n",
 							temp, cnt, __LINE__);
 
 			udelay(2);
@@ -2280,16 +2280,16 @@ static int thermal_auxadc_get_data(int times, int channel)
 {
 	int ret = 0, data[4], i, ret_value = 0, ret_temp = 0;
 
-	pr_notice("Thermal_auxadc_get_data\n");
+	pr_debug("Thermal_auxadc_get_data\n");
 
 	if (IMM_IsAdcInitReady() == 0) {
-		pr_notice("[%s]: AUXADC is not ready\n", __func__);
+		pr_debug("[%s]: AUXADC is not ready\n", __func__);
 		return 0;
 	}
 
 	for (i = 0; i < times; i++) {
 		ret_value = IMM_GetOneChannelValue(channel, data, &ret_temp);
-		pr_notice("[%s]: raw%d= %d\n", __func__, i,
+		pr_debug("[%s]: raw%d= %d\n", __func__, i,
 								ret_temp);
 		ret += ret_temp;
 	}
@@ -2315,7 +2315,7 @@ static void tscpu_thermal_pause(void)
 	do {
 		temp = (readl(THAHBST0) >> 16);
 		if ((cnt + 1) % 10 == 0)
-			pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
+			pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
 								__LINE__);
 
 		udelay(50);
@@ -2327,7 +2327,7 @@ static void tscpu_thermal_pause(void)
 	do {
 		temp = (readl(THAHBST0) >> 16);
 		if ((cnt + 1) % 10 == 0)
-			pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
+			pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
 								__LINE__);
 
 		udelay(2);
@@ -2378,7 +2378,7 @@ static void tscpu_thermal_release(void)
 	do {
 		temp = (readl(THAHBST0) >> 16);
 		if ((cnt + 1) % 10 == 0)
-			pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
+			pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
 								__LINE__);
 
 		udelay(50);
@@ -2390,7 +2390,7 @@ static void tscpu_thermal_release(void)
 	do {
 		temp = (readl(THAHBST0) >> 16);
 		if ((cnt + 1) % 10 == 0)
-			pr_notice("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
+			pr_debug("THAHBST0 = 0x%x, cnt = %d, %d\n", temp, cnt,
 								__LINE__);
 
 		udelay(2);

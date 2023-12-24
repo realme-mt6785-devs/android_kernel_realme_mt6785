@@ -199,19 +199,19 @@ static void set_tc_trigger_hw_protect
 	void __attribute__ ((weak))
 mt_ptp_lock(unsigned long *flags)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 }
 
 	void __attribute__ ((weak))
 mt_ptp_unlock(unsigned long *flags)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 }
 
 	int __attribute__ ((weak))
 get_wd_api(struct wd_api **obj)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 	return -1;
 }
 
@@ -402,10 +402,10 @@ void tscpu_thermal_cal_prepare(void)
 	temp3 = get_devinfo_with_index(ADDRESS_INDEX_3); /* 01AC */
 	temp4 = get_devinfo_with_index(ADDRESS_INDEX_4); /* 01B0 */
 
-	pr_notice(
+	pr_debug(
 		"[calibration] tmp0=0x%x, tmp1=0x%x, tmp2=0x%x\n",
 		temp0, temp1, temp2);
-	pr_notice(
+	pr_debug(
 		"[calibration] tmp3=0x%x, tmp4=0x%x\n",
 		temp3, temp4);
 
@@ -1094,7 +1094,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR0) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]0 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]0 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR0) & 0x0fff;
@@ -1104,7 +1104,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR1) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]1 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]1 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR1) & 0x0fff;
@@ -1114,7 +1114,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR2) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]2 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]2 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR2) & 0x0fff;
@@ -1124,7 +1124,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR3) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]3 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]3 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR3) & 0x0fff;
@@ -1337,7 +1337,7 @@ void tscpu_config_all_tc_hw_protect(int temperature, int temperature2)
 	do_gettimeofday(&end);
 
 	/* Get milliseconds */
-	pr_notice("resume time spent, sec : %lu , usec : %lu\n",
+	pr_debug("resume time spent, sec : %lu , usec : %lu\n",
 						(end.tv_sec - begin.tv_sec),
 						(end.tv_usec - begin.tv_usec));
 #endif

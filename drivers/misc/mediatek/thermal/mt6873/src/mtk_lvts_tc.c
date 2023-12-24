@@ -313,19 +313,19 @@ static void lvts_set_tc_trigger_hw_protect(
 	void __attribute__ ((weak))
 mt_ptp_lock(unsigned long *flags)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 }
 
 	void __attribute__ ((weak))
 mt_ptp_unlock(unsigned long *flags)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 }
 
 	int __attribute__ ((weak))
 get_wd_api(struct wd_api **obj)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 	return -1;
 }
 
@@ -362,7 +362,7 @@ unsigned int data, int tc_num)
 		 */
 		udelay(3);
 	} else
-		pr_notice("Error: %d wrong tc_num value: %d\n",
+		pr_debug("Error: %d wrong tc_num value: %d\n",
 			__LINE__, tc_num);
 
 	return 1;
@@ -401,7 +401,7 @@ unsigned int dev_reg_idx, int tc_num)
 
 		data = (readl(LVTSRDATA0_0 + offset));
 	} else
-		pr_notice("Error: %d wrong tc_num value: %d\n",
+		pr_debug("Error: %d wrong tc_num value: %d\n",
 			__LINE__, tc_num);
 
 	return data;
@@ -638,7 +638,7 @@ static void lvts_device_check_read_write_status(int tc_num)
 			udelay(2);
 		}
 	} else
-		pr_notice("Error: %d wrong tc_num value: %d\n",
+		pr_debug("Error: %d wrong tc_num value: %d\n",
 			__LINE__, tc_num);
 
 }
@@ -1254,7 +1254,7 @@ static void lvts_interrupt_handler(int tc_num)
 		if (ret & THERMAL_PROTECTION_STAGE_3)
 			lvts_printk("[Thermal IRQ]: Thermal protection stage 3 interrupt triggered, Thermal HW reboot\n");
 	} else
-		pr_notice("Error: %d wrong tc_num value: %d\n",
+		pr_debug("Error: %d wrong tc_num value: %d\n",
 			__LINE__, tc_num);
 }
 
@@ -1332,7 +1332,7 @@ static void lvts_configure_polling_speed_and_filter(int tc_num)
 			readl(LVTSMONCTL2_0 + offset),
 			readl(LVTSMSRCTL0_0 + offset));
 	} else
-		pr_notice("Error: %d wrong tc_num value: %d\n",
+		pr_debug("Error: %d wrong tc_num value: %d\n",
 			__LINE__, tc_num);
 }
 
@@ -1409,7 +1409,7 @@ int temperature, int temperature2, int tc_num)
 			offset + LVTSMONINT_0);
 #endif
 	} else
-		pr_notice("Error: %d wrong tc_num value: %d\n",
+		pr_debug("Error: %d wrong tc_num value: %d\n",
 			__LINE__, tc_num);
 }
 
@@ -1613,7 +1613,7 @@ static void lvts_tscpu_thermal_read_tc_temp(
 			break;
 		}
 	} else
-		pr_notice("Error: %d wrong tc_num value: %d\n",
+		pr_debug("Error: %d wrong tc_num value: %d\n",
 			__LINE__, tc_num);
 }
 
@@ -1692,7 +1692,7 @@ void lvts_wait_for_all_sensing_point_idle(void)
 			break;
 
 		if ((cnt + 1) % 50 == 0) {
-			pr_notice("Cnt= %d LVTS TC %d, LVTSMSRCTL1[10,7,0] = %d,%d,%d, LVTSMSRCTL1[10:0] = 0x%x\n",
+			pr_debug("Cnt= %d LVTS TC %d, LVTSMSRCTL1[10,7,0] = %d,%d,%d, LVTSMSRCTL1[10:0] = 0x%x\n",
 					cnt + 1, (temp >> 16),
 					((temp & _BIT_(2)) >> 2),
 					((temp & _BIT_(1)) >> 1),
@@ -1752,7 +1752,7 @@ void lvts_sodi3_release_thermal_controller(void)
 			 */
 			if ((temp & 0x10E) != 0) {
 				lvts_paused = 1;
-				pr_notice_ratelimited(
+				pr_debug_ratelimited(
 					"lvts_paused = %d\n", lvts_paused);
 				break;
 			}

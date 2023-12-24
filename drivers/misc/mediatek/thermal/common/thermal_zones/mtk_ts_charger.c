@@ -46,8 +46,8 @@ do { \
 #define mtktscharger_dprintk_always(fmt, args...) \
 	pr_debug("[Thermal/tzcharger]" fmt, ##args)
 
-#define mtktscharger_pr_notice(fmt, args...) \
-	pr_notice("[Thermal/tzcharger]" fmt, ##args)
+#define mtktscharger_pr_debug(fmt, args...) \
+	pr_debug("[Thermal/tzcharger]" fmt, ##args)
 
 static kuid_t uid = KUIDT_INIT(0);
 static kgid_t gid = KGIDT_INIT(1000);
@@ -105,7 +105,7 @@ struct charger_consumer __attribute__ ((weak))
 *charger_manager_get_by_name(struct device *dev,
 	const char *supply_name)
 {
-	mtktscharger_pr_notice("%s not found.\n", __func__);
+	mtktscharger_pr_debug("%s not found.\n", __func__);
 	return NULL;
 }
 
@@ -113,14 +113,14 @@ int __attribute__ ((weak))
 charger_manager_get_charger_temperature(struct charger_consumer *consumer,
 	int idx, int *tchg_min, int *tchg_max)
 {
-	mtktscharger_pr_notice("%s not found.\n", __func__);
+	mtktscharger_pr_debug("%s not found.\n", __func__);
 	return -ENODEV;
 }
 #else
 int __attribute__ ((weak))
 mtk_chr_get_tchr(int *min_tchr, int *max_tchr)
 {
-	mtktscharger_pr_notice("%s not found.\n", __func__);
+	mtktscharger_pr_debug("%s not found.\n", __func__);
 	return -ENODEV;
 }
 #endif
@@ -381,10 +381,10 @@ struct thermal_cooling_device *cdev, unsigned long state)
 {
 	cl_dev_sysrst_state = state;
 	if (cl_dev_sysrst_state == 1) {
-		pr_notice("[Thermal/mtktscharger_sysrst] reset, reset, reset!!!\n");
-		pr_notice("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-		pr_notice("*****************************************\n");
-		pr_notice("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+		pr_debug("[Thermal/mtktscharger_sysrst] reset, reset, reset!!!\n");
+		pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+		pr_debug("*****************************************\n");
+		pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
 		/* To trigger data abort to reset the system
 		 * for thermal protection.
@@ -614,7 +614,7 @@ static int mtktscharger_pdrv_probe(struct platform_device *pdev)
 	pthermal_consumer = charger_manager_get_by_name(&pdev->dev, "charger");
 
 	if (!pthermal_consumer) {
-		mtktscharger_pr_notice("%s get get_by_name fails.\n", __func__);
+		mtktscharger_pr_debug("%s get get_by_name fails.\n", __func__);
 		return -EPERM;
 	}
 
@@ -624,7 +624,7 @@ static int mtktscharger_pdrv_probe(struct platform_device *pdev)
 
 	mtktscharger_dir = mtk_thermal_get_proc_drv_therm_dir_entry();
 	if (!mtktscharger_dir) {
-		mtktscharger_pr_notice("%s get /proc/driver/thermal failed\n",
+		mtktscharger_pr_debug("%s get /proc/driver/thermal failed\n",
 								__func__);
 	} else {
 		entry = proc_create("tzcharger", 0664, mtktscharger_dir,
