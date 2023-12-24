@@ -950,12 +950,12 @@ int get_io_reg_base(void)
 	/* TODO: If this is required, it needs to confirm which node to read. */
 	node = of_find_compatible_node(NULL, NULL, "mediatek,infrasys");
 	if (!node) {
-		pr_notice("[CLK_INFRACFG_AO] find node failed\n");
+		pr_debug("[CLK_INFRACFG_AO] find node failed\n");
 		return 0;
 	}
 	therm_clk_infracfg_ao_base = of_iomap(node, 0);
 	if (!therm_clk_infracfg_ao_base) {
-		pr_notice("[CLK_INFRACFG_AO] base failed\n");
+		pr_debug("[CLK_INFRACFG_AO] base failed\n");
 		return 0;
 	}
 #endif

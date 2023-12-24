@@ -216,19 +216,19 @@ static void set_tc_trigger_hw_protect
 void __attribute__ ((weak))
 mt_ptp_lock(unsigned long *flags)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 }
 
 void __attribute__ ((weak))
 mt_ptp_unlock(unsigned long *flags)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 }
 
 int __attribute__ ((weak))
 get_wd_api(struct wd_api **obj)
 {
-	pr_notice("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
+	pr_debug("[Power/CPU_Thermal]%s doesn't exist\n", __func__);
 	return -1;
 }
 
@@ -437,7 +437,7 @@ void tscpu_thermal_cal_prepare(void)
 	temp1 = get_devinfo_with_index(ADDRESS_INDEX_1);
 	temp2 = get_devinfo_with_index(ADDRESS_INDEX_2);
 
-	pr_notice("[calibration] temp0=0x%x, temp1=0x%x, temp2=0x%x\n",
+	pr_debug("[calibration] temp0=0x%x, temp1=0x%x, temp2=0x%x\n",
 							temp0, temp1, temp2);
 	/*
 	 *   chip dependent
@@ -516,7 +516,7 @@ void tscpu_thermal_cal_prepare(void)
 	lvtsdevinfo2 = get_devinfo_with_index(119);
 	lvtsdevinfo3 = get_devinfo_with_index(139);
 
-	pr_notice("[lvts_cal] 0: 0x%x, 1: 0x%x, 2: 0x%x\n", lvtsdevinfo1,
+	pr_debug("[lvts_cal] 0: 0x%x, 1: 0x%x, 2: 0x%x\n", lvtsdevinfo1,
 						lvtsdevinfo2, lvtsdevinfo3);
 
 	lvts_count1_b30c = (lvtsdevinfo1 & _BITMASK_(23:0));
@@ -1168,7 +1168,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR0) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]0 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]0 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR0) & 0x0fff;
@@ -1178,7 +1178,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR1) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]1 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]1 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR1) & 0x0fff;
@@ -1188,7 +1188,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR2) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]2 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]2 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR2) & 0x0fff;
@@ -1198,7 +1198,7 @@ int tscpu_thermal_fast_init(int tc_num)
 	temp = readl(offset + TEMPMSR3) & 0x0fff;
 	while (temp != THERMAL_INIT_VALUE && cunt < 20) {
 		cunt++;
-		/* pr_notice("[Power/CPU_Thermal]3 temp=%d,cunt=%d\n",
+		/* pr_debug("[Power/CPU_Thermal]3 temp=%d,cunt=%d\n",
 		 *					temp,cunt);
 		 */
 		temp = readl(offset + TEMPMSR3) & 0x0fff;
@@ -1412,7 +1412,7 @@ void tscpu_config_all_tc_hw_protect(int temperature, int temperature2)
 	do_gettimeofday(&end);
 
 	/* Get milliseconds */
-	pr_notice("resume time spent, sec : %lu , usec : %lu\n",
+	pr_debug("resume time spent, sec : %lu , usec : %lu\n",
 						(end.tv_sec - begin.tv_sec),
 						(end.tv_usec - begin.tv_usec));
 #endif
@@ -1613,13 +1613,13 @@ int get_io_reg_base(void)
 	/* TODO: If this is required, it needs to confirm which node to read. */
 	node = of_find_compatible_node(NULL, NULL, "mediatek,infrasys"); /**/
 	if (!node) {
-		pr_notice("[CLK_INFRACFG_AO] find node failed\n");
+		pr_debug("[CLK_INFRACFG_AO] find node failed\n");
 		return 0;
 	}
 
 	therm_clk_infracfg_ao_base = of_iomap(node, 0);
 	if (!therm_clk_infracfg_ao_base) {
-		pr_notice("[CLK_INFRACFG_AO] base failed\n");
+		pr_debug("[CLK_INFRACFG_AO] base failed\n");
 		return 0;
 	}
 #endif
