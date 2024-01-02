@@ -2,7 +2,7 @@
 /*
  * A tagged pointer implementation
  *
- * Copyright (C) 2018 Gao Xiang <gaoxiang25@huawei.com>
+ * Copyright (C) 2018 Gao Xiang <gaoxiang25@odm.com>
  */
 #ifndef __EROFS_FS_TAGPTR_H
 #define __EROFS_FS_TAGPTR_H
