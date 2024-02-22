@@ -21,7 +21,7 @@
 #include "rt_ext.c"
 
 int sched_rr_timeslice = RR_TIMESLICE;
-int sysctl_sched_rr_timeslice = (MSEC_PER_SEC / HZ) * RR_TIMESLICE;
+int sysctl_sched_rr_timeslice = (MSEC_PER_SEC * RR_TIMESLICE) / HZ;
 
 static int do_sched_rt_period_timer(struct rt_bandwidth *rt_b, int overrun);
 
