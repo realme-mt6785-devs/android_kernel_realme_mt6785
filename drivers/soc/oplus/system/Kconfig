@@ -56,10 +56,6 @@ source "drivers/soc/oplus/system/oplus_mm_fb/Kconfig"
 source "drivers/soc/oplus/system/qcom_watchdog/Kconfig"
 #endif /* OPLUS_FEATURE_QCOM_WATCHDOG */
 
-#ifdef OPLUS_FEATURE_ACM
-#Yuwei.Guan@BSP.Kernel.FS,2020/07/08, Add for acm
-source "drivers/soc/oplus/system/acm/Kconfig"
-#endif /* OPLUS_FEATURE_ACM */
 #ifdef OPLUS_FEATURE_THEIA
 #yanggang@BSP.Kernel.Stability,2020/07/08, Add for theia
 source "drivers/soc/oplus/system/theia/Kconfig"
