@@ -5,7 +5,6 @@
 #
 
 obj-y 	+= platform.o
-obj-$(CONFIG_OPLUS_FEATURE_FEEDBACK) 	+= feedback/
 obj-$(CONFIG_OPLUS_FEATURE_UBOOT_LOG) 	+= uboot_log/
 obj-$(CONFIG_OPLUS_FEATURE_SLABTRACE_DEBUG) +=  slabtrace/
 obj-$(CONFIG_OPLUS_FEATURE_OPROJECT) 	+= oplus_project/
