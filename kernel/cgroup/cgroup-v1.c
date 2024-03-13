@@ -13,10 +13,6 @@
 #include <linux/delayacct.h>
 #include <linux/pid_namespace.h>
 #include <linux/cgroupstats.h>
-#ifdef OPLUS_FEATURE_HANS_FREEZE
-// Kun.Zhou@ANDROID.RESCONTROL, 2019/09/23, add for hans freeze manager
-#include <linux/freezer.h>
-#endif /*OPLUS_FEATURE_HANS_FREEZE*/
 
 #include <trace/events/cgroup.h>
 #ifdef CONFIG_MTK_TASK_TURBO

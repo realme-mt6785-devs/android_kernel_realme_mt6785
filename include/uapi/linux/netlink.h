@@ -38,11 +38,6 @@
 #define NETLINK_OPLUS_NF_HOOKS	32
 #endif /* OPLUS_FEATURE_WIFI_LUCKYMONEY */
 
-#ifdef OPLUS_FEATURE_HANS_FREEZE
-//#Kun.Zhou@ANDROID.RESCONTROL, 2019/09/23, add for hans freeze manager
-#define NETLINK_OPPO_HANS       28      /* Socket for freezing solution*/
-#endif /*OPLUS_FEATURE_HANS_FREEZE*/
-
 //#ifdef OPLUS_FEATURE_DATA_EVAL
 //PengHao@NETWORK.DATA.8124, 2020/05/08, Add for network quality evaluation.
 #define NETLINK_OPLUS_KERNEL2USER  37      /* kernel data info to user space */
