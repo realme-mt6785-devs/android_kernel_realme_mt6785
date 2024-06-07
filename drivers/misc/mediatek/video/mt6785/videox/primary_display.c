@@ -6614,7 +6614,7 @@ static bool disp_rsz_frame_has_rsz_layer(struct disp_frame_cfg_t *cfg)
 			break;
 		}
 	}
-
+#ifdef CONFIG_TRACING
 	path = HRT_GET_PATH_ID(HRT_GET_PATH_SCENARIO(cfg->overlap_layer_num));
 	if ((path != 2 && path != 3) && (rsz == true)) {
 		struct disp_input_config *c = &cfg->input_cfg[i];
@@ -6624,7 +6624,7 @@ static bool disp_rsz_frame_has_rsz_layer(struct disp_frame_cfg_t *cfg)
 			    c->src_height, c->tgt_offset_x, c->tgt_offset_y,
 			    c->tgt_width, c->tgt_height);
 	}
-
+#endif
 	return rsz;
 }
 
