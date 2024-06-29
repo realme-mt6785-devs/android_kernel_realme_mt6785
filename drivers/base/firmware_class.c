@@ -371,23 +371,15 @@ static void fw_free_buf(struct firmware_buf *buf)
 /* direct firmware loading support */
 static char fw_path_para[256];
 static const char * const fw_path[] = {
-	//#ifdef OPLUS_FEATURE_WIFI_RUSUPGRADE
-	//JiaoBo@CONNECTIVITY.WIFI.BASIC.HARDWARE.2795386, 2020/02/20
-	//add for: support auto update function, include mtk fw, mtk wifi.cfg, qcom fw, qcom bdf, qcom ini
+	"/vendor/firmware/",
 	"/data/misc/firmware/active",
-	//#endif /* OPLUS_FEATURE_WIFI_RUSUPGRADE */
-	/*Fuhua.wang@RM.MULTIMEDIA.AUDIODRIVER,2020/09/27, add for Q->R Audio bring up*/
 	"/odm/firmware/nxp",
 	fw_path_para,
 	"/lib/firmware/updates/" UTS_RELEASE,
 	"/lib/firmware/updates",
 	"/lib/firmware/" UTS_RELEASE,
 	"/lib/firmware",
-	//#ifdef OPLUS_BUG_COMPATIBILITY
-	//Zhao.Pan@MULTIMEDIA.AUDIODRIVER.AUDIOPARAM, 2020/05/26
-	//add for: add fw dir to fw_path, to load audio PA .bin files
 	"/odm/firmware",
-	//#endif /* OPLUS_BUG_COMPATIBILITY */
 	"/odm/firmware/firmware"
 };
 
