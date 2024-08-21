@@ -796,18 +796,10 @@ int oplus_battery_get_property(struct power_supply *psy,
 			break;
 #endif
 		case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-#ifdef CONFIG_OPLUS_CHARGER_MTK
-			val->intval = chip->batt_volt;
-#else
 			val->intval = chip->batt_volt * 1000;
-#endif
 			break;
 		case POWER_SUPPLY_PROP_VOLTAGE_MIN:
-#ifdef CONFIG_OPLUS_CHARGER_MTK
-			val->intval = chip->batt_volt_min;
-#else
 			val->intval = chip->batt_volt_min * 1000;
-#endif
 			break;
 		case POWER_SUPPLY_PROP_CURRENT_NOW:
 			if (oplus_vooc_get_fastchg_started() == true) {
