@@ -1423,10 +1423,10 @@ static void ip6_negative_advice(struct sock *sk,
 
 	if (rt->rt6i_flags & RTF_CACHE) {
 		if (rt6_check_expired(rt)) {
-			/* counteract the dst_release() in sk_dst_reset() */
-			dst_hold(dst);
+			/* rt/dst can not be destroyed yet,
+			 * because of rcu_read_lock()
+			 */
 			sk_dst_reset(sk);
-
 			ip6_del_rt(rt);
 		}
 		return;
