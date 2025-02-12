@@ -638,8 +638,6 @@ deliver:
 		time_to_send = netem_skb_cb(skb)->time_to_send;
 		if (time_to_send <= psched_get_time()) {
 			rb_erase(p, &q->t_root);
-
-			sch->q.qlen--;
 			q->t_len--;
 			skb->next = NULL;
 			skb->prev = NULL;
