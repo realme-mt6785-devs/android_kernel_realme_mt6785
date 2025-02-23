@@ -39,6 +39,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define BT_BUFFER_SIZE              2048
 #define FTRACE_STR_LOG_SIZE         256
 #define REG_READL(addr) readl((volatile uint32_t *)(addr))
+#define REG_WRITEL(addr, val) writel(val, (volatile uint32_t *)(addr))
 
 /*******************************************************************************
 *                            P U B L I C   D A T A
@@ -142,6 +143,26 @@ static uint32_t inline bt_read_cr(unsigned char *cr_name, uint32_t addr)
 		value = REG_READL(base);
 		iounmap(base);
 		BT_LOG_PRT_INFO("%s[0x%08x], read[0x%08x]\n", cr_name, addr, value);
+	}
+	return value;
+}
+
+static uint32_t inline bt_audio_cr_dbug(void)
+{
+	uint32_t addr = 0x1800700C;
+	uint32_t value = 0;
+	uint8_t *base = ioremap_nocache(addr, 0x10);
+
+	if (base == NULL) {
+		BT_LOG_PRT_WARN("remapping 0x%08x fail\n", addr);
+	} else {
+		value = REG_READL(base);
+		iounmap(base);
+		BT_LOG_PRT_INFO("AUDIO_REMAP[0x%08x], read[0x%08x]\n", addr, value);
+
+		if(value != 0x00410000) {
+			BT_LOG_PRT_ERR("wrong value!!\n");
+		}
 	}
 	return value;
 }
@@ -322,6 +343,9 @@ static ssize_t __bt_write(const PUINT8 buffer, size_t count)
 	INT32 retval = 0;
 
 	retval = mtk_wcn_stp_send_data(buffer, count, BT_TASK_INDX);
+
+	//if(g_bt_dbg_st.audio_cr_dbug == 1)
+	//	bt_audio_cr_dbug();
 
 	if (retval < 0)
 		BT_LOG_PRT_ERR("mtk_wcn_stp_send_data fail, retval %d\n", retval);

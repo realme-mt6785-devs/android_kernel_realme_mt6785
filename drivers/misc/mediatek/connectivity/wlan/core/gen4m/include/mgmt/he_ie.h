@@ -664,7 +664,7 @@ struct _IE_HE_CAP_T {
 	u_int8_t  ucExtId;
 	u_int8_t  ucHeMacCap[HE_MAC_CAP_BYTE_NUM]; /* BIT0 ~ BIT47 */
 	u_int8_t  ucHePhyCap[HE_PHY_CAP_BYTE_NUM]; /* BIT0 ~ BIT87 */
-	u_int8_t  aucVarInfo[1];
+	u_int8_t  aucVarInfo[0];
 } __KAL_ATTRIB_PACKED__;
 
 struct _IE_HE_OP_T {
@@ -674,7 +674,7 @@ struct _IE_HE_OP_T {
 	u_int8_t  ucHeOpParams[HE_OP_BYTE_NUM];
 	u_int8_t  ucBssColorInfo;
 	u_int16_t u2HeBasicMcsSet;
-	u_int8_t  aucVarInfo[1];
+	u_int8_t  aucVarInfo[0];
 } __KAL_ATTRIB_PACKED__;
 
 struct _HE_SUPPORTED_MCS_FIELD {

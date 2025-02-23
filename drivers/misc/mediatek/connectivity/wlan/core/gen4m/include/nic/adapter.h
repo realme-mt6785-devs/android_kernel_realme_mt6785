@@ -614,6 +614,8 @@ struct BSS_INFO {
 	uint8_t aucCountryStr[3];
 	uint8_t aucSubbandTriplet[253];
 	enum ENUM_IFTYPE eIftype;
+
+	uint8_t ucDeauthTrialCount;
 };
 
 /* Support AP Selection */
@@ -1764,7 +1766,6 @@ struct ADAPTER {
 #endif
 
 	int8_t cArpNoResponseIdx;
-
 	u_int8_t fgEnDbgPowerMode;
 
 	struct HIF_STATS rHifStats;

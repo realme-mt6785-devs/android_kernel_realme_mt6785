@@ -1359,9 +1359,13 @@ static inline INT32 _stp_psm_do_wait(MTKSTP_PSM_T *stp_psm, MTKSTP_PSM_STATE_T s
 	osal_get_local_time(&sec, &usec);
 	while (_stp_psm_get_state(stp_psm) != state && i < limit && mtk_wcn_stp_is_enable()) {
 		i++;
+		#ifndef OPLUS_BUG_STABILITY
+		//Pan.Zhang@CONNECTIVITY.WIFI.BASE.LOG.1120976, 2017/09/27,
+		//Remove for reduce useless log.
 		if (i < 3)
 			STP_PSM_PR_DBG("STP is waiting state for %s, i=%d, state = %d\n",
 					  g_psm_state[state], i, _stp_psm_get_state(stp_psm));
+		#endif /* OPLUS_BUG_STABILITY */
 		osal_sleep_ms(POLL_WAIT);
 		if (i == 10) {
 			STP_PSM_PR_WARN("-Wait for %s takes %d msec\n", g_psm_state[state], i * POLL_WAIT);
@@ -1379,9 +1383,13 @@ static inline INT32 _stp_psm_do_wait(MTKSTP_PSM_T *stp_psm, MTKSTP_PSM_STATE_T s
 		_stp_psm_opid_dbg_out_printk(g_stp_psm_opid_dbg);
 		return STP_PSM_OPERATION_FAIL;
 	}
+	#ifndef OPLUS_BUG_STABILITY
+	//Pan.Zhang@CONNECTIVITY.WIFI.BASE.LOG.1120976, 2017/09/27,
+	//Remove for reduce useless log.
 	if (i > 0)
 		STP_PSM_PR_DBG("+Total waits for %s takes %llu usec\n",
 					g_psm_state[state], osal_elapsed_us(sec, usec));
+	#endif /* OPLUS_BUG_STABILITY */
 	return STP_PSM_OPERATION_SUCCESS;
 }
 

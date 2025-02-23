@@ -407,7 +407,7 @@ static void heRlmFillHeCapIE(
 	/* PHY capabilities */
 	HE_RESET_PHY_CAP(prHeCap->ucHePhyCap);
 
-	if (prWifiVar->ucSta2gBandwidth >= MAX_BW_40MHZ)
+	if (prWifiVar->ucSta2gBandwidth >= MAX_BW_40MHZ && prBssInfo->fgAssoc40mBwAllowed)
 		HE_SET_PHY_CAP_CHAN_WIDTH_SET_BW40_2G(prHeCap->ucHePhyCap);
 
 	if (prWifiVar->ucSta5gBandwidth >= MAX_BW_40MHZ)
@@ -775,6 +775,14 @@ void heRlmRecHeCapInfo(
 	struct WIFI_VAR *prWifiVar = &prAdapter->rWifiVar;
 	struct _IE_HE_CAP_T *prHeCap = (struct _IE_HE_CAP_T *) pucIE;
 
+	/* if payload not contain any aucVarInfo,
+	 * IE size = sizeof(struct _IE_HE_CAP_T)
+	 */
+	if (IE_SIZE(prHeCap) < (sizeof(struct _IE_HE_CAP_T))) {
+		DBGLOG(SCN, WARN, "HE_CAP IE_LEN err(%d)!\n", IE_LEN(prHeCap));
+		return;
+	}
+
 	memcpy(prStaRec->ucHeMacCapInfo, prHeCap->ucHeMacCap,
 		HE_MAC_CAP_BYTE_NUM);
 	memcpy(prStaRec->ucHePhyCapInfo, prHeCap->ucHePhyCap,
@@ -818,6 +826,13 @@ void heRlmRecHeOperation(
 	struct _IE_HE_OP_T *prHeOp = (struct _IE_HE_OP_T *) pucIE;
 #if (CFG_SUPPORT_HE_ER == 1)
 	struct WIFI_VAR *prWifiVar = &prAdapter->rWifiVar;
+	/* if payload not contain any aucVarInfo,
+	 * IE size = sizeof(struct _IE_HE_OP_T)
+	 */
+	if (IE_SIZE(prHeOp) < (sizeof(struct _IE_HE_OP_T))) {
+		DBGLOG(SCN, WARN, "HE_OP IE_LEN err(%d)!\n", IE_LEN(prHeOp));
+		return;
+	}
 
 	if (IS_FEATURE_DISABLED(prWifiVar->u4ExtendedRange)) {
 		HE_SET_OP_PARAM_ER_SU_DISABLE(prHeOp->ucHeOpParams);

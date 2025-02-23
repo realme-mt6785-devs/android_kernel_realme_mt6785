@@ -2413,7 +2413,7 @@ bool halWpdmaWriteMsdu(struct GLUE_INFO *prGlueInfo,
 		list_del(prCurList);
 		prHifInfo->u4TxDataQLen--;
 	}
-	if (prMsduInfo->pfHifTxMsduDoneCb)
+	if (prMsduInfo && prMsduInfo->pfHifTxMsduDoneCb)
 		prMsduInfo->pfHifTxMsduDoneCb(prGlueInfo->prAdapter,
 				prMsduInfo);
 	halWpdamFreeMsdu(prGlueInfo, prMsduInfo, true);
@@ -2513,7 +2513,7 @@ bool halWpdmaWriteAmsdu(struct GLUE_INFO *prGlueInfo,
 
 		list_del(prCur);
 		prHifInfo->u4TxDataQLen--;
-		if (prMsduInfo->pfHifTxMsduDoneCb)
+		if (prMsduInfo && prMsduInfo->pfHifTxMsduDoneCb)
 			prMsduInfo->pfHifTxMsduDoneCb(prGlueInfo->prAdapter,
 					prMsduInfo);
 		halWpdamFreeMsdu(prGlueInfo, prMsduInfo, true);

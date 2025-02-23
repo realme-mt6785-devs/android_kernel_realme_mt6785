@@ -1471,10 +1471,8 @@ void bssAddClient(IN struct ADAPTER *prAdapter, IN struct BSS_INFO *prBssInfo,
 
 	LINK_FOR_EACH_ENTRY(prCurrStaRec, prClientList, rLinkEntry,
 			    struct STA_RECORD) {
-
 		if (!prCurrStaRec)
 			break;
-
 		if (prCurrStaRec == prStaRec) {
 			DBGLOG(BSS, WARN,
 			       "Current Client List already contains that struct STA_RECORD["
@@ -1917,8 +1915,8 @@ ibssProcessMatchedBeacon(IN struct ADAPTER *prAdapter,
 		struct MSG_AIS_IBSS_PEER_FOUND *prAisIbssPeerFoundMsg;
 
 		/* 4 <1> We will merge with to this BSS immediately. */
-		prBssDesc->fgIsConnecting = TRUE;
-		prBssDesc->fgIsConnected = FALSE;
+		prBssDesc->fgIsConnecting |= BIT(prBssInfo->ucBssIndex);
+		prBssDesc->fgIsConnected &= ~BIT(prBssInfo->ucBssIndex);
 
 		/* 4 <2> Setup corresponding STA_RECORD_T */
 		prStaRec = bssCreateStaRecFromBssDesc(prAdapter,

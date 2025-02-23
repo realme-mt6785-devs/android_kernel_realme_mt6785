@@ -58,9 +58,6 @@ static u_int8_t rrmAllMeasurementIssued(
 static void rrmCalibrateRepetions(
 	struct RADIO_MEASUREMENT_REQ_PARAMS *prRmReq);
 
-static void rrmCollectBeaconReport(IN struct ADAPTER *prAdapter,
-	IN struct BSS_DESC *prBssDesc, IN uint8_t ucBssIndex);
-
 static void rrmHandleBeaconReqSubelem(
 	IN struct ADAPTER *prAdapter, IN uint8_t ucBssIndex);
 
@@ -575,16 +572,6 @@ schedule_next:
 	}
 }
 
-u_int8_t rrmBcnRmRunning(struct ADAPTER *prAdapter,
-	uint8_t ucBssIndex)
-{
-	struct RADIO_MEASUREMENT_REQ_PARAMS *prRmReq =
-		aisGetRmReqParam(prAdapter, ucBssIndex);
-
-	return prRmReq->rBcnRmParam.eState ==
-	       RM_ON_GOING;
-}
-
 u_int8_t rrmFillScanMsg(struct ADAPTER *prAdapter,
 			struct MSG_SCN_SCAN_REQ_V2 *prMsg)
 {
@@ -753,6 +740,8 @@ u_int8_t rrmFillScanMsg(struct ADAPTER *prAdapter,
 		u2RemainLen -= IE_SIZE(pucSubIE);
 		pucSubIE += IE_SIZE(pucSubIE);
 	}
+
+	GET_CURRENT_SYSTIME(&prRmReq->rScanStartTime);
 	DBGLOG(RRM, INFO,
 	       "SSIDtype %d, ScanType %d, Dwell %d, MinDwell %d, ChnlType %d, ChnlNum %d\n",
 		prMsg->ucSSIDType, prMsg->eScanType, prMsg->u2ChannelDwellTime,
@@ -1331,6 +1320,7 @@ int rrmBeaconRepAddFrameBody(struct BCN_RM_PARAMS *data,
 {
 	uint8_t *ies = *ies_buf;
 	uint32_t ies_len = *ie_len;
+	uint32_t old_ies_len = ies_len;
 	uint8_t *pos = buf;
 	int rem_len;
 	enum BEACON_REPORT_DETAIL detail = data->reportDetail;
@@ -1403,7 +1393,7 @@ int rrmBeaconRepAddFrameBody(struct BCN_RM_PARAMS *data,
 
 	/* Now the length is known */
 	buf[1] = pos - buf - 2;
-	return pos - buf;
+	return old_ies_len != ies_len ? pos - buf : -EINVAL;
 }
 
 int rrmReportElem(struct RM_MEASURE_REPORT_ENTRY *reportEntry,
@@ -1521,7 +1511,7 @@ out:
 	return ret;
 }
 
-static void rrmCollectBeaconReport(IN struct ADAPTER *prAdapter,
+void rrmCollectBeaconReport(IN struct ADAPTER *prAdapter,
 	IN struct BSS_DESC *prBssDesc, IN uint8_t ucBssIndex)
 {
 	struct RADIO_MEASUREMENT_REQ_PARAMS *rmReq =
@@ -1662,12 +1652,6 @@ static void rrmCollectBeaconReport(IN struct ADAPTER *prAdapter,
 	       "Bss %pM, ReportDeail %d, IncludeIE Num %d, chnl %d\n",
 	       bssid, data->reportDetail, data->reportIeIdsLen,
 	       prBssDesc->ucChannelNum);
-}
-
-void rrmProcessBeaconAndProbeResp(struct ADAPTER *prAdapter,
-	IN struct BSS_DESC *prBssDesc, uint8_t ucBssIndex)
-{
-	rrmCollectBeaconReport(prAdapter, prBssDesc, ucBssIndex);
 }
 
 void rrmUpdateBssTimeTsf(struct ADAPTER *prAdapter, struct BSS_DESC *prBssDesc)

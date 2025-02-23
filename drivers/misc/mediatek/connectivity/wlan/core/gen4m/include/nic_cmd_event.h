@@ -2906,6 +2906,22 @@ struct EXT_EVENT_TXPOWER_ALL_RATE_POWER_INFO_T {
 };
 #endif
 
+#if CFG_MODIFY_TX_POWER_BY_BAT_VOLT
+struct CMD_TX_POWER_PERCENTAGE_CTRL_T {
+	uint8_t ucPowerCtrlFormatId;
+	bool  fgPercentageEnable;
+	uint8_t ucBandIdx;
+	uint8_t ucReserved;
+};
+
+struct CMD_TX_POWER_PERCENTAGE_DROP_CTRL_T {
+	uint8_t ucPowerCtrlFormatId;
+	uint8_t i1PowerDropLevel;
+	uint8_t ucBandIdx;
+	uint8_t ucReserved;
+};
+#endif
+
 struct EXT_EVENT_MAX_AMSDU_LENGTH_UPDATE {
 	uint8_t ucWlanIdx;
 	uint8_t ucAmsduLen;

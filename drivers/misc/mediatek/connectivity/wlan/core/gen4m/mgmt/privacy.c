@@ -182,9 +182,6 @@ void secInit(IN struct ADAPTER *prAdapter, IN uint8_t ucBssIndex)
 	prMib->
 	    dot11RSNAConfigPairwiseCiphersTable[8].dot11RSNAConfigPairwiseCipher
 	    = RSN_CIPHER_SUITE_GROUP_NOT_USED;
-	prMib->
-	    dot11RSNAConfigPairwiseCiphersTable[9].dot11RSNAConfigPairwiseCipher
-	    = RSN_CIPHER_SUITE_GCMP_256;
 
 	for (i = 0; i < MAX_NUM_SUPPORTED_CIPHER_SUITES; i++)
 		prMib->dot11RSNAConfigPairwiseCiphersTable
@@ -217,9 +214,9 @@ void secInit(IN struct ADAPTER *prAdapter, IN uint8_t ucBssIndex)
 	prMib->dot11RSNAConfigAuthenticationSuitesTable
 	    [10].dot11RSNAConfigAuthenticationSuite = RSN_AKM_SUITE_PSK_SHA256;
 	prMib->dot11RSNAConfigAuthenticationSuitesTable
-	    [11].dot11RSNAConfigAuthenticationSuite = RSN_AKM_SUITE_SAE;
+	    [11].dot11RSNAConfigAuthenticationSuite = RSN_CIPHER_SUITE_SAE;
 	prMib->dot11RSNAConfigAuthenticationSuitesTable
-	    [12].dot11RSNAConfigAuthenticationSuite = RSN_AKM_SUITE_OWE;
+	    [12].dot11RSNAConfigAuthenticationSuite = RSN_CIPHER_SUITE_OWE;
 #endif
 
 	for (i = 0; i < MAX_NUM_SUPPORTED_AKM_SUITES; i++) {
@@ -486,15 +483,6 @@ void secSetCipherSuite(IN struct ADAPTER *prAdapter,
 		prEntry = &prMib->dot11RSNAConfigPairwiseCiphersTable[i];
 
 		switch (prEntry->dot11RSNAConfigPairwiseCipher) {
-		case RSN_CIPHER_SUITE_GCMP_256:
-			if (u4CipherSuitesFlags & CIPHER_FLAG_GCMP256)
-				prEntry->dot11RSNAConfigPairwiseCipherEnabled =
-					TRUE;
-			else
-				prEntry->dot11RSNAConfigPairwiseCipherEnabled =
-					FALSE;
-			break;
-
 		case WPA_CIPHER_SUITE_WEP40:
 		case RSN_CIPHER_SUITE_WEP40:
 			if (u4CipherSuitesFlags & CIPHER_FLAG_WEP40)
@@ -566,10 +554,6 @@ void secSetCipherSuite(IN struct ADAPTER *prAdapter,
 		RSN_CIPHER_SUITE_GROUP_NOT_USED, &i, ucBssIndex))
 		prMib->dot11RSNAConfigGroupCipher =
 		    RSN_CIPHER_SUITE_GROUP_NOT_USED;
-	else if (rsnSearchSupportedCipher(prAdapter,
-		RSN_CIPHER_SUITE_GCMP_256, &i, ucBssIndex))
-		prMib->dot11RSNAConfigGroupCipher =
-		    RSN_CIPHER_SUITE_GCMP_256;
 	else
 		prMib->dot11RSNAConfigGroupCipher = WPA_CIPHER_SUITE_NONE;
 
@@ -599,7 +583,6 @@ u_int8_t secEnabledInAis(IN struct ADAPTER *prAdapter,
 	case ENUM_ENCRYPTION1_ENABLED:
 	case ENUM_ENCRYPTION2_ENABLED:
 	case ENUM_ENCRYPTION3_ENABLED:
-	case ENUM_ENCRYPTION4_ENABLED:
 		return TRUE;
 	default:
 		DBGLOG(RSN, TRACE, "Unknown encryption setting %d\n",
@@ -802,7 +785,7 @@ u_int8_t secPrivacySeekForEntry(
 	ucMaxIDX = prAdapter->ucTxDefaultWlanIndex - 1;
 
 	for (i = ucStartIDX; i <= ucMaxIDX; i++) {
-#if CFG_WIFI_SW_WTBL_SEARCH_FAIL
+#if CFG_WIFI_WORKAROUND_HWITS00012836_WTBL_SEARCH_FAIL
 	if (i % 8 == 0)
 		continue;
 #endif
@@ -820,7 +803,7 @@ u_int8_t secPrivacySeekForEntry(
 
 	if (i == (ucMaxIDX + 1)) {
 		for (i = ucStartIDX; i <= ucMaxIDX; i++) {
-#if CFG_WIFI_SW_WTBL_SEARCH_FAIL
+#if CFG_WIFI_WORKAROUND_HWITS00012836_WTBL_SEARCH_FAIL
 			if (i % 8 == 0)
 				continue;
 #endif
@@ -1018,16 +1001,12 @@ void secRemoveBssBcEntry(IN struct ADAPTER *prAdapter,
 				secPrivacyFreeForEntry(prAdapter,
 					prBssInfo->ucBMCWlanIndexS[i]);
 
-			prBssInfo->ucBMCWlanIndexSUsed[i] = FALSE;
-			prBssInfo->ucBMCWlanIndexS[i] = WTBL_RESERVED_ENTRY;
 		}
 		for (i = 0; i < MAX_KEY_NUM; i++) {
 			if (prBssInfo->wepkeyUsed[i])
 				secPrivacyFreeForEntry(prAdapter,
 					       prBssInfo->wepkeyWlanIdx);
-			prBssInfo->wepkeyUsed[i] = FALSE;
 		}
-		prBssInfo->wepkeyWlanIdx = WTBL_RESERVED_ENTRY;
 		prBssInfo->fgBcDefaultKeyExist = FALSE;
 		prBssInfo->ucBcDefaultKeyIdx = 0xff;
 	}

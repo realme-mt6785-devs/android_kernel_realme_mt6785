@@ -580,6 +580,13 @@ static u_int8_t scanSanityCheckBssDesc(struct ADAPTER *prAdapter,
 				MAC2STR(prBssDesc->aucBSSID));
 			return FALSE;
 		}
+
+		if (prBssDesc->prBlack->ucCount >= 10)  {
+			log_dbg(SCN, WARN,
+				MACSTR " Skip AP that add to blacklist count >= 10\n",
+				MAC2STR(prBssDesc->aucBSSID));
+			return FALSE;
+		}
 	}
 
 	/* roaming case */
@@ -604,12 +611,13 @@ static u_int8_t scanSanityCheckBssDesc(struct ADAPTER *prAdapter,
 		}
 	}
 
-	if (ucBssIndex != AIS_DEFAULT_INDEX) {
+	if (prBssDesc->fgIsConnected) {
 		struct BSS_DESC *target =
-			aisGetTargetBssDesc(prAdapter, AIS_DEFAULT_INDEX);
+			aisGetTargetBssDesc(prAdapter, ucBssIndex);
 
-		if (target && prBssDesc->eBand == target->eBand) {
-			log_dbg(SCN, WARN, MACSTR" band %d used by main\n",
+		if (!target || (target && !EQUAL_MAC_ADDR(prBssDesc->aucBSSID,
+			target->aucBSSID))) {
+			log_dbg(SCN, WARN, MACSTR" used by others\n",
 				MAC2STR(prBssDesc->aucBSSID));
 			return FALSE;
 		}
@@ -646,7 +654,6 @@ static u_int8_t scanSanityCheckBssDesc(struct ADAPTER *prAdapter,
 			prBssDesc->ucChannelNum);
 		return FALSE;
 	}
-
 	if (CHECK_FOR_TIMEOUT(kalGetTimeTick(), prBssDesc->rUpdateTime,
 		SEC_TO_SYSTIME(wlanWfdEnabled(prAdapter) ?
 			SCN_BSS_DESC_STALE_SEC_WFD : SCN_BSS_DESC_STALE_SEC))) {
@@ -1261,15 +1268,18 @@ uint8_t scanInDecidingRoaming(struct ADAPTER *prAdapter, uint8_t ucBssIndex)
 	struct ROAMING_INFO *roam;
 	enum ENUM_PARAM_CONNECTION_POLICY policy;
 	struct CONNECTION_SETTINGS *setting;
+	struct BSS_DESC *target;
 
 	roam = aisGetRoamingInfo(prAdapter, ucBssIndex);
 	setting = aisGetConnSettings(prAdapter, ucBssIndex);
 	policy = setting->eConnectionPolicy;
+	target = aisGetTargetBssDesc(prAdapter, ucBssIndex);
 
 	return IS_BSS_INDEX_AIS(prAdapter, ucBssIndex) &&
-	       roam->fgIsEnableRoaming &&
-	       roam->eCurrentState == ROAMING_STATE_DECISION &&
-	       policy != CONNECT_BY_BSSID ? TRUE : FALSE;
+		roam->fgIsEnableRoaming &&
+		roam->eCurrentState == ROAMING_STATE_DECISION &&
+		policy != CONNECT_BY_BSSID &&
+		target;
 
 }
 

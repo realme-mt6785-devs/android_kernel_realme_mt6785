@@ -410,7 +410,7 @@ void p2pFuncGCJoin(IN struct ADAPTER *prAdapter,
 		}
 
 		/* 2 <1> We are goin to connect to this BSS */
-		prBssDesc->fgIsConnecting = TRUE;
+		prBssDesc->fgIsConnecting |= BIT(prP2pBssInfo->ucBssIndex);
 
 		/* 2 <2> Setup corresponding STA_RECORD_T */
 		prStaRec = bssCreateStaRecFromBssDesc(prAdapter,
@@ -621,8 +621,8 @@ p2pFuncUpdateBssInfoForJOIN(IN struct ADAPTER *prAdapter,
 
 		/* 3 <4> Update BSS_INFO_T from BSS_DESC_T */
 
-		prBssDesc->fgIsConnecting = FALSE;
-		prBssDesc->fgIsConnected = TRUE;
+		prBssDesc->fgIsConnecting &= ~BIT(prP2pBssInfo->ucBssIndex);
+		prBssDesc->fgIsConnected |= BIT(prP2pBssInfo->ucBssIndex);
 
 		/* 4 <4.1> Setup MIB for current BSS */
 		prP2pBssInfo->u2BeaconInterval = prBssDesc->u2BeaconInterval;
@@ -2928,7 +2928,8 @@ p2pFuncDisconnect(IN struct ADAPTER *prAdapter,
 			prP2pRoleFsmInfo->rJoinInfo.prTargetBssDesc = NULL;
 
 			scanRemoveConnFlagOfBssDescByBssid(prAdapter,
-				prP2pBssInfo->aucBSSID);
+				prP2pBssInfo->aucBSSID,
+				prP2pBssInfo->ucBssIndex);
 		}
 
 		DBGLOG(P2P, INFO,
@@ -3745,6 +3746,10 @@ p2pFuncParseBeaconContent(IN struct ADAPTER *prAdapter,
 				(uint8_t) prP2pBssInfo->u4PrivateData);
 
 		prP2pBssInfo->ucCountryIELen = 0;
+
+#if (CFG_SUPPORT_802_11AX == 1)
+		prP2pBssInfo->ucPhyTypeSet &= ~PHY_TYPE_SET_802_11AX;
+#endif
 
 		IE_FOR_EACH(pucIE, u4IELen, u2Offset) {
 			switch (IE_ID(pucIE)) {
@@ -6365,13 +6370,27 @@ void p2pFuncSwitchSapChannel(
 		rRfChnlInfo.ucChnlBw =
 			rlmGetBssOpBwByVhtAndHtOpInfo(prP2pBssInfo);
 
+        if (rRfChnlInfo.ucChnlBw >
+            rlmDomainGetChannelBw(ucStaChannelNum)) {
+            DBGLOG(P2P, INFO,
+                "[SCC] Adjust bw from %d to %d\n",
+                rRfChnlInfo.ucChnlBw,
+                rlmDomainGetChannelBw(ucStaChannelNum));
+            rRfChnlInfo.ucChnlBw =
+                rlmDomainGetChannelBw(ucStaChannelNum);
+        }
+
 		DBGLOG(P2P, INFO,
 			"[SCC] StaCH(%d), SapCH(%d)(dfs: %u)\n",
 			ucStaChannelNum, ucSapChannelNum, fgIsSapDfs);
 
-		cnmSapChannelSwitchReq(prAdapter,
-			&rRfChnlInfo,
-			prP2pBssInfo->u4PrivateData);
+		if (wlanGetSupportNss(prAdapter, prP2pBssInfo->ucBssIndex) > 1)
+			cnmSapChannelSwitchReq(prAdapter,
+				&rRfChnlInfo,
+				prP2pBssInfo->u4PrivateData);
+		else
+			DBGLOG(P2P, INFO,
+				"Do not change SAP channel if 1 NSS\n");
 
 	}
 
@@ -6601,12 +6620,6 @@ uint8_t p2pFunGetAcsBestCh(IN struct ADAPTER *prAdapter,
 
 	rlmDomainGetChnlList(prAdapter, eBand, TRUE, MAX_CHN_NUM,
 			&ucNumOfChannel, aucChannelList);
-	if(COUNTRY_CODE_IN ==
-		prAdapter->rWifiVar.u2CountryCode){
-		DBGLOG(P2P, INFO, "u2CountryCode0x%04x,channelNum reduce %d to 11\n",
-			prAdapter->rWifiVar.u2CountryCode,ucNumOfChannel);
-		ucNumOfChannel = (ucNumOfChannel > 11)?11:ucNumOfChannel;
- 	}
 
 	/*
 	 * 2. Calculate each channel's dirty score

@@ -266,13 +266,6 @@ mtk_cfg80211_add_key(struct wiphy *wiphy,
 		case WLAN_CIPHER_SUITE_AES_CMAC:
 			rKey.ucCipher = CIPHER_SUITE_BIP;
 			break;
-		case WLAN_CIPHER_SUITE_GCMP_256:
-			rKey.ucCipher = CIPHER_SUITE_GCMP_256;
-			break;
-		case WLAN_CIPHER_SUITE_BIP_GMAC_256:
-			DBGLOG(RSN, INFO,
-				"[TODO] Set BIP-GMAC-256, SW should handle it ...\n");
-			return 0;
 		default:
 			ASSERT(FALSE);
 		}
@@ -385,11 +378,11 @@ int mtk_cfg80211_del_key(struct wiphy *wiphy,
 		return -EINVAL;
 
 	if (mac_addr) {
-		DBGLOG_LIMITED(RSN, TRACE,
+		DBGLOG(RSN, TRACE,
 		       "keyIdx = %d pairwise = %d mac = " MACSTR "\n",
 		       key_index, pairwise, MAC2STR(mac_addr));
 	} else {
-		DBGLOG_LIMITED(RSN, TRACE,
+		DBGLOG(RSN, TRACE,
 			"keyIdx = %d pairwise = %d null mac\n",
 		       key_index, pairwise);
 	}
@@ -661,15 +654,12 @@ int mtk_cfg80211_get_station(struct wiphy *wiphy,
 		} else {
 			DBGLOG(REQ, INFO,
 			       "link speed=%u, rssi=%d, BSSID:[" MACSTR
-			       "], TxFail=%u, TxTimeOut=%u, TxOK=%u, RxOK=%u, "
-			       "RxDrop=%u, RxError=%u, NetDevState=%u, NetDevFlag=%u\n",
+			       "], TxFail=%u, TxTimeOut=%u, TxOK=%u, RxOK=%u\n",
 			       sinfo->txrate.legacy, sinfo->signal,
 			       MAC2STR(arBssid),
 			       rQueryStaStatistics.u4TxFailCount,
 			       rQueryStaStatistics.u4TxLifeTimeoutCount,
-			       sinfo->tx_packets, sinfo->rx_packets,
-			       prDevStats->rx_dropped, prDevStats->rx_errors,
-			       ndev->state, ndev->flags);
+			       sinfo->tx_packets, sinfo->rx_packets);
 
 			u4TotalError = rQueryStaStatistics.u4TxFailCount +
 				       rQueryStaStatistics.u4TxLifeTimeoutCount;
@@ -1329,7 +1319,7 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 		prWpaInfo->u4AuthAlg = IW_AUTH_ALG_SAE;
 		/* To prevent FWKs asks connect without AKM Suite */
 		eAuthMode = AUTH_MODE_WPA3_SAE;
-		u4AkmSuite = RSN_AKM_SUITE_SAE;
+		u4AkmSuite = RSN_CIPHER_SUITE_SAE;
 		break;
 	default:
 		prWpaInfo->u4AuthAlg = IW_AUTH_ALG_OPEN_SYSTEM |
@@ -1363,14 +1353,6 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 		case WLAN_CIPHER_SUITE_AES_CMAC:
 			prWpaInfo->u4CipherPairwise =
 							IW_AUTH_CIPHER_CCMP;
-			break;
-		case WLAN_CIPHER_SUITE_BIP_GMAC_256:
-			prWpaInfo->u4CipherPairwise =
-							IW_AUTH_CIPHER_GCMP256;
-			break;
-		case WLAN_CIPHER_SUITE_GCMP_256:
-			prWpaInfo->u4CipherPairwise =
-							IW_AUTH_CIPHER_GCMP256;
 			break;
 		case WLAN_CIPHER_SUITE_NO_GROUP_ADDR:
 			DBGLOG(REQ, INFO, "WLAN_CIPHER_SUITE_NO_GROUP_ADDR\n");
@@ -1406,14 +1388,6 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 			prWpaInfo->u4CipherGroup =
 							IW_AUTH_CIPHER_CCMP;
 			break;
-		case WLAN_CIPHER_SUITE_BIP_GMAC_256:
-			prWpaInfo->u4CipherGroup  =
-							IW_AUTH_CIPHER_GCMP256;
-			break;
-		case WLAN_CIPHER_SUITE_GCMP_256:
-			prWpaInfo->u4CipherGroup =
-							IW_AUTH_CIPHER_GCMP256;
-			break;
 		case WLAN_CIPHER_SUITE_NO_GROUP_ADDR:
 			break;
 		default:
@@ -1441,7 +1415,7 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 				u4AkmSuite = WPA_AKM_SUITE_PSK;
 				break;
 			default:
-				DBGLOG(REQ, WARN, "invalid Akm Suite (%08x)\n",
+				DBGLOG(REQ, WARN, "invalid Akm Suite (%d)\n",
 				       sme->crypto.akm_suites[0]);
 				return -EINVAL;
 			}
@@ -1488,12 +1462,12 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 					eAuthMode = AUTH_MODE_WPA3_SAE;
 				else
 					eAuthMode = AUTH_MODE_OPEN;
-				u4AkmSuite = RSN_AKM_SUITE_SAE;
+				u4AkmSuite = RSN_CIPHER_SUITE_SAE;
 				break;
 
 			case WLAN_AKM_SUITE_OWE:
 				eAuthMode = AUTH_MODE_WPA3_OWE;
-				u4AkmSuite = RSN_AKM_SUITE_OWE;
+				u4AkmSuite = RSN_CIPHER_SUITE_OWE;
 				break;
 			default:
 				DBGLOG(REQ, WARN, "invalid Akm Suite (%d)\n",
@@ -1662,9 +1636,7 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 		 prWpaInfo->u4CipherPairwise;
 
 	if (1 /* prWpaInfo->fgPrivacyInvoke */) {
-		if (cipher & IW_AUTH_CIPHER_GCMP256) {
-			eEncStatus = ENUM_ENCRYPTION4_ENABLED;
-		} else if (cipher & IW_AUTH_CIPHER_CCMP) {
+		if (cipher & IW_AUTH_CIPHER_CCMP) {
 			eEncStatus = ENUM_ENCRYPTION3_ENABLED;
 		} else if (cipher & IW_AUTH_CIPHER_TKIP) {
 			eEncStatus = ENUM_ENCRYPTION2_ENABLED;

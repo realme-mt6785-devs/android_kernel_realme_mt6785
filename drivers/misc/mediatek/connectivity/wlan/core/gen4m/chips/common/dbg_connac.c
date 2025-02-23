@@ -132,7 +132,6 @@ void halShowPseInfo(IN struct ADAPTER *prAdapter)
 	uint32_t fpg_cnt, ffa_cnt, fpg_head, fpg_tail;
 	uint32_t max_q, min_q, rsv_pg, used_pg;
 	uint32_t i, page_offset, addr, value = 0, pos = 0;
-	uint32_t txd_payload_info[16] = {0};
 	char *buf;
 
 	HAL_MCR_RD(prAdapter, PSE_PBUF_CTRL, &pse_buf_ctrl);
@@ -329,60 +328,6 @@ void halShowPseInfo(IN struct ADAPTER *prAdapter)
 	DBGLOG(HAL, INFO,
 		"\t\tRLS_Q empty=%d\n",
 		 ((pse_stat & (0x1 << 31)) >> 31));
-	DBGLOG(HAL, INFO, "Nonempty Q info:\n");
-
-	for (i = 0; i < 31; i++) {
-		if (((pse_stat & (0x1 << i)) >> i) == 0) {
-			uint32_t hfid, tfid, pktcnt, fl_que_ctrl[3] = {0};
-
-			if (i < 4) {
-				DBGLOG(HAL, INFO,
-						 "\tCPU Q%d: ", i);
-				fl_que_ctrl[0] |= (0x1 << 14);
-				fl_que_ctrl[0] |= (i << 8);
-			} else if (i == 16) {
-				DBGLOG(HAL, INFO, "\tHIF Q0: ");
-				fl_que_ctrl[0] |= (0x0 << 14);
-				fl_que_ctrl[0] |= (0x0 << 8);
-			} else if (i == 17) {
-				DBGLOG(HAL, INFO, "\tHIF  Q1: ");
-				fl_que_ctrl[0] |= (0x0 << 14);
-				fl_que_ctrl[0] |= (0x1 << 8);
-			} else if (i == 18) {
-				DBGLOG(HAL, INFO, "\tHIF  Q2: ");
-				fl_que_ctrl[0] |= (0x0 << 14);
-				fl_que_ctrl[0] |= (0x10 << 8);
-			} else if (i == 19) {
-				DBGLOG(HAL, INFO, "\tHIF  Q3: ");
-				fl_que_ctrl[0] |= (0x0 << 14);
-				fl_que_ctrl[0] |= (0x11 << 8);
-			} else if (i == 24) {
-				DBGLOG(HAL, INFO, "\tLMAC TX Q: ");
-				fl_que_ctrl[0] |= (0x2 << 14);
-				fl_que_ctrl[0] |= (0x0 << 8);
-			} else if (i == 31) {
-				DBGLOG(HAL, INFO, "\tRLS Q: ");
-				fl_que_ctrl[0] |= (0x3 << 14);
-				fl_que_ctrl[0] |= (i << 8);
-			} else
-				continue;
-
-			fl_que_ctrl[0] |= (0x1 << 31);
-			HAL_MCR_WR(prAdapter, PSE_FL_QUE_CTRL_0,
-				fl_que_ctrl[0]);
-			HAL_MCR_RD(prAdapter, PSE_FL_QUE_CTRL_2,
-				&fl_que_ctrl[1]);
-			HAL_MCR_RD(prAdapter, PSE_FL_QUE_CTRL_3,
-				&fl_que_ctrl[2]);
-			hfid = fl_que_ctrl[1] & 0xfff;
-			tfid = (fl_que_ctrl[1] & 0xfff0000) >> 16;
-			pktcnt = fl_que_ctrl[2] & 0xfff;
-			DBGLOG(HAL, INFO,
-				"tail/head fid = 0x%03x/0x%03x, pkt cnt = %x\n",
-				tfid, hfid, pktcnt);
-			halGetPsePayload(prAdapter, hfid, txd_payload_info);
-		}
-	}
 
 	buf = (char *) kalMemAlloc(BUF_SIZE, VIR_MEM_TYPE);
 	if (buf) {
@@ -422,24 +367,9 @@ void halShowPseInfo(IN struct ADAPTER *prAdapter)
 		kalMemFree(buf, VIR_MEM_TYPE, BUF_SIZE);
 	}
 
-	for (i = 0; i < 320; i++) {
-		HAL_MCR_WR(prAdapter, PSE_RL_BUF_CTRL_0, i);
-		HAL_MCR_RD(prAdapter, PSE_RL_BUF_CTRL_1, &value);
-
-		/* Check valid FID */
-		if (((value & 0xFFF000) >> 12) == 0xFFF)
-			continue;
-		/* Check HIF 1 group */
-		else if (((value & 0xE00) >> 9) != 0x1)
-			continue;
-
-		halGetPsePayload(prAdapter, i, txd_payload_info);
-	}
-
 #undef BUF_SIZE
 }
 
-#define UMAC_FID_FAULT	0xFFF
 static int8_t *sta_ctrl_reg[] = {"ENABLE", "*DISABLE", "*PAUSE"};
 static struct EMPTY_QUEUE_INFO Queue_Empty_info[] = {
 	{"CPU Q0",  ENUM_UMAC_CPU_PORT_1,     ENUM_UMAC_CTX_Q_0},
@@ -476,7 +406,6 @@ void halShowPleInfo(IN struct ADAPTER *prAdapter,
 	uint32_t fpg_cnt, ffa_cnt, fpg_head, fpg_tail, hif_max_q, hif_min_q;
 	uint32_t rpg_hif, upg_hif, cpu_max_q, cpu_min_q, rpg_cpu, upg_cpu;
 	uint32_t i, j, addr, value = 0, pos = 0;
-	uint32_t txd_info[16] = {0};
 	char *buf;
 
 	HAL_MCR_RD(prAdapter, PLE_PBUF_CTRL, &ple_buf_ctrl[0]);
@@ -647,65 +576,22 @@ void halShowPleInfo(IN struct ADAPTER *prAdapter,
 
 	for (i = 0; i < 31; i++) {
 		if (((ple_stat[0] & (0x1 << i)) >> i) == 0) {
-			uint32_t hfid, tfid, pktcnt, fl_que_ctrl[3] = {0};
-
-			if (Queue_Empty_info[i].QueueName != NULL) {
+			if (Queue_Empty_info[i].QueueName != NULL)
 				DBGLOG(HAL, INFO, "\t%s: ",
 					Queue_Empty_info[i].QueueName);
-				fl_que_ctrl[0] |= (0x1 << 31);
-				fl_que_ctrl[0] |=
-					(Queue_Empty_info[i].Portid << 14);
-				fl_que_ctrl[0] |=
-					(Queue_Empty_info[i].Queueid << 8);
-			} else
+			else
 				continue;
-
-			HAL_MCR_WR(prAdapter,
-				PLE_FL_QUE_CTRL_0, fl_que_ctrl[0]);
-			HAL_MCR_RD(prAdapter,
-				PLE_FL_QUE_CTRL_2, &fl_que_ctrl[1]);
-			HAL_MCR_RD(prAdapter,
-				PLE_FL_QUE_CTRL_3, &fl_que_ctrl[2]);
-			hfid = fl_que_ctrl[1] & 0xfff;
-			tfid = (fl_que_ctrl[1] & 0xfff0000) >> 16;
-			pktcnt = fl_que_ctrl[2] & 0xfff;
-			DBGLOG(HAL, INFO,
-				"tail/head fid = 0x%03x/0x%03x, pkt cnt = %x\n",
-				 tfid, hfid, pktcnt);
 		}
 	}
 
 	for (j = 0; j < 16; j = j + 4) { /* show AC Q info */
 		for (i = 0; i < 32; i++) {
 			if (((ple_stat[j + 1] & (0x1 << i)) >> i) == 0) {
-				uint32_t hfid, tfid, pktcnt,
-					ac_num = j / 4, ctrl = 0;
-				uint32_t sta_num = i + (j % 4) * 32,
-					fl_que_ctrl[3] = {0};
+				uint32_t ac_num = j / 4, ctrl = 0;
+				uint32_t sta_num = i + (j % 4) * 32;
 
 				DBGLOG(HAL, INFO, "\tSTA%d AC%d: ",
 					sta_num, ac_num);
-				fl_que_ctrl[0] |= (0x1 << 31);
-				fl_que_ctrl[0] |= (0x2 << 14);
-				fl_que_ctrl[0] |= (ac_num << 8);
-				fl_que_ctrl[0] |= sta_num;
-				HAL_MCR_WR(prAdapter,
-					PLE_FL_QUE_CTRL_0, fl_que_ctrl[0]);
-				HAL_MCR_RD(prAdapter,
-					PLE_FL_QUE_CTRL_2, &fl_que_ctrl[1]);
-				HAL_MCR_RD(prAdapter,
-					PLE_FL_QUE_CTRL_3, &fl_que_ctrl[2]);
-				hfid = fl_que_ctrl[1] & 0xfff;
-				tfid = (fl_que_ctrl[1] & 0xfff0000) >> 16;
-				pktcnt = fl_que_ctrl[2] & 0xfff;
-				DBGLOG(HAL, INFO,
-				"tail/head fid = 0x%03x/0x%03x, pkt cnt = %x",
-				tfid, hfid, pktcnt);
-				if (fgDumpTxd) {
-					halGetPleTxdInfo(prAdapter,
-						hfid, txd_info);
-					halDumpTxdInfo(prAdapter, txd_info);
-				}
 				if (((sta_pause[j % 4] & 0x1 << i) >> i) == 1)
 					ctrl = 2;
 
@@ -1211,40 +1097,6 @@ static char *q_idx_lmac_str[] = {"WMM0_AC0", "WMM0_AC1", "WMM0_AC2", "WMM0_AC3",
 	"Band1_ALTX", "Band1_BMC", "Band1_BNC", "Band1_PSMP",
 	"Invalid"};
 
-void halGetPsePayload(IN struct ADAPTER *prAdapter, uint32_t fid,
-		uint32_t *result)
-{
-	uint32_t i = 0, target = 0, remap = 0, remain = 0;
-
-	DBGLOG(HAL, INFO, "Dump fid=%u PSE payload\n", fid);
-	target = PSE_PAYLOAD_BASE + (fid << 16);
-	remain = (target & 0xFFFF);
-	HAL_MCR_RD(prAdapter, CONN_HIF_ON_ADDR_REMAP1, &remap);
-	remap = (remap & 0xFFFF0000) + (target >> 16);
-	HAL_MCR_WR(prAdapter, CONN_HIF_ON_ADDR_REMAP1, remap);
-	for (i = 0; i < 16; i++)
-		HAL_MCR_RD(prAdapter, (AP2CONN_ADDR_MAP0 + remain + (i * 4)),
-				&result[i]);
-	dumpMemory32(result, 64);
-}
-
-void halGetPleTxdInfo(IN struct ADAPTER *prAdapter, uint32_t fid,
-		uint32_t *result)
-{
-	uint32_t i = 0, target = 0, remap = 0, remain = 0;
-
-	DBGLOG(HAL, INFO, "Dump fid=%u PLE TXD\n", fid);
-	target = PLE_PAYLOAD_BASE + (fid << 16);
-	remain = (target & 0xFFFF);
-	HAL_MCR_RD(prAdapter, CONN_HIF_ON_ADDR_REMAP1, &remap);
-	remap = (remap & 0xFFFF0000) + (target >> 16);
-	HAL_MCR_WR(prAdapter, CONN_HIF_ON_ADDR_REMAP1, remap);
-	for (i = 0; i < 16; i++)
-		HAL_MCR_RD(prAdapter, (AP2CONN_ADDR_MAP0 + remain + (i * 4)),
-				&result[i]);
-	dumpMemory32(result, 64);
-}
-
 void halDumpTxdInfo(IN struct ADAPTER *prAdapter, uint32_t *tmac_info)
 {
 	struct TMAC_TXD_S *txd_s;
@@ -1400,96 +1252,18 @@ void halDumpTxdInfo(IN struct ADAPTER *prAdapter, uint32_t *tmac_info)
 	}
 }
 
-void halShowLitePleInfo(IN struct ADAPTER *prAdapter)
-{
-	uint32_t pg_flow_ctrl[6] = {0};
-	uint32_t rpg_hif, upg_hif, i, j;
-	uint32_t ple_stat[17] = {0};
-	uint32_t sta_pause[4] = {0};
-	uint32_t dis_sta_map[4] = {0};
-
-	HAL_MCR_RD(prAdapter, PLE_HIF_PG_INFO, &pg_flow_ctrl[3]);
-	rpg_hif = pg_flow_ctrl[3] & 0xfff;
-	upg_hif = (pg_flow_ctrl[3] & (0xfff << 16)) >> 16;
-	DBGLOG(HAL, INFO,
-	  "\t\tThe used/reserved pages of HIF group=0x%03x/0x%03x\n",
-	  upg_hif, rpg_hif);
-
-	HAL_MCR_RD(prAdapter, PLE_QUEUE_EMPTY, &ple_stat[0]);
-	HAL_MCR_RD(prAdapter, PLE_AC0_QUEUE_EMPTY_0, &ple_stat[1]);
-	HAL_MCR_RD(prAdapter, PLE_AC0_QUEUE_EMPTY_1, &ple_stat[2]);
-	HAL_MCR_RD(prAdapter, PLE_AC0_QUEUE_EMPTY_2, &ple_stat[3]);
-	HAL_MCR_RD(prAdapter, PLE_AC0_QUEUE_EMPTY_3, &ple_stat[4]);
-	HAL_MCR_RD(prAdapter, PLE_AC1_QUEUE_EMPTY_0, &ple_stat[5]);
-	HAL_MCR_RD(prAdapter, PLE_AC1_QUEUE_EMPTY_1, &ple_stat[6]);
-	HAL_MCR_RD(prAdapter, PLE_AC1_QUEUE_EMPTY_2, &ple_stat[7]);
-	HAL_MCR_RD(prAdapter, PLE_AC1_QUEUE_EMPTY_3, &ple_stat[8]);
-	HAL_MCR_RD(prAdapter, PLE_AC2_QUEUE_EMPTY_0, &ple_stat[9]);
-	HAL_MCR_RD(prAdapter, PLE_AC2_QUEUE_EMPTY_1, &ple_stat[10]);
-	HAL_MCR_RD(prAdapter, PLE_AC2_QUEUE_EMPTY_2, &ple_stat[11]);
-	HAL_MCR_RD(prAdapter, PLE_AC2_QUEUE_EMPTY_3, &ple_stat[12]);
-	HAL_MCR_RD(prAdapter, PLE_AC3_QUEUE_EMPTY_0, &ple_stat[13]);
-	HAL_MCR_RD(prAdapter, PLE_AC3_QUEUE_EMPTY_1, &ple_stat[14]);
-	HAL_MCR_RD(prAdapter, PLE_AC3_QUEUE_EMPTY_2, &ple_stat[15]);
-	HAL_MCR_RD(prAdapter, PLE_AC3_QUEUE_EMPTY_3, &ple_stat[16]);
-
-	HAL_MCR_RD(prAdapter, STATION_PAUSE0, &sta_pause[0]);
-	HAL_MCR_RD(prAdapter, STATION_PAUSE1, &sta_pause[1]);
-	HAL_MCR_RD(prAdapter, STATION_PAUSE2, &sta_pause[2]);
-	HAL_MCR_RD(prAdapter, STATION_PAUSE3, &sta_pause[3]);
-
-	HAL_MCR_RD(prAdapter, DIS_STA_MAP0, &dis_sta_map[0]);
-	HAL_MCR_RD(prAdapter, DIS_STA_MAP1, &dis_sta_map[1]);
-	HAL_MCR_RD(prAdapter, DIS_STA_MAP2, &dis_sta_map[2]);
-	HAL_MCR_RD(prAdapter, DIS_STA_MAP3, &dis_sta_map[3]);
-
-	for (j = 0; j < 16; j = j + 4) { /* show AC Q info */
-		for (i = 0; i < 32; i++) {
-			if (((ple_stat[j + 1] & (0x1 << i)) >> i) == 0) {
-				uint32_t hfid, tfid, pktcnt,
-					ac_num = j / 4, ctrl = 0;
-				uint32_t sta_num = i + (j % 4) * 32,
-					fl_que_ctrl[3] = {0};
-				fl_que_ctrl[0] |= (0x1 << 31);
-				fl_que_ctrl[0] |= (0x2 << 14);
-				fl_que_ctrl[0] |= (ac_num << 8);
-				fl_que_ctrl[0] |= sta_num;
-				HAL_MCR_WR(prAdapter,
-					PLE_FL_QUE_CTRL_0, fl_que_ctrl[0]);
-				HAL_MCR_RD(prAdapter,
-					PLE_FL_QUE_CTRL_2, &fl_que_ctrl[1]);
-				HAL_MCR_RD(prAdapter,
-					PLE_FL_QUE_CTRL_3, &fl_que_ctrl[2]);
-				hfid = fl_que_ctrl[1] & 0xfff;
-				tfid = (fl_que_ctrl[1] & 0xfff << 16) >> 16;
-				pktcnt = fl_que_ctrl[2] & 0xfff;
-
-				if (((sta_pause[j % 4] & 0x1 << i) >> i) == 1)
-					ctrl = 2;
-				if (((dis_sta_map[j % 4] & 0x1 << i) >> i) == 1)
-					ctrl = 1;
-				DBGLOG(HAL, INFO,
-					"STA%d AC%d:",
-					 sta_num, ac_num);
-				DBGLOG(HAL, INFO,
-					" tail/head fid = 0x%03x/0x%03x,",
-					tfid, hfid);
-				DBGLOG(HAL, INFO,
-					" pkt cnt = %x  ctrl = %s\n",
-					pktcnt, sta_ctrl_reg[ctrl]);
-			}
-		}
-	}
-}
-
 void halShowTxdInfo(
 	struct ADAPTER *prAdapter,
 	u_int32_t fid)
 {
+	/*
+	 * TODO: Follow connac 2x design and get TXD from PLE by FW.
+
 	uint32_t txd_info[16] = {0};
 
 	halGetPleTxdInfo(prAdapter, fid, txd_info);
 	halDumpTxdInfo(prAdapter, txd_info);
+	*/
 }
 
 int32_t halShowStatInfo(struct ADAPTER *prAdapter,

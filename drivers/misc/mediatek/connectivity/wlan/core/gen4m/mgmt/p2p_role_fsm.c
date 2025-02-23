@@ -641,6 +641,8 @@ p2pRoleFsmDeauthComplete(IN struct ADAPTER *prAdapter,
 	enum ENUM_PARAM_MEDIA_STATE eOriMediaStatus;
 	struct GL_P2P_INFO *prP2PInfo;
 
+	DBGLOG(P2P, INFO, "Deauth TX Complete!\n");
+
 	if (!prAdapter) {
 		DBGLOG(P2P, ERROR, "prAdapter shouldn't be NULL!\n");
 		return;
@@ -651,16 +653,29 @@ p2pRoleFsmDeauthComplete(IN struct ADAPTER *prAdapter,
 		return;
 	}
 
-	DBGLOG(P2P, INFO, "Deauth TX Complete!\n");
-
 	prP2pBssInfo = prAdapter->aprBssInfo[prStaRec->ucBssIndex];
-	ASSERT_BREAK(prP2pBssInfo != NULL);
+	if (!prP2pBssInfo) {
+		DBGLOG(P2P, ERROR, "prP2pBssInfo shouldn't be NULL!\n");
+		return;
+	}
+
 	eOriMediaStatus = prP2pBssInfo->eConnectionState;
 	prP2pRoleFsmInfo =
 		P2P_ROLE_INDEX_2_ROLE_FSM_INFO(prAdapter,
 			prP2pBssInfo->u4PrivateData);
+
+	if (!prP2pRoleFsmInfo) {
+		DBGLOG(P2P, ERROR, "prP2pRoleFsmInfo shouldn't be NULL!\n");
+		return;
+	}
+
 	prP2PInfo = prAdapter->prGlueInfo->prP2PInfo[
 			prP2pRoleFsmInfo->ucRoleIndex];
+
+	if (!prP2PInfo) {
+		DBGLOG(P2P, ERROR, "prP2PInfo shouldn't be NULL!\n");
+		return;
+	}
 
 	/*
 	 * After EAP exchange, GO/GC will disconnect
@@ -684,8 +699,6 @@ p2pRoleFsmDeauthComplete(IN struct ADAPTER *prAdapter,
 			"Skip deauth tx done since SAA fsm is in progress.\n");
 		return;
 	}
-
-	ASSERT_BREAK(prP2pRoleFsmInfo != NULL);
 
 	/* Change station state. */
 	cnmStaRecChangeState(prAdapter, prStaRec, STA_STATE_1);
@@ -2424,7 +2437,8 @@ void p2pRoleFsmRunEventJoinComplete(IN struct ADAPTER *prAdapter,
 				}
 
 				ASSERT(prBssDesc->fgIsConnecting);
-				prBssDesc->fgIsConnecting = FALSE;
+				prBssDesc->fgIsConnecting &=
+					~BIT(prP2pBssInfo->ucBssIndex);
 
 				/* Increase Failure Count */
 				prStaRec->ucJoinFailureCount++;
@@ -3442,9 +3456,13 @@ p2pRoleFsmGetStaStatistics(IN struct ADAPTER *prAdapter,
 
 	}
 
-	cnmTimerStartTimer(prAdapter,
-		&(prP2pRoleFsmInfo->rP2pRoleFsmGetStatisticsTimer),
-		P2P_ROLE_GET_STATISTICS_TIME);
+	/* Make sure WFD is still enabled */
+	if (prAdapter->rWifiVar.rWfdConfigureSettings.ucWfdEnable) {
+		cnmTimerStartTimer(prAdapter,
+			&(prP2pRoleFsmInfo->rP2pRoleFsmGetStatisticsTimer),
+			P2P_ROLE_GET_STATISTICS_TIME);
+	}
+
 }
 #endif
 

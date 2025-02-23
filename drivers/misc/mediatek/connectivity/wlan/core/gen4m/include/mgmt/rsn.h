@@ -84,12 +84,8 @@
 #define RSN_CIPHER_SUITE_AES_128_CMAC   0x06AC0F00
 #endif
 #define RSN_CIPHER_SUITE_GROUP_NOT_USED 0x07AC0F00
-#define RSN_CIPHER_SUITE_GCMP           0x08AC0F00
-#define RSN_CIPHER_SUITE_GCMP_256       0x09AC0F00
-#define RSN_CIPHER_SUITE_CCMP_256       0x0AAC0F00
-#define RSN_CIPHER_SUITE_BIP_GMAC_128   0x0BAC0F00
-#define RSN_CIPHER_SUITE_BIP_GMAC_256   0x0CAC0F00
-#define RSN_CIPHER_SUITE_BIP_CMAC_256   0x0DAC0F00
+#define RSN_CIPHER_SUITE_SAE		0x08AC0F00
+#define RSN_CIPHER_SUITE_OWE		0x12AC0F00
 
 #define WPA_CIPHER_SUITE_NONE           0x00F25000
 #define WPA_CIPHER_SUITE_WEP40          0x01F25000
@@ -114,15 +110,9 @@
 #define RSN_AKM_SUITE_PSK_SHA256        0x06AC0F00
 #endif
 
-#define RSN_AKM_SUITE_TDLS              0x07AC0F00
 #define RSN_AKM_SUITE_SAE               0x08AC0F00
-#define RSN_AKM_SUITE_FT_OVER_SAE       0x09AC0F00
 #define RSN_AKM_SUITE_8021X_SUITE_B     0x0BAC0F00
 #define RSN_AKM_SUITE_8021X_SUITE_B_192 0x0CAC0F00
-#define RSN_AKM_SUITE_FILS_SHA256       0x0EAC0F00
-#define RSN_AKM_SUITE_FILS_SHA384       0x0FAC0F00
-#define RSN_AKM_SUITE_FT_FILS_SHA256    0x10AC0F00
-#define RSN_AKM_SUITE_FT_FILS_SHA384    0x11AC0F00
 #define RSN_AKM_SUITE_OWE               0x12AC0F00
 
 #define WPA_AKM_SUITE_NONE              0x00F25000
@@ -154,10 +144,9 @@
 #define CIPHER_FLAG_NONE                        0x00000000
 #define CIPHER_FLAG_WEP40                       0x00000001	/* BIT 1 */
 #define CIPHER_FLAG_TKIP                        0x00000002	/* BIT 2 */
-#define CIPHER_FLAG_CCMP                        0x00000008	/* BIT 3 */
-#define CIPHER_FLAG_WEP104                      0x00000010	/* BIT 4 */
-#define CIPHER_FLAG_WEP128                      0x00000020	/* BIT 5 */
-#define CIPHER_FLAG_GCMP256                     0x00000080	/* BIT 7 */
+#define CIPHER_FLAG_CCMP                        0x00000008	/* BIT 4 */
+#define CIPHER_FLAG_WEP104                      0x00000010	/* BIT 5 */
+#define CIPHER_FLAG_WEP128                      0x00000020	/* BIT 6 */
 
 #define TKIP_COUNTERMEASURE_SEC                 60	/* seconds */
 

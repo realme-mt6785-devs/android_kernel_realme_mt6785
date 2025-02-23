@@ -633,10 +633,6 @@ struct STA_RECORD *cnmStaRecAlloc(struct ADAPTER *prAdapter,
 			for (k = 0; k < TID_NUM + 1; k++) {
 				prStaRec->au2CachedSeqCtrl[k] = 0xFFFF;
 				prStaRec->afgIsIgnoreAmsduDuplicate[k] = FALSE;
-#if CFG_SUPPORT_FRAG_AGG_ATTACK_DETECTION
-				prStaRec->au2AmsduInvalidSN[k] = 0xFFFF;
-				prStaRec->afgIsAmsduInvalid[k] = FALSE;
-#endif /* CFG_SUPPORT_FRAG_AGG_ATTACK_DETECTION */
 			}
 
 			/* Initialize SW TX queues in STA_REC */

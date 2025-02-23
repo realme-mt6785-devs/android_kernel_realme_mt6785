@@ -22,13 +22,8 @@ endif
 endif
 
 ###############################################################################
-# Necessary Check
 
 ifneq ($(CONFIG_MTK_COMBO),)
-
-ifneq ($(KERNEL_OUT),)
-    ccflags-y += -imacros $(KERNEL_OUT)/include/generated/autoconf.h
-endif
 
 ifeq ($(CONFIG_MTK_COMBO_CHIP),)
     $(error CONFIG_MTK_COMBO_CHIP not defined)
@@ -113,10 +108,8 @@ endif
 ###############################################################################
 MODULE_NAME := wmt_drv
 ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
-$(warning $(MODULE_NAME) build-in boot.img)
 obj-y += $(MODULE_NAME).o
 else
-$(warning $(MODULE_NAME) is kernel module)
 obj-m += $(MODULE_NAME).o
 endif
 
@@ -143,8 +136,10 @@ ifeq ($(COMBO_CHIP_SUPPORT), true)
     ccflags-y += -D MTK_WCN_COMBO_CHIP_SUPPORT
 endif
 
-ccflags-y += -D MTK_WCN_SOC_CHIP_SUPPORT
-ccflags-y += -D MTK_WCN_WLAN_GEN4
+ifneq ($(filter "CONSYS_%",$(CONFIG_MTK_COMBO_CHIP)),)
+    ccflags-y += -D MTK_WCN_SOC_CHIP_SUPPORT
+endif
+
 ccflags-y += -I$(src)/common_main/linux/include
 ccflags-y += -I$(src)/common_detect/drv_init/inc
 ccflags-y += -I$(src)/common_detect
@@ -155,6 +150,21 @@ $(MODULE_NAME)-objs += common_detect/wmt_detect.o
 $(MODULE_NAME)-objs += common_detect/sdio_detect.o
 $(MODULE_NAME)-objs += common_detect/mtk_wcn_stub_alps.o
 $(MODULE_NAME)-objs += common_detect/wmt_gpio.o
+
+
+ifneq ($(filter "MT6630",$(CONFIG_MTK_COMBO_CHIP)),)
+	ccflags-y += -D MTK_WCN_WLAN_GEN3
+endif
+
+ifneq ($(filter "MT6632",$(CONFIG_MTK_COMBO_CHIP)),)
+        ccflags-y += -D MTK_WCN_WLAN_GEN4
+endif
+
+ifneq ($(filter "CONSYS_6797" "CONSYS_6759" "CONSYS_6758" "CONSYS_6771" "CONSYS_6775",$(CONFIG_MTK_COMBO_CHIP)),)
+	ccflags-y += -D MTK_WCN_WLAN_GEN3
+else ifneq ($(filter "CONSYS_%",$(CONFIG_MTK_COMBO_CHIP)),)
+	ccflags-y += -D MTK_WCN_WLAN_GEN2
+endif
 
 $(MODULE_NAME)-objs += common_detect/drv_init/fm_drv_init.o
 $(MODULE_NAME)-objs += common_detect/drv_init/conn_drv_init.o

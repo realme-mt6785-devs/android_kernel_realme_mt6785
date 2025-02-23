@@ -2038,7 +2038,7 @@ void bowResponderJoin(IN struct ADAPTER *prAdapter, IN struct BSS_DESC *prBssDes
 	prConnSettings = aisGetConnSettings(prAdapter, AIS_DEFAULT_INDEX);
 
 	/* 4 <1> We are going to connect to this BSS. */
-	prBssDesc->fgIsConnecting = TRUE;
+	prBssDesc->fgIsConnecting |= BIT(prBowFsmInfo->ucBssIndex);
 	bowSetBowTableState(prAdapter, prBowFsmInfo->aucPeerAddress, BOW_DEVICE_STATE_CONNECTING);
 
 	/* 4 <2> Setup corresponding STA_RECORD_T */

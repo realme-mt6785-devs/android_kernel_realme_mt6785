@@ -1092,6 +1092,8 @@ enum MBO_ATTR_ID {
 /* 7.3.2.2 Supported Rates */
 #define ELEM_MAX_LEN_SUP_RATES                      8
 
+#define ELEM_MAX_LEN_SUP_RATES_IOT		    16
+
 /* 7.3.2.4 DS Parameter Set */
 #define ELEM_MAX_LEN_DS_PARAMETER_SET               1
 
@@ -1685,6 +1687,8 @@ enum BEACON_REPORT_DETAIL {
 /* 7.4.7 Public Action frame details */
 /* 20/40 BSS coexistence */
 #define ACTION_PUBLIC_20_40_COEXIST                 0
+/* 20/40 BSS coexistence */
+#define ACTION_PUBLIC_VENDOR_SPECIFIC               9
 
 #if CFG_SUPPORT_802_11W
 /* SA Query Action frame (IEEE 802.11w/D8.0, 7.4.9) */
@@ -2173,6 +2177,13 @@ struct IE_SUPPORTED_RATE {
 	uint8_t ucId;
 	uint8_t ucLength;
 	uint8_t aucSupportedRates[ELEM_MAX_LEN_SUP_RATES];
+} __KAL_ATTRIB_PACKED__;
+
+/* Some IOT AP will carry Rates > 8*/
+struct IE_SUPPORTED_RATE_IOT {
+	uint8_t ucId;
+	uint8_t ucLength;
+	uint8_t aucSupportedRates[ELEM_MAX_LEN_SUP_RATES_IOT];
 } __KAL_ATTRIB_PACKED__;
 
 /* 7.3.2.4 DS Parameter Set element */
@@ -3537,6 +3548,8 @@ struct IE_MBSSID_INDEX {
 #define SSID_IE(fp)             ((struct IE_SSID *) fp)
 
 #define SUP_RATES_IE(fp)        ((struct IE_SUPPORTED_RATE *) fp)
+
+#define SUP_RATES_IOT_IE(fp)    ((struct IE_SUPPORTED_RATE_IOT *) fp)
 
 #define DS_PARAM_IE(fp)         ((struct IE_DS_PARAM_SET *) fp)
 

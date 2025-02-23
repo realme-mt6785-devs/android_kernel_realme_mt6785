@@ -1834,7 +1834,7 @@ struct net_device_stats *p2pGetStats(IN struct net_device *prDev)
 	mddpGetMdStats(prDev);
 #endif
 
-	return (struct net_device_stats *) kalGetStats(prDev);
+	return (struct net_device_stats *) &prNetDevPrivate->stats;
 }				/* end of p2pGetStats() */
 
 static void p2pSetMulticastList(IN struct net_device *prDev)

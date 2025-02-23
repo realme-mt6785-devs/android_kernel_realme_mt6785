@@ -39,8 +39,8 @@ enum ENUM_CPU_BOOST_STATUS {
 uint32_t kalGetCpuBoostThreshold(void)
 {
 	DBGLOG(SW4, TRACE, "enter kalGetCpuBoostThreshold\n");
-	/*  8, stands for 500Mbps */
-	return 8;
+	/*  3, stands for 100Mbps */
+	return 3;
 }
 
 int32_t kalBoostCpu(IN struct ADAPTER *prAdapter,
@@ -111,24 +111,6 @@ int32_t kalBoostCpu(IN struct ADAPTER *prAdapter,
 #ifdef CFG_MTK_ANDROID_EMI
 void kalSetEmiMpuProtection(phys_addr_t emiPhyBase, bool enable)
 {
-	struct emimpu_region_t region;
-
-	/*set MPU for EMI share Memory */
-	unsigned long long start = emiPhyBase + WIFI_EMI_MEM_OFFSET;
-	unsigned long long end = emiPhyBase + WIFI_EMI_MEM_OFFSET
-		+ WIFI_EMI_MEM_SIZE - 1;
-
-	DBGLOG(INIT, INFO, "emiPhyBase: 0x%p, enable: %d\n",
-			emiPhyBase, enable);
-
-	mtk_emimpu_init_region(&region, REGION_WIFI);
-	mtk_emimpu_set_addr(&region, start, end);
-	mtk_emimpu_set_apc(&region, DOMAIN_AP, MTK_EMIMPU_NO_PROTECTION);
-	mtk_emimpu_set_apc(&region, DOMAIN_CONN, MTK_EMIMPU_NO_PROTECTION);
-	mtk_emimpu_lock_region(&region,
-		enable ? MTK_EMIMPU_LOCK:MTK_EMIMPU_UNLOCK);
-	mtk_emimpu_set_protection(&region);
-	mtk_emimpu_free_region(&region);
 }
 
 void kalSetDrvEmiMpuProtection(phys_addr_t emiPhyBase, uint32_t offset,

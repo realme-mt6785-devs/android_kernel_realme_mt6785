@@ -487,9 +487,22 @@ struct PARAM_CUSTOM_KEY_CFG_STRUCT g_rDefaulteSetting[] = {
 	*	"Operation:default 0"
 	*   }
 	*/
-	/* enable WIFI FW coex feature */
-	{"CoexFddSupport", "0x1"},
-	{"CoexTddCotxSupport", "0x1"},
+#ifdef OPLUS_BUG_STABILITY
+	//WangJames@CONNECTIVITY.WIFI.NETWORK.DL_SPEED.1115135, 2019/01/15,
+	//add for: [ modify Cw/TxOp param to compatible with gen4m]
+	{"WmmParamCwMax", "3"},
+	{"WmmParamCwMin", "3"},
+	{"WmmParamAifsN", "2"},
+	{"WmmParamCfgEn", "1"},
+	{"Cert11gModeEnable", "0"},
+
+	//KeShixing@CONNECTIVITY.WIFI.CONNECTION.DISCONNECT,2002137, 2019/05/11,
+	//Add for add beacon to 10+10 before disconnect to avoid multiple disconnect
+	{"ScreenOnBeaconTimeoutCount", "10"},
+	//Add for check if any data at the last 2s,if has then not disconnect
+	{"BeaconTimoutFilterDurationMs","2000"},
+#endif /* OPLUS_BUG_STABILITY */
+
 	{"AdapScan", "0x0", WLAN_CFG_DEFAULT},
 #if CFG_SUPPORT_IOT_AP_BLACKLIST
 	/*Fill Iot AP blacklist here*/
@@ -502,6 +515,27 @@ struct PARAM_CUSTOM_KEY_CFG_STRUCT g_rDefaulteSetting[] = {
 	{"DropPacketsIPV6Low", "0x1"},
 	{"Sta2gBw", "1"},
 #endif
+#ifdef OPLUS_BUG_STABILITY
+	//zhanglei@CONNECTIVITY.WIFI.BASIC.POWER.917292, 2017/02/17,
+	//Add for: filter SSDP packets
+	{"DropPacketsIPV4Low", "0x12DE"},
+	{"DropPacketsIPV4High", "0x0"},
+
+	//Add for: filter IPV6 multicast packets
+	{"DropPacketsIPV6Low", "0x2"},
+	{"DropPacketsIPV6High", "0x0"},
+
+	//Add for: 2.4G mask invalid issue
+	{"2GTxMaskDPDOn", "1"},
+	{"2GTxPMinus1dbAtHighTemp", "1"},
+	{"TssiGroupBackupRestore", "1"},
+#endif /* OPLUS_BUG_STABILITY */
+
+#ifdef OPLUS_BUG_STABILITY
+	//WangXia@CONNECTIVITY.WIFI.BMISS, 2020/03/27,
+	//Add for: adjust beacon miss report time as 3 seconds, 5*100ms is a round
+	{"LdtBTONullHwLifeTime", "5"},
+#endif /* OPLUS_BUG_STABILITY */
 };
 
 /*******************************************************************************
@@ -713,8 +747,9 @@ void wlanAdapterDestroy(IN struct ADAPTER *prAdapter)
 	if (!prAdapter)
 		return;
 
-	scanLogCacheFlushAll(&(prAdapter->rWifiVar.rScanInfo.rScanLogCache),
-		LOG_SCAN_D2D, SCAN_LOG_MSG_MAX_LEN);
+	scanLogCacheFlushAll(prAdapter,
+		&(prAdapter->rWifiVar.rScanInfo.rScanLogCache),
+		LOG_SCAN_D2D);
 
 	kalMemFree(prAdapter, VIR_MEM_TYPE, sizeof(struct ADAPTER));
 }
@@ -6927,7 +6962,7 @@ void wlanBindBssIdxToNetInterface(IN struct GLUE_INFO *prGlueInfo,
  * @param prGlueInfo                     Pointer of prGlueInfo Data Structure
  * @param ucNetInterfaceIndex       Index of network interface
  *
- * @return UINT_8                         Index of BSS
+ * @return unsigned char                         Index of BSS
  */
 /*----------------------------------------------------------------------------*/
 uint8_t wlanGetBssIdxByNetInterface(IN struct GLUE_INFO
@@ -7276,7 +7311,12 @@ void wlanInitFeatureOption(IN struct ADAPTER *prAdapter)
 	prWifiVar->aucMtkFeature[3] = 0xff;
 	prWifiVar->ucGbandProbe256QAM = (uint8_t) wlanCfgGetUint32(
 					prAdapter, "Probe256QAM",
+#ifdef OPLUS_BUG_STABILITY
+	//Liwei@CONNECTIVITY.WIFI.NETWORK.602133, 2020/11/05,
+					FEATURE_DISABLED);
+#else
 					FEATURE_ENABLED);
+#endif /* OPLUS_BUG_STABILITY */
 #endif
 #if CFG_SUPPORT_VHT_IE_IN_2G
 	prWifiVar->ucVhtIeIn2g = (uint8_t) wlanCfgGetUint32(
@@ -9745,15 +9785,13 @@ void wlanTxLifetimeTagPacket(IN struct ADAPTER *prAdapter,
 			/* Enable packet lifetime profiling */
 			prPktProfile->fgIsValid = TRUE;
 
-			/* Packet enqueue time */
-			prPktProfile->rEnqueueTimestamp = (OS_SYSTIME)
-							  kalGetTimeTick();
 			/* Packet arrival time at kernel Hard Xmit */
-			if (!prMsduInfo->prPacket)
-                                break;
 			prPktProfile->rHardXmitArrivalTimestamp =
 				GLUE_GET_PKT_ARRIVAL_TIME(prMsduInfo->prPacket);
 
+			/* Packet enqueue time */
+			prPktProfile->rEnqueueTimestamp = (OS_SYSTIME)
+							  kalGetTimeTick();
 		}
 		break;
 
@@ -11662,10 +11700,25 @@ uint64_t wlanGetSupportedFeatureSet(IN struct GLUE_INFO *prGlueInfo)
 {
 	uint64_t u8FeatureSet = WIFI_HAL_FEATURE_SET;
 	struct REG_INFO *prRegInfo;
+	#ifdef OPLUS_BUG_COMPATIBILITY
+	//Laixin@CONNECTIVITY.WIFI.BASIC.HARDWARE.1130116, 2019/03/22
+	//Add for: inform if DBDC supports
+	struct ADAPTER *prAdapter;
+	#endif /* OPLUS_BUG_COMPATIBILITY */
 
 	prRegInfo = &(prGlueInfo->rRegInfo);
 	if ((prRegInfo != NULL) && (prRegInfo->ucSupport5GBand))
 		u8FeatureSet |= WIFI_FEATURE_INFRA_5G;
+
+	#ifdef OPLUS_BUG_COMPATIBILITY
+	//Laixin@CONNECTIVITY.WIFI.BASIC.HARDWARE.1130116, 2019/03/22
+	//Add for: inform if DBDC supports
+	prAdapter = prGlueInfo->prAdapter;
+    if (prAdapter != NULL &&
+        prAdapter->rWifiVar.eDbdcMode == ENUM_DBDC_MODE_DYNAMIC) {
+		u8FeatureSet |= WIFI_FEATURE_DBDC;
+	}
+	#endif /* OPLUS_BUG_COMPATIBILITY */
 
 	return u8FeatureSet;
 }
@@ -12110,25 +12163,6 @@ uint32_t wlanLinkQualityMonitor(struct GLUE_INFO *prGlueInfo, bool bFgIsOid)
 #if CFG_SUPPORT_DATA_STALL
 	wlanCustomMonitorFunction(prAdapter, prLinkQualityInfo, ucBssIndex);
 #endif
-
-	DBGLOG(SW4, INFO,
-	       "Link Quality: Tx(rate:%u, total:%lu, retry:%lu, fail:%lu, RTS fail:%lu, ACK fail:%lu), Rx(rate:%u, total:%lu, dup:%u, error:%lu), PER(%u), Congestion(idle slot:%lu, diff:%lu, AwakeDur:%u)\n",
-	       prLinkQualityInfo->u4CurTxRate, /* current tx link speed */
-	       prLinkQualityInfo->u8TxTotalCount, /* tx total packages */
-	       prLinkQualityInfo->u8TxRetryCount, /* tx retry count */
-	       prLinkQualityInfo->u8TxFailCount, /* tx fail count */
-	       prLinkQualityInfo->u8TxRtsFailCount, /* tx RTS fail count */
-	       prLinkQualityInfo->u8TxAckFailCount, /* tx ACK fail count */
-	       prLinkQualityInfo->u4CurRxRate, /* current rx link speed */
-	       prLinkQualityInfo->u8RxTotalCount, /* rx total packages */
-	       prLinkQualityInfo->u4RxDupCount, /* rx duplicate package count */
-	       prLinkQualityInfo->u8RxErrCount, /* rx fcs fail count */
-	       prLinkQualityInfo->u4CurTxPer, /* current Tx PER */
-	       /* congestion stats */
-	       prLinkQualityInfo->u8IdleSlotCount, /* idle slot */
-	       prLinkQualityInfo->u8DiffIdleSlotCount, /* idle slot diff */
-	       prLinkQualityInfo->u4HwMacAwakeDuration
-	);
 
 	return u4Status;
 }

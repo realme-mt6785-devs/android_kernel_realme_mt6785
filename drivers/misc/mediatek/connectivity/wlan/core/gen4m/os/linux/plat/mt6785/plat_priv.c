@@ -78,24 +78,6 @@ int32_t kalBoostCpu(IN struct ADAPTER *prAdapter,
 #ifdef CONFIG_MTK_EMI
 void kalSetEmiMpuProtection(phys_addr_t emiPhyBase, bool enable)
 {
-	struct emi_region_info_t region_info;
-
-	DBGLOG(INIT, INFO, "emiPhyBase: 0x%x, enable: %d\n",
-			emiPhyBase, enable);
-
-	/*set MPU for EMI share Memory */
-	region_info.start = emiPhyBase + WIFI_EMI_MEM_OFFSET;
-	region_info.end = emiPhyBase + WIFI_EMI_MEM_OFFSET
-		+ WIFI_EMI_MEM_SIZE - 1;
-	region_info.region = 26;
-
-	SET_ACCESS_PERMISSION(region_info.apc, enable ? LOCK : UNLOCK,
-			      FORBIDDEN, FORBIDDEN,
-			      FORBIDDEN, FORBIDDEN, FORBIDDEN, FORBIDDEN,
-			      FORBIDDEN, FORBIDDEN, FORBIDDEN, FORBIDDEN,
-			      FORBIDDEN, FORBIDDEN, FORBIDDEN, NO_PROTECTION,
-			      FORBIDDEN, enable ? FORBIDDEN : NO_PROTECTION);
-	emi_mpu_set_protection(&region_info);
 }
 
 void kalSetDrvEmiMpuProtection(phys_addr_t emiPhyBase, uint32_t offset,

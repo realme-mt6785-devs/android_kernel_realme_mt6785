@@ -804,43 +804,6 @@ void StatsTxPktInfoDisplay(struct sk_buff *prSkb)
 	statsParsePktInfo(pPkt, prSkb, 0, EVENT_TX);
 }
 
-void StatsLogPkts(IN struct ADAPTER *prAdapter,
-			 struct sk_buff *prSkb)
-{
-	uint8_t *pucPkt = prSkb->data;
-	uint16_t u2EtherType =
-		(pucPkt[ETH_TYPE_LEN_OFFSET] << 8)
-			| (pucPkt[ETH_TYPE_LEN_OFFSET + 1]);
-	uint8_t *pucEthBody = &pucPkt[ETH_HLEN];
-	uint8_t *pucUdp;
-	uint16_t u2UdpDstPort;
-
-	switch (u2EtherType) {
-	case ETH_P_ARP:
-		DBGLOG(RX, INFO,"<RX> Indicate ARP packet\n");
-		break;
-	case ETH_P_1X:
-		DBGLOG(RX, INFO,"<RX> Indicate EAPOL packet\n");
-		break;
-	case ETH_P_IPV4:
-			switch (pucEthBody[9]) {
-			case IP_PRO_ICMP:
-				DBGLOG(RX, INFO,"<RX> Indicate ICMP packet\n");
-				break;
-			case IP_PRO_UDP:
-				pucUdp = &pucEthBody[20];
-				u2UdpDstPort = (pucUdp[2] << 8) | pucUdp[3];
-				if (u2UdpDstPort == UDP_PORT_DHCPS || u2UdpDstPort == UDP_PORT_DHCPC) {
-					DBGLOG(RX, INFO,"<RX> Indicate DHCP packet\n");
-				}
-				break;
-			}
-		break;
-	default:
-		break;
-	}
-}
-
 #endif /* CFG_SUPPORT_STATISTICS */
 
 /* End of stats.c */

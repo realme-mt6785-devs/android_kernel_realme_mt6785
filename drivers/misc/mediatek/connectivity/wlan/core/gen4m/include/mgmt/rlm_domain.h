@@ -730,6 +730,7 @@ struct TX_PWR_CTRL_ELEMENT {
 	char name[MAX_TX_PWR_CTRL_ELEMENT_NAME_SIZE]; /* scenario name */
 	uint8_t index; /* scenario index */
 	enum ENUM_TX_POWER_CTRL_TYPE eCtrlType;
+	uint16_t u2CountryCode;
 	uint8_t settingCount;
 	struct TX_PWR_CTRL_CHANNEL_SETTING rChlSettingList[1];
 };
@@ -929,6 +930,28 @@ struct SUBBAND_CHANNEL {
 	uint8_t ucInterval;
 	uint8_t ucReserved;
 };
+
+#ifdef VENDOR_EDIT
+//Lei.Zhang@PSW.CN.WiFi.Basic.Hardware.1065227, 2020/07/17,
+//Add for distinguish country power limit at runtime.
+struct oplus_country_pwr_limit {
+    uint32_t project;
+    uint16_t tableSize;
+    struct COUNTRY_POWER_LIMIT_TABLE_CONFIGURATION *pwrLimitTable;
+};
+
+struct oplus_country_pwr_limit_he {
+    uint16_t project;
+    uint16_t tableSize;
+    struct COUNTRY_POWER_LIMIT_TABLE_CONFIGURATION_HE *pwrLimitTableHE;
+};
+
+struct oplus_country_pwr_limit_default {
+    uint16_t project;
+    uint16_t tableSize;
+    struct COUNTRY_POWER_LIMIT_TABLE_DEFAULT *pwrLimitTableDefault;
+};
+#endif
 
 #endif /* CFG_SUPPORT_PWR_LIMIT_COUNTRY */
 

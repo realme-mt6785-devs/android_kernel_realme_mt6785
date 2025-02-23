@@ -1379,12 +1379,6 @@ saaSendDisconnectMsgHandler(IN struct ADAPTER *prAdapter,
 {
 	if (prStaRec->ucStaState == STA_STATE_3) {
 		struct MSG_AIS_ABORT *prAisAbortMsg;
-		u_int8_t fgIsTxAllowed;
-
-		/* Backup txallowed status here because
-		 * cnmStaRecChangeState will change it
-		 */
-		fgIsTxAllowed = prStaRec->fgIsTxAllowed;
 
 		/* NOTE(Kevin): Change state immediately to
 		 * avoid starvation of MSG buffer because of too
@@ -1408,8 +1402,7 @@ saaSendDisconnectMsgHandler(IN struct ADAPTER *prAdapter,
 			eFrmType == FRM_DEAUTH ?
 				DISCONNECT_REASON_CODE_DEAUTHENTICATED :
 				DISCONNECT_REASON_CODE_DISASSOCIATED;
-		prAisAbortMsg->fgDelayIndication =
-			fgIsTxAllowed && !cnmP2pIsActive(prAdapter);
+		prAisAbortMsg->fgDelayIndication = true;
 		prAisAbortMsg->ucBssIndex =
 			prStaRec->ucBssIndex;
 		mboxSendMsg(prAdapter, MBOX_ID_0,

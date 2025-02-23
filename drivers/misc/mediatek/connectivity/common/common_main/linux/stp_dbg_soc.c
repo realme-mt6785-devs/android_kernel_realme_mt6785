@@ -513,8 +513,9 @@ PUINT8 stp_dbg_soc_id_to_task(UINT32 id)
 		patch_name = p_patch_info->patchName;
 
 	if (patch_name == NULL) {
-		STP_DBG_PR_ERR("patch_name is null\n");
-		return NULL;
+		STP_DBG_PR_INFO("patch_name is null\n");
+		/* For projects without patch download */
+		return soc_task_str[id];
 	}
 
 	if (osal_strncmp(patch_name, ROM_V2_PATCH, strlen(ROM_V2_PATCH)) == 0) {

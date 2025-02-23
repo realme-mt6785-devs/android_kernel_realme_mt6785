@@ -2711,6 +2711,8 @@ static uint8_t rlmRecIeInfoForClient(struct ADAPTER *prAdapter,
 			DBGLOG(RLM, INFO, "[Ch] Count=%d\n",
 			       prChannelSwitchAnnounceIE->ucChannelSwitchCount);
 
+			if (prChannelSwitchAnnounceIE
+						->ucChannelSwitchMode == 1) {
 				/* Need to stop data transmission immediately */
 				fgHasChannelSwitchIE = TRUE;
 				if (!g_fgHasStopTx) {
@@ -2751,6 +2753,7 @@ static uint8_t rlmRecIeInfoForClient(struct ADAPTER *prAdapter,
 					       "Skip Send Operation Action Frame");
 				}
 #endif
+			}
 
 			break;
 		case ELEM_ID_SCO:
@@ -4905,10 +4908,17 @@ void rlmProcessSpecMgtAction(struct ADAPTER *prAdapter, struct SW_RFB *prSwRfb)
 		DBGLOG(RLM, INFO, "[Mgt Action] Measure Request\n");
 		prMeasurementReqIE = SM_MEASUREMENT_REQ_IE(pucIE);
 		if (prMeasurementReqIE->ucId == ELEM_ID_MEASUREMENT_REQ) {
-			prStaRec->ucSmMsmtRequestMode =
-				prMeasurementReqIE->ucRequestMode;
-			prStaRec->ucSmMsmtToken = prMeasurementReqIE->ucToken;
-			msmtComposeReportFrame(prAdapter, prStaRec, NULL);
+			/* Check IE length is valid */
+			if (prMeasurementReqIE->ucLength != 0 &&
+				(prMeasurementReqIE->ucLength >=
+				sizeof(struct IE_MEASUREMENT_REQ) - 2)) {
+				prStaRec->ucSmMsmtRequestMode =
+					prMeasurementReqIE->ucRequestMode;
+				prStaRec->ucSmMsmtToken =
+					prMeasurementReqIE->ucToken;
+				msmtComposeReportFrame(prAdapter, prStaRec,
+							NULL);
+			}
 		}
 
 		break;
@@ -6144,8 +6154,7 @@ rlmChangeOperationMode(
 		}
 
 #if CFG_SUPPORT_SMART_GEAR
-		/*CNM_OPMODE_REQ_SMARTGEAR_1T2R*/
-		if (eNewReq != 0x04) {
+		if (eNewReq != 0x04 /* CNM_OPMODE_REQ_SMARTGEAR_1T2R */) {
 #endif		/* <5.2> Send operating mode notification frame (STA mode)
 		 * No action frame is needed if we only changed OpTxNss.
 		 */
@@ -6204,6 +6213,9 @@ rlmChangeOperationMode(
 
 		/* <5.3> Change OP Info w/o waiting for notification Tx done */
 		if (prBssInfo->pfOpChangeHandler == NULL ||
+#if CFG_SUPPORT_SMART_GEAR
+			eNewReq == 0x04 /* CNM_OPMODE_REQ_SMARTGEAR_1T2R */ ||
+#endif
 			(!fgIsChangeBw && !fgIsChangeRxNss)) {
 			rlmCompleteOpModeChange(prAdapter, prBssInfo, TRUE);
 			/* No callback */

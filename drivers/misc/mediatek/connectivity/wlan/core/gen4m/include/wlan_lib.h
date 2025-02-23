@@ -143,6 +143,12 @@
 /* Support Random P2P MAC */
 #define WIFI_FEATURE_P2P_RAND_MAC  (0x80000000)
 
+#ifdef OPLUS_BUG_COMPATIBILITY
+//Laixin@CONNECTIVITY.WIFI.BASIC.HARDWARE.1130116, 2019/03/22
+/* Support DBDC */
+#define WIFI_FEATURE_DBDC               (0x200000000L)
+#endif /* OPLUS_BUG_COMPATIBILITY */
+
 /* note: WIFI_FEATURE_GSCAN be enabled just for ACTS test item: scanner */
 #define WIFI_HAL_FEATURE_SET ((WIFI_FEATURE_P2P) |\
 			      (WIFI_FEATURE_SOFT_AP) |\
@@ -207,7 +213,12 @@
 #define WLAN_CFG_KEY_LEN_MAX	32	/* include \x00  EOL */
 #define WLAN_CFG_VALUE_LEN_MAX	128	/* include \x00 EOL */
 #define WLAN_CFG_FLAG_SKIP_CB	BIT(0)
-#define WLAN_CFG_FILE_BUF_SIZE	2560
+//#ifdef VENDOR_EDIT
+/* Guotian.Wu@CONNECTIVITY.WIFI.BASIC.Crash.336013 2020/08/31 modify for memory out of bounds */
+//#define WLAN_CFG_FILE_BUF_SIZE	2048
+//#else
+#define WLAN_CFG_FILE_BUF_SIZE	3072
+//#endif
 
 #define WLAN_CFG_REC_ENTRY_NUM_MAX 200
 

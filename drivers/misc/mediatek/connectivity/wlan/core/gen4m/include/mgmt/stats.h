@@ -101,7 +101,4 @@ void StatsEnvGetPktDelay(OUT uint8_t *pucTxRxFlag,
 			 OUT uint8_t *pucRxIpProto,
 			 OUT uint16_t *pu2RxUdpPort,
 			 OUT uint32_t *pu4RxDelayThreshold);
-
-void StatsLogPkts(IN struct ADAPTER *prAdapter,
-			 struct sk_buff *prSkb);
 /* End of stats.h */

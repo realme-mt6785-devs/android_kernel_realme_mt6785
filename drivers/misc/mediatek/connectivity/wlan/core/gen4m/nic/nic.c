@@ -912,7 +912,7 @@ void nicFreePendingTxMsduInfo(IN struct ADAPTER *prAdapter,
 		return;
 	}
 
-	DBGLOG(NIC, TRACE, "ucIndex: %d, ucFreeType: %d\n",
+	DBGLOG(NIC, INFO, "ucIndex: %d, ucFreeType: %d\n",
 			ucIndex, ucFreeType);
 
 	KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_TXING_MGMT_LIST);

@@ -51,7 +51,7 @@
 #define BT_LOG_ERR              1
 #define RAW_MAX_BYTES           30
 
-static uint8_t raw_buf[RAW_MAX_BYTES * 5 + 10];
+static uint8_t __maybe_unused raw_buf[RAW_MAX_BYTES * 5 + 10];
 extern UINT32 gBtDbgLevel;
 
 #define BT_LOG_PRT_DBG(fmt, arg...)	\
@@ -109,6 +109,7 @@ extern UINT32 gBtDbgLevel;
 
 struct bt_dbg_st {
 	bool trx_enable;
+        bool audio_cr_dbug;
 	uint16_t trx_opcode;
 	struct completion trx_comp;
 	void(*trx_cb) (char *buf, int len);

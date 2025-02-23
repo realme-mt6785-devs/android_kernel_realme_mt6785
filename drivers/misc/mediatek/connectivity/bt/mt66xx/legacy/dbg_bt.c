@@ -16,6 +16,9 @@
 #define BT_DBG_DUMP_BUF_SIZE 1024
 #define BT_DBG_PASSWD "4w2T8M65K5?2af+a "
 #define BT_DBG_USER_TRX_PREFIX "[user-trx] "
+#define _REG_READL(addr) readl((volatile uint32_t *)(addr))
+#define _REG_WRITEL(addr, val) writel(val, (volatile uint32_t *)(addr))
+
 
 /*******************************************************************************
 *			       D A T A	 T Y P E S
@@ -38,6 +41,9 @@ typedef struct {
 */
 static int bt_dbg_get_bt_state(int par1, int par2, int par3);
 static int bt_dbg_setlog_level(int par1, int par2, int par3);
+static int bt_dbg_audio_cr_debug(int par1, int par2, int par3);
+static int bt_dbg_ap_reg_read(int par1, int par2, int par3);
+static int bt_dbg_ap_reg_write(int par1, int par2, int par3);
 
 /*******************************************************************************
 *			     P R I V A T E   D A T A
@@ -54,8 +60,11 @@ static bool g_bt_turn_on = FALSE;
 static bool g_bt_dbg_enable = FALSE;
 
 static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
+    [0x9] = {bt_dbg_ap_reg_read,		FALSE},
+    [0xa] = {bt_dbg_ap_reg_write,		TRUE},
 	[0xb] = {bt_dbg_setlog_level,		TRUE},
 	[0xe] = {bt_dbg_get_bt_state,		TRUE},
+    [0x11] = {bt_dbg_audio_cr_debug,	TRUE},
 };
 
 /*******************************************************************************
@@ -89,6 +98,71 @@ int bt_dbg_setlog_level(int par1, int par2, int par3)
 		gBtDbgLevel = par2;
 	}
 	BT_LOG_PRT_INFO("gBtDbgLevel = %d\n", gBtDbgLevel);
+	return 0;
+}
+
+uint32_t inline _bt_audio_cr_dbug(void)
+{
+	uint32_t addr = 0x1800700C;
+	uint32_t value = 0;
+	uint8_t *base = ioremap_nocache(addr, 0x10);
+
+	if (base == NULL) {
+		BT_LOG_PRT_WARN("remapping 0x%08x fail\n", addr);
+	} else {
+		value = _REG_READL(base);
+		BT_LOG_PRT_INFO("AUDIO_REMAP[0x%08x], read[0x%08x] (before)\n", addr, value);
+
+		if(value != 0x00410000)
+			BT_LOG_PRT_ERR("wrong value!!\n");
+
+		_REG_WRITEL(base, 0x00410000);
+		value = _REG_READL(base);
+		BT_LOG_PRT_INFO("AUDIO_REMAP[0x%08x], read[0x%08x] (after)\n", addr, value);
+		iounmap(base);
+	}
+	return value;
+}
+
+int bt_dbg_audio_cr_debug(int par1, int par2, int par3)
+{
+	// 0x01: enable, 0x00: disable
+	g_bt_dbg_st.audio_cr_dbug = par2;
+	BT_LOG_PRT_INFO("g_bt_dbg_st.audio_cr_dbug = %d\n", g_bt_dbg_st.audio_cr_dbug);
+	// perform read cr
+	_bt_audio_cr_dbug();
+	return 0;
+}
+
+int bt_dbg_ap_reg_read(int par1, int par2, int par3)
+{
+	uint32_t *remap_addr = NULL;
+
+	/* TODO: */
+	remap_addr = ioremap_nocache(par2, 4);
+	if (!remap_addr) {
+		BT_LOG_PRT_ERR("ioremap [0x%08x] fail", par2);
+		return -1;
+	}
+
+	BT_LOG_PRT_INFO("%s: 0x%08x value = [0x%08x]", __func__, par2, *remap_addr);
+	iounmap(remap_addr);
+	return 0;
+}
+
+int bt_dbg_ap_reg_write(int par1, int par2, int par3)
+{
+	uint32_t *remap_addr = NULL;
+
+	/* TODO: */
+	remap_addr = ioremap_nocache(par2, 4);
+	if (!remap_addr) {
+		BT_LOG_PRT_ERR("ioremap [0x%08x] fail", par2);
+		return -1;
+	}
+
+	*remap_addr = par3;
+	iounmap(remap_addr);
 	return 0;
 }
 
@@ -331,6 +405,7 @@ int bt_dev_dbg_init(void)
 
 	// initialize debug function struct
 	g_bt_dbg_st.trx_enable = FALSE;
+        g_bt_dbg_st.audio_cr_dbug = 0;
 	g_bt_dbg_st.trx_opcode = 0;
 	g_bt_dbg_st.trx_cb = bt_dbg_user_trx_cb;
 	init_completion(&g_bt_dbg_st.trx_comp);

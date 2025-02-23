@@ -767,8 +767,8 @@ uint8_t rsnKeyMgmtWpa(IN struct ADAPTER *prAdapter,
 	       eAuthMode == AUTH_MODE_WPA2_FT ||
 	       eAuthMode == AUTH_MODE_WPA3_SAE ||
 	       eAuthMode == AUTH_MODE_WPA3_OWE ||
-	       rsnSearchAKMSuite(prAdapter, RSN_AKM_SUITE_OWE, &i, bssidx) ||
-	       rsnSearchAKMSuite(prAdapter, RSN_AKM_SUITE_SAE, &i, bssidx);
+	       rsnSearchAKMSuite(prAdapter, RSN_CIPHER_SUITE_OWE, &i, bssidx) ||
+	       rsnSearchAKMSuite(prAdapter, RSN_CIPHER_SUITE_SAE, &i, bssidx);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -929,11 +929,6 @@ u_int8_t rsnPerformPolicySelection(
 		fgSuiteSupported = FALSE;
 
 		switch (prBssRsnInfo->u4GroupKeyCipherSuite) {
-		case RSN_CIPHER_SUITE_GCMP_256:
-			if (eEncStatus ==
-			    ENUM_ENCRYPTION4_ENABLED)
-				fgSuiteSupported = TRUE;
-			break;
 		case WPA_CIPHER_SUITE_CCMP:
 		case RSN_CIPHER_SUITE_CCMP:
 			if (eEncStatus ==
@@ -977,22 +972,6 @@ u_int8_t rsnPerformPolicySelection(
 		       prBssRsnInfo->au4PairwiseKeyCipherSuite[0]);
 		/* Select pairwise/group ciphers */
 		switch (eEncStatus) {
-		case ENUM_ENCRYPTION4_ENABLED:
-		for (i = 0; i < prBssRsnInfo->u4PairwiseKeyCipherSuiteCount;
-			i++) {
-			/* TODO: WTBL cipher filed cannot
-			* 1-1 mapping to spec cipher suite number
-			*/
-			if (prBssRsnInfo->au4PairwiseKeyCipherSuite[i] ==
-				    RSN_CIPHER_SUITE_GCMP_256) {
-				u4PairwiseCipher =
-					prBssRsnInfo->
-					au4PairwiseKeyCipherSuite[i];
-			}
-		}
-		u4GroupCipher = prBssRsnInfo->u4GroupKeyCipherSuite;
-			break;
-
 		case ENUM_ENCRYPTION3_ENABLED:
 			for (i = 0; i < prBssRsnInfo->
 				u4PairwiseKeyCipherSuiteCount; i++) {
@@ -1205,12 +1184,7 @@ u_int8_t rsnPerformPolicySelection(
 			->fgMgmtProtection);
 #endif
 
-	/* TODO: WTBL cipher filed cannot
-	* 1-1 mapping to spec cipher suite number
-	*/
-	if (u4GroupCipher == RSN_CIPHER_SUITE_GCMP_256) {
-		prBss->ucEncLevel = 4;
-	} else if (GET_SELECTOR_TYPE(u4GroupCipher) == CIPHER_SUITE_CCMP) {
+	if (GET_SELECTOR_TYPE(u4GroupCipher) == CIPHER_SUITE_CCMP) {
 		prBss->ucEncLevel = 3;
 	} else if (GET_SELECTOR_TYPE(u4GroupCipher) == CIPHER_SUITE_TKIP) {
 		prBss->ucEncLevel = 2;
@@ -1964,8 +1938,30 @@ void rsnParserCheckForRSNCCMPPSK(struct ADAPTER *prAdapter,
 		       prStaRec->rPmfCfg.fgSha256, prStaRec->ucBssIndex,
 		       prStaRec->rPmfCfg.fgApplyPmf);
 
+#if CFG_SUPPORT_SOFTAP_WPA3
+		if ((rRsnIe.au4AuthKeyMgtSuite[0] != RSN_AKM_SUITE_PSK)
+				&& prStaRec->ucAuthAlgNum == AUTH_ALGORITHM_NUM_OPEN_SYSTEM
+				&& prBssInfo->u4RsnSelectedAKMSuite == RSN_AKM_SUITE_SAE) {
+			DBGLOG(RSN, WARN, "RSN with invalid PMKID\n");
+			*pu2StatusCode = STATUS_INVALID_PMKID;
+			return;
+		}
+#endif
 		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter,
 						  prStaRec->ucBssIndex);
+
+#if CFG_SUPPORT_SOFTAP_WPA3
+		if (prBssInfo->u4RsnSelectedAKMSuite == RSN_AKM_SUITE_SAE
+			&& prStaRec->ucAuthTranNum < AUTH_TRANSACTION_SEQ_2
+			&& prStaRec->ucAuthAlgNum
+				== AUTH_ALGORITHM_NUM_OPEN_SYSTEM) {
+			DBGLOG(RSN, WARN,
+				"RSN with invalid PMKID, ucAuthTranNum: %d\n",
+				prStaRec->ucAuthTranNum);
+			*pu2StatusCode = STATUS_INVALID_PMKID;
+			return;
+		}
+#endif
 
 		/* if PMF validation fail, return success as legacy association
 		 */
@@ -2637,11 +2633,18 @@ void rsnSaQueryRequest(IN struct ADAPTER *prAdapter, IN struct SW_RFB *prSwRfb)
 	uint16_t u2PayloadLen;
 	struct STA_RECORD *prStaRec;
 	struct ACTION_SA_QUERY_FRAME *prTxFrame;
-	uint8_t ucBssIndex = secGetBssIdxByRfb(prAdapter,
+	uint8_t ucBssIndex;
+	if (!prAdapter)
+		return;
+
+	if (!prSwRfb)
+		return;
+
+	ucBssIndex = secGetBssIdxByRfb(prAdapter,
 		prSwRfb);
 
 	prBssInfo = aisGetAisBssInfo(prAdapter, ucBssIndex);
-	if (!prSwRfb)
+	if (!prBssInfo)
 		return;
 
 	prRxFrame = (struct ACTION_SA_QUERY_FRAME *)
@@ -2682,8 +2685,11 @@ void rsnSaQueryRequest(IN struct ADAPTER *prAdapter, IN struct SW_RFB *prSwRfb)
 	prTxFrame = (struct ACTION_SA_QUERY_FRAME *)
 	    ((unsigned long)(prMsduInfo->prPacket) + MAC_TX_RESERVED_FIELD);
 
+	if (!prTxFrame)
+		return;
+
 	prTxFrame->u2FrameCtrl = MAC_FRAME_ACTION;
-	if (rsnCheckBipKeyInstalled(prAdapter, prBssInfo->prStaRecOfAP))
+	if (rsnCheckBipKeyInstalled(prAdapter, prStaRec))
 		prTxFrame->u2FrameCtrl |= MASK_FC_PROTECTED_FRAME;
 	COPY_MAC_ADDR(prTxFrame->aucDestAddr, prBssInfo->aucBSSID);
 	COPY_MAC_ADDR(prTxFrame->aucSrcAddr, prBssInfo->aucOwnMacAddr);
@@ -2700,8 +2706,8 @@ void rsnSaQueryRequest(IN struct ADAPTER *prAdapter, IN struct SW_RFB *prSwRfb)
 	/* 4 <3> Update information of MSDU_INFO_T */
 	TX_SET_MMPDU(prAdapter,
 		     prMsduInfo,
-		     prBssInfo->prStaRecOfAP->ucBssIndex,
-		     prBssInfo->prStaRecOfAP->ucIndex,
+		     prStaRec->ucBssIndex,
+		     prStaRec->ucIndex,
 		     WLAN_MAC_MGMT_HEADER_LEN,
 		     WLAN_MAC_MGMT_HEADER_LEN + u2PayloadLen, NULL,
 		     MSDU_RATE_MODE_AUTO);

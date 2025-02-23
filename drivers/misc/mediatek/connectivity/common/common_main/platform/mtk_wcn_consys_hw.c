@@ -645,8 +645,6 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
 			wmt_consys_ic_ops->polling_consys_ic_chipid() < 0)
 			return -1;
 
-		if (wmt_consys_ic_ops->consys_ic_hw_vcn_ctrl_after_idle)
-			wmt_consys_ic_ops->consys_ic_hw_vcn_ctrl_after_idle();
 		if (wmt_consys_ic_ops->consys_ic_set_access_emi_hw_mode)
 			wmt_consys_ic_ops->consys_ic_set_access_emi_hw_mode();
 		if (wmt_consys_ic_ops->update_consys_rom_desel_value)
@@ -667,6 +665,8 @@ INT32 mtk_wcn_consys_hw_reg_ctrl(UINT32 on, UINT32 co_clock_type)
 			wmt_consys_ic_ops->consys_ic_bus_timeout_config();
 		if (wmt_consys_ic_ops->consys_ic_hw_reset_bit_set)
 			wmt_consys_ic_ops->consys_ic_hw_reset_bit_set(DISABLE);
+		if (wmt_consys_ic_ops->consys_ic_hw_vcn_ctrl_after_idle)
+			wmt_consys_ic_ops->consys_ic_hw_vcn_ctrl_after_idle();
 
 		msleep(20);
 

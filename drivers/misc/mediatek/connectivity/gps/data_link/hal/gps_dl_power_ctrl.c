@@ -306,10 +306,12 @@ void gps_dl_hal_link_clear_hw_pwr_stat(enum gps_dl_link_id_enum link_id)
 
 int gps_dl_hal_conn_power_ctrl(enum gps_dl_link_id_enum link_id, int op)
 {
+	bool dma_en_flag = gps_dl_hal_get_dma_irq_en_flag();
+
 	GDL_LOGXI_ONF(link_id,
 		"sid = %d, op = %d, conn_user = 0x%x,%d, tia_on = %d, dma_irq_en = %d, mcub_cfg = 0x%x",
 		gps_each_link_get_session_id(link_id),
-		op, g_conn_user, g_gps_conninfa_on, g_gps_tia_on, gps_dl_hal_get_dma_irq_en_flag(),
+		op, g_conn_user, g_gps_conninfa_on, g_gps_tia_on, dma_en_flag,
 		gps_dl_hw_get_mcub_a2d1_cfg(link_id, gps_dl_is_1byte_mode()));
 
 	if (1 == op) {
@@ -334,6 +336,10 @@ int gps_dl_hal_conn_power_ctrl(enum gps_dl_link_id_enum link_id, int op)
 	} else if (0 == op) {
 		g_conn_user &= ~(1UL << link_id);
 		if (g_conn_user == 0) {
+			if (dma_en_flag) {
+				gps_dl_irq_mask_dma_intr(GPS_DL_IRQ_CTRL_FROM_THREAD);
+				gps_dl_hal_set_dma_irq_en_flag(false);
+			}
 #if GPS_DL_HAS_PLAT_DRV
 #if GPS_DL_USE_TIA
 			if (g_gps_tia_on) {
@@ -354,13 +360,14 @@ int gps_dl_hal_conn_power_ctrl(enum gps_dl_link_id_enum link_id, int op)
 void gps_dl_hal_link_confirm_dma_stop(enum gps_dl_link_id_enum link_id)
 {
 	struct gps_each_link *p_link = gps_dl_link_get(link_id);
-	unsigned int conn_user_asis, conn_user_tobe;
+	unsigned int conn_user;
 	bool tx_working, rx_working;
 	enum GDL_RET_STATUS stop_tx_status, stop_rx_status;
-	bool old_dma_en;
+	bool old_dma_en, do_dma_en_ctrl;
 
 	/* make sure dma irq is mask done */
 	old_dma_en = gps_dl_hal_get_dma_irq_en_flag();
+	do_dma_en_ctrl = false;
 	if (old_dma_en) {
 		/* Note1: currently, twice mask should not happen here,
 		 * due to ISR does mask/unmask pair operations,
@@ -373,8 +380,10 @@ void gps_dl_hal_link_confirm_dma_stop(enum gps_dl_link_id_enum link_id)
 		 */
 		if (!gps_dl_hal_get_dma_irq_en_flag())
 			gps_dl_irq_unmask_dma_intr(GPS_DL_IRQ_CTRL_FROM_THREAD);
-		else
+		else {
 			gps_dl_hal_set_dma_irq_en_flag(false);
+			do_dma_en_ctrl = true;
+		}
 	}
 
 	/* If DMA is working, must stop it when it at proper status ->
@@ -401,17 +410,16 @@ void gps_dl_hal_link_confirm_dma_stop(enum gps_dl_link_id_enum link_id)
 			gps_dl_hal_d2a_rx_dma_stop(link_id);
 	}
 
-	/* unmask dma irq if amy other link is active */
-	conn_user_asis = g_conn_user;
-	conn_user_tobe = (conn_user_asis & ~(1UL << link_id));
-	if (conn_user_tobe != 0) {
-		/* not the last link, enable the dma irq again */
+	/* enable the dma irq anyway, leave gps_dl_hal_conn_power_ctrl to disable it */
+	if (do_dma_en_ctrl) {
 		gps_dl_hal_set_dma_irq_en_flag(true);
 		gps_dl_irq_unmask_dma_intr(GPS_DL_IRQ_CTRL_FROM_THREAD);
 	}
 
-	GDL_LOGXW(link_id, "user = 0x%x -> 0x%x, old_dma_en = %d, tx = %d/%s, rx = %d/%s",
-		conn_user_asis, conn_user_tobe, old_dma_en,
+	/* check the active users */
+	conn_user = g_conn_user;
+	GDL_LOGXW(link_id, "conn_user = 0x%x, old_dma_en = %d/%d, tx = %d/%s, rx = %d/%s",
+		conn_user, old_dma_en, do_dma_en_ctrl,
 		tx_working, gdl_ret_to_name(stop_tx_status),
 		rx_working, gdl_ret_to_name(stop_rx_status));
 }

@@ -359,7 +359,7 @@ void asicConnac2xWfdmaReInit(
 		struct GL_HIF_INFO *prHifInfo;
 		uint32_t u4Idx;
 
-		DBGLOG(INIT, INFO, "WFDMA reinit after bk/sr(deep sleep)\n");
+		DBGLOG(INIT, TRACE, "WFDMA reinit after bk/sr(deep sleep)\n");
 		prHifInfo = &prAdapter->prGlueInfo->rHifInfo;
 		for (u4Idx = 0; u4Idx < NUM_OF_TX_RING; u4Idx++) {
 			prHifInfo->TxRing[u4Idx].TxSwUsedIdx = 0;

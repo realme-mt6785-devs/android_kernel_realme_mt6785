@@ -2669,10 +2669,6 @@ wlanoidSetAddKey(IN struct ADAPTER *prAdapter, IN void *pvSetBuffer,
 				"[wlan] Not set the peer key while disconnect\n");
 			return WLAN_STATUS_SUCCESS;
 		}
-#if CFG_SUPPORT_FRAG_AGG_ATTACK_DETECTION
-		/* clear fragment cache when rekey */
-		nicRxClearFrag(prAdapter, prStaRec);
-#endif /* CFG_SUPPORT_FRAG_AGG_ATTACK_DETECTION */
 	}
 	cmd_size = prChipInfo->u2CmdTxHdrSize +	sizeof(struct CMD_802_11_KEY);
 	prCmdInfo = cmdBufAllocateCmdInfo(prAdapter, cmd_size);
@@ -3155,6 +3151,9 @@ wlanoidSetRemoveKey(IN struct ADAPTER *prAdapter,
 			}
 			ASSERT(prBssInfo->wepkeyWlanIdx < WTBL_SIZE);
 			ucRemoveBCKeyAtIdx = prBssInfo->wepkeyWlanIdx;
+			secPrivacyFreeForEntry(prAdapter,
+					prBssInfo->wepkeyWlanIdx);
+			prBssInfo->wepkeyWlanIdx = WTBL_RESERVED_ENTRY;
 		} else {
 			DBGLOG(RSN, INFO, "Remove group key id = %d",
 			       u4KeyIndex);
@@ -3171,6 +3170,13 @@ wlanoidSetRemoveKey(IN struct ADAPTER *prAdapter,
 						u4KeyIndex] < WTBL_SIZE);
 				ucRemoveBCKeyAtIdx =
 					prBssInfo->ucBMCWlanIndexS[u4KeyIndex];
+
+				secPrivacyFreeForEntry(prAdapter,
+				    prBssInfo->ucBMCWlanIndexS[u4KeyIndex]);
+				prBssInfo->ucBMCWlanIndexSUsed[u4KeyIndex]
+					= FALSE;
+				prBssInfo->ucBMCWlanIndexS[u4KeyIndex]
+					= WTBL_RESERVED_ENTRY;
 			}
 		}
 
@@ -3462,13 +3468,6 @@ wlanoidQueryEncryptionStatus(IN struct ADAPTER *prAdapter,
 		prAisBssInfo->fgBcDefaultKeyExist;
 
 	switch (prConnSettings->eEncStatus) {
-	case ENUM_ENCRYPTION4_ENABLED:
-		if (fgTransmitKeyAvailable)
-			eEncStatus = ENUM_ENCRYPTION4_ENABLED;
-		else
-			eEncStatus = ENUM_ENCRYPTION4_KEY_ABSENT;
-		break;
-
 	case ENUM_ENCRYPTION3_ENABLED:
 		if (fgTransmitKeyAvailable)
 			eEncStatus = ENUM_ENCRYPTION3_ENABLED;
@@ -3603,13 +3602,6 @@ wlanoidSetEncryptionStatus(IN struct ADAPTER *prAdapter,
 		DBGLOG(RSN, INFO, "Enable Encryption3\n");
 		break;
 
-	case ENUM_ENCRYPTION4_ENABLED: /* Eanble GCMP256 */
-		secSetCipherSuite(prAdapter,
-				  CIPHER_FLAG_CCMP | CIPHER_FLAG_GCMP256,
-				  ucBssIndex);
-		DBGLOG(RSN, INFO, "Enable Encryption4\n");
-		break;
-
 	default:
 		DBGLOG(RSN, INFO, "Unacceptible encryption status: %d\n",
 		       *(enum ENUM_WEP_STATUS *) pvSetBuffer);
@@ -3668,7 +3660,7 @@ wlanoidQueryCapability(IN struct ADAPTER *prAdapter,
 
 	prCap->u4Length = *pu4QueryInfoLen;
 	prCap->u4Version = 2;	/* WPA2 */
-	prCap->u4NoOfAuthEncryptPairsSupported = 15;
+	prCap->u4NoOfAuthEncryptPairsSupported = 14;
 
 	prAuthenticationEncryptionSupported =
 		&prCap->arAuthenticationEncryptionSupported[0];
@@ -3744,11 +3736,6 @@ wlanoidQueryCapability(IN struct ADAPTER *prAdapter,
 		AUTH_MODE_WPA2_PSK;
 	prAuthenticationEncryptionSupported[13].eEncryptStatusSupported
 		= ENUM_ENCRYPTION3_ENABLED;
-
-	prAuthenticationEncryptionSupported[14].eAuthModeSupported
-		= AUTH_MODE_WPA2_PSK;
-	prAuthenticationEncryptionSupported[14].eEncryptStatusSupported
-		= ENUM_ENCRYPTION4_ENABLED;
 
 	return WLAN_STATUS_SUCCESS;
 
@@ -11623,20 +11610,6 @@ wlanoidSetCountryCode(IN struct ADAPTER *prAdapter,
 	}
 #endif
 
-#if CFG_SUPPORT_SAP_DFS_CHANNEL
-	if (aisGetConnectedBssInfo(prAdapter)) {
-		struct BSS_INFO *prAisBssInfo =
-			aisGetConnectedBssInfo(prAdapter);
-
-		/* restore DFS channels table */
-		wlanUpdateDfsChannelTable(prAdapter->prGlueInfo,
-			-1, /* p2p role index */
-			prAisBssInfo->ucPrimaryChannel, /* primary channel */
-			0, /* bandwidth */
-			0, /* sco */
-			0 /* center frequency */);
-	}
-#endif
 	return WLAN_STATUS_SUCCESS;
 }
 
@@ -16393,6 +16366,7 @@ uint32_t wlanoidTxPowerControl(IN struct ADAPTER *prAdapter,
 					MAX_TX_PWR_CTRL_ELEMENT_NAME_SIZE);
 				newElement->index = oldElement->index;
 				newElement->eCtrlType = oldElement->eCtrlType;
+				newElement->u2CountryCode =oldElement->u2CountryCode;
 				txPwrCtrlDeleteElement(prAdapter,
 				       newElement->name, newElement->index,
 				       PWR_CTRL_TYPE_DYNAMIC_LIST);

@@ -1135,7 +1135,8 @@ void scanRemoveBssDescByBandAndNetwork(IN struct ADAPTER *prAdapter,
  */
 /*----------------------------------------------------------------------------*/
 void scanRemoveConnFlagOfBssDescByBssid(IN struct ADAPTER *prAdapter,
-					IN uint8_t aucBSSID[])
+					IN uint8_t aucBSSID[],
+					IN uint8_t ucBssIndex)
 {
 	struct SCAN_INFO *prScanInfo;
 	struct LINK *prBSSDescList;
@@ -1152,8 +1153,8 @@ void scanRemoveConnFlagOfBssDescByBssid(IN struct ADAPTER *prAdapter,
 		rLinkEntry, struct BSS_DESC) {
 
 		if (EQUAL_MAC_ADDR(prBssDesc->aucBSSID, aucBSSID)) {
-			prBssDesc->fgIsConnected = FALSE;
-			prBssDesc->fgIsConnecting = FALSE;
+			prBssDesc->fgIsConnected &= ~BIT(ucBssIndex);
+			prBssDesc->fgIsConnecting &= ~BIT(ucBssIndex);
 
 			/* BSSID is not unique, so need to
 			 * traverse whols link-list
@@ -1304,8 +1305,8 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 	struct WLAN_BEACON_FRAME *prWlanBeaconFrame
 		= (struct WLAN_BEACON_FRAME *) NULL;
 	struct IE_SSID *prIeSsid = (struct IE_SSID *) NULL;
-	struct IE_SUPPORTED_RATE *prIeSupportedRate
-		= (struct IE_SUPPORTED_RATE *) NULL;
+	struct IE_SUPPORTED_RATE_IOT *prIeSupportedRate
+		= (struct IE_SUPPORTED_RATE_IOT *) NULL;
 	struct IE_EXT_SUPPORTED_RATE *prIeExtSupportedRate
 		= (struct IE_EXT_SUPPORTED_RATE *) NULL;
 	uint8_t ucHwChannelNum = 0;
@@ -1786,7 +1787,7 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 			 */
 			if ((!prIeSupportedRate)
 				&& (IE_LEN(pucIE) <= RATE_NUM_SW))
-				prIeSupportedRate = SUP_RATES_IE(pucIE);
+				prIeSupportedRate = SUP_RATES_IOT_IE(pucIE);
 			break;
 
 		case ELEM_ID_TIM:
@@ -1842,7 +1843,13 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 			uint8_t ucSpatial = 0;
 			uint8_t i = 0;
 			/* end Support AP Selection */
-
+			if (IE_LEN(pucIE) != (sizeof(struct IE_HT_CAP) - 2)) {
+				DBGLOG(SCN, WARN,
+					"HT_CAP wrong length(%d)->(%d)\n",
+					(sizeof(struct IE_HT_CAP) - 2),
+					IE_LEN(prHtCap));
+				break;
+			}
 			prBssDesc->fgIsHTPresent = TRUE;
 
 			/* Support AP Selection */
@@ -1892,6 +1899,14 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 		{
 			struct IE_BSS_LOAD *prBssLoad =
 				(struct IE_BSS_LOAD *)pucIE;
+			if (IE_LEN(prBssLoad) !=
+				(sizeof(struct IE_BSS_LOAD) - 2)) {
+				DBGLOG(SCN, WARN,
+					"HE_CAP IE_LEN err(%d)->(%d)!\n",
+					(sizeof(struct IE_BSS_LOAD) - 2),
+					IE_LEN(prBssLoad));
+				break;
+			}
 
 			prBssDesc->u2StaCnt = prBssLoad->u2StaCnt;
 			prBssDesc->ucChnlUtilization =
@@ -1975,6 +1990,13 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 #if (CFG_SUPPORT_HE_ER == 1)
 				if (IE_ID_EXT(pucIE) == ELEM_EXT_ID_HE_CAP) {
 					prHeCap = (struct _IE_HE_CAP_T *) pucIE;
+					if (IE_SIZE(prHeCap)
+					    < (sizeof(struct _IE_HE_CAP_T))) {
+						DBGLOG(SCN, WARN,
+						    "HE_CAP IE_LEN err(%d)!\n",
+						    IE_LEN(prHeCap));
+						break;
+					}
 					prBssDesc->fgIsHEPresent = TRUE;
 					prBssDesc->ucDCMMaxConRx =
 					HE_GET_PHY_CAP_DCM_MAX_CONSTELLATION_RX(
@@ -1986,6 +2008,13 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 				}
 				if (IE_ID_EXT(pucIE) == ELEM_EXT_ID_HE_OP) {
 					prHeOp = (struct _IE_HE_OP_T *) pucIE;
+					if (IE_SIZE(prHeOp)
+					    < (sizeof(struct _IE_HE_OP_T))) {
+						DBGLOG(SCN, WARN,
+						    "HE_OP IE_LEN err(%d)!\n",
+						    IE_LEN(prHeOp));
+						break;
+					}
 					prBssDesc->fgIsERSUDisable =
 					HE_IS_ER_SU_DISABLE(
 						prHeOp->ucHeOpParams);
@@ -2013,11 +2042,13 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 			break;
 		}
 		case ELEM_ID_RRM_ENABLED_CAP:
-			/* RRM Capability IE is always in length 5 bytes */
-			kalMemZero(prBssDesc->aucRrmCap,
-				   sizeof(prBssDesc->aucRrmCap));
-			kalMemCopy(prBssDesc->aucRrmCap, pucIE + 2,
-				   sizeof(prBssDesc->aucRrmCap));
+			if (IE_LEN(pucIE) == 5) {
+				/* RRM Capability IE is always 5 bytes */
+				kalMemZero(prBssDesc->aucRrmCap,
+					   sizeof(prBssDesc->aucRrmCap));
+				kalMemCopy(prBssDesc->aucRrmCap, pucIE + 2,
+					   sizeof(prBssDesc->aucRrmCap));
+			}
 			break;
 #if (CFG_SUPPORT_802_11V_MBSSID == 1)
 		case ELEM_ID_MBSSID:
@@ -2158,7 +2189,8 @@ struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
 		prBssDesc->eSco = CHNL_EXT_SCN;
 	}
 #if CFG_SUPPORT_802_11K
-	if (prCountryIE) {
+	if (prCountryIE && prCountryIE->ucLength ==
+			(sizeof(struct IE_COUNTRY) - 2)) {
 		uint8_t ucRemainLen = prCountryIE->ucLength - 3;
 		struct COUNTRY_INFO_SUBBAND_TRIPLET *prSubBand =
 			&prCountryIE->arCountryStr[0];
@@ -2358,7 +2390,7 @@ void scanLogEssResult(struct ADAPTER *prAdapter)
 					"%s", strbuf);
 			}
 		}
-		kalStrnCpy(ssid, prEssResult[u4Index].aucSSID, sizeof(ssid) - 1);
+		kalStrnCpy(ssid, prEssResult[u4Index].aucSSID, sizeof(ssid));
 		ssid[sizeof(ssid) - 1] = '\0';
 		pos += kalSnprintf(pos, end - pos, " %s;", ssid);
 	}
@@ -2805,17 +2837,6 @@ uint32_t scanProcessBeaconAndProbeResp(IN struct ADAPTER *prAdapter,
 				&rStatus, prBssDesc, prWlanBeaconFrame);
 		}
 #endif
-
-#if CFG_SUPPORT_802_11K
-		/* collect when running beacon request measurement */
-		for (u4Idx = 0; u4Idx < KAL_AIS_NUM; u4Idx++) {
-			if (rrmBcnRmRunning(prAdapter, u4Idx)) {
-				rrmProcessBeaconAndProbeResp(prAdapter,
-					prBssDesc, u4Idx);
-			}
-		}
-#endif
-
 	}
 
 	return rStatus;
@@ -3816,7 +3837,7 @@ void scanReqLog(struct CMD_SCAN_REQ_V2 *prCmdScanReq)
 				char ssid[PARAM_MAX_LEN_SSID + 1] = {0};
 
 				kalStrnCpy(ssid,
-					slist[i][j].aucSsid, sizeof(ssid) - 1);
+					slist[i][j].aucSsid, sizeof(ssid));
 				ssid[sizeof(ssid) - 1] = '\0';
 				pos += kalSnprintf(pos, end - pos, " %s", ssid);
 			}
@@ -3860,13 +3881,16 @@ void scanResultLog(struct ADAPTER *prAdapter,
 {
 	struct WLAN_BEACON_FRAME *pFrame =
 		(struct WLAN_BEACON_FRAME *) prSwRfb->pvHeader;
+	KAL_SPIN_LOCK_DECLARATION();
 
+	KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_FW);
 	scanLogCacheAddBSS(
 		&(prAdapter->rWifiVar.rScanInfo.rScanLogCache.rBSSListFW),
 		prAdapter->rWifiVar.rScanInfo.rScanLogCache.arBSSListBufFW,
 		LOG_SCAN_RESULT_F2D,
 		pFrame->aucBSSID,
 		pFrame->u2SeqCtrl);
+	KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_FW);
 }
 
 void scanLogCacheAddBSS(struct LINK *prList,
@@ -3883,8 +3907,15 @@ void scanLogCacheAddBSS(struct LINK *prList,
 
 	LINK_FOR_EACH_ENTRY(pSavedBss, prList,
 		rLinkEntry, struct SCAN_LOG_ELEM_BSS) {
-		if (EQUAL_MAC_ADDR(pSavedBss->aucBSSID, bssId))
+		if (pSavedBss && bssId) {
+			if (EQUAL_MAC_ADDR(pSavedBss->aucBSSID, bssId))
+				return;
+		} else {
+			scanlog_dbg(prefix, ERROR,
+				"pSavedBss(0x%x) or bssid(0x%x) is NULL\n",
+				pSavedBss, bssId);
 			return;
+		}
 	}
 
 	if (prList->u4NumElem < SCAN_LOG_BUFF_SIZE) {
@@ -3906,10 +3937,9 @@ void scanLogCacheAddBSS(struct LINK *prList,
 	LINK_INSERT_TAIL(prList, &(pBss->rLinkEntry));
 }
 
-void scanLogCacheFlushBSS(struct LINK *prList, enum ENUM_SCAN_LOG_PREFIX prefix,
-	const uint16_t logBufLen)
+void scanLogCacheFlushBSS(struct LINK *prList, enum ENUM_SCAN_LOG_PREFIX prefix)
 {
-	char *prlogBuf;
+	char arlogBuf[SCAN_LOG_MSG_MAX_LEN];
 	uint32_t idx = 0;
 	struct SCAN_LOG_ELEM_BSS *pBss = NULL;
 #if CFG_SHOW_FULL_MACADDR
@@ -3927,31 +3957,26 @@ void scanLogCacheFlushBSS(struct LINK *prList, enum ENUM_SCAN_LOG_PREFIX prefix,
 	if (LINK_IS_EMPTY(prList))
 		return;
 
-	prlogBuf = kalMemAlloc(logBufLen, VIR_MEM_TYPE);
-	if (prlogBuf == NULL) {
-		DBGLOG(SCN, WARN, "logBuf is NULL, skip!\n");
-		return;
-	}
-	kalMemZero(prlogBuf, logBufLen);
+	kalMemZero(arlogBuf, SCAN_LOG_MSG_MAX_LEN);
 	/* The maximum characters of uint32_t could be 10. Thus, the
 	 * mininum size should be 10+3 for the format "%u: ".
 	 */
-	if (logBufLen < 13 || dataLen+1 > logBufLen) {
+	if (dataLen + 1 > SCAN_LOG_MSG_MAX_LEN) {
 		scanlog_dbg(prefix, INFO, "Scan log buffer is too small.\n");
 		while (!LINK_IS_EMPTY(prList)) {
 			LINK_REMOVE_HEAD(prList,
 				pBss, struct SCAN_LOG_ELEM_BSS *);
 		}
-		kalMemFree(prlogBuf, VIR_MEM_TYPE, logBufLen);
 		return;
 	}
-	idx += kalSnprintf(prlogBuf, logBufLen, "%u: ", prList->u4NumElem);
+	idx += kalSnprintf(arlogBuf, SCAN_LOG_MSG_MAX_LEN, "%u: ",
+			prList->u4NumElem);
 
 	while (!LINK_IS_EMPTY(prList)) {
-		if (idx+dataLen+1 > logBufLen) {
-			prlogBuf[idx] = 0; /* terminating null byte */
+		if (idx+dataLen+1 > SCAN_LOG_MSG_MAX_LEN) {
+			arlogBuf[idx] = 0; /* terminating null byte */
 			if (prefix != LOG_SCAN_D2D)
-				scanlog_dbg(prefix, INFO, "%s\n", prlogBuf);
+				scanlog_dbg(prefix, INFO, "%s\n", arlogBuf);
 			idx = 0;
 		}
 
@@ -3959,7 +3984,7 @@ void scanLogCacheFlushBSS(struct LINK *prList, enum ENUM_SCAN_LOG_PREFIX prefix,
 			pBss, struct SCAN_LOG_ELEM_BSS *);
 
 #if CFG_SHOW_FULL_MACADDR
-		idx += kalSnprintf(prlogBuf+idx, dataLen+1,
+		idx += kalSnprintf(arlogBuf+idx, dataLen+1,
 			"%02x%02x%02x%02x%02x%02x",
 			((uint8_t *)pBss->aucBSSID)[0],
 			((uint8_t *)pBss->aucBSSID)[1],
@@ -3968,7 +3993,7 @@ void scanLogCacheFlushBSS(struct LINK *prList, enum ENUM_SCAN_LOG_PREFIX prefix,
 			((uint8_t *)pBss->aucBSSID)[4],
 			((uint8_t *)pBss->aucBSSID)[5]);
 #else
-		idx += kalSnprintf(prlogBuf+idx, dataLen+1,
+		idx += kalSnprintf(arlogBuf+idx, dataLen+1,
 			"%02x%02x%03x%02x",
 			((uint8_t *)pBss->aucBSSID)[0],
 			((uint8_t *)pBss->aucBSSID)[1],
@@ -3980,21 +4005,28 @@ void scanLogCacheFlushBSS(struct LINK *prList, enum ENUM_SCAN_LOG_PREFIX prefix,
 
 	}
 	if (idx != 0) {
-		prlogBuf[idx] = 0; /* terminating null byte */
+		arlogBuf[idx] = 0; /* terminating null byte */
 		if (prefix != LOG_SCAN_D2D)
-			scanlog_dbg(prefix, INFO, "%s\n", prlogBuf);
+			scanlog_dbg(prefix, INFO, "%s\n", arlogBuf);
 		idx = 0;
 	}
-	kalMemFree(prlogBuf, VIR_MEM_TYPE, logBufLen);
 }
 
-void scanLogCacheFlushAll(struct SCAN_LOG_CACHE *prScanLogCache,
-	enum ENUM_SCAN_LOG_PREFIX prefix, const uint16_t logBufLen)
+void scanLogCacheFlushAll(struct ADAPTER *prAdapter,
+	struct SCAN_LOG_CACHE *prScanLogCache,
+	enum ENUM_SCAN_LOG_PREFIX prefix)
 {
+	KAL_SPIN_LOCK_DECLARATION();
+
+	KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_FW);
 	scanLogCacheFlushBSS(&(prScanLogCache->rBSSListFW),
-		prefix, logBufLen);
+		prefix);
+	KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_FW);
+
+	KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_CFG);
 	scanLogCacheFlushBSS(&(prScanLogCache->rBSSListCFG),
-		prefix, logBufLen);
+		prefix);
+	KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_CFG);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -4165,6 +4197,15 @@ void scanParseVHTCapIE(IN uint8_t *pucIE, IN struct BSS_DESC *prBssDesc)
 	uint8_t j = 0;
 
 	prVhtCap = (struct IE_VHT_CAP *) pucIE;
+	/* Error handling */
+	if (IE_LEN(prVhtCap) != (sizeof(struct IE_VHT_CAP) - 2)) {
+		DBGLOG(SCN, WARN,
+			"VhtCap wrong length!(%d)->(%d)\n",
+			(sizeof(struct IE_VHT_CAP) - 2),
+			IE_LEN(prVhtCap));
+		return;
+	}
+
 	u2TxMcsSet = prVhtCap->rVhtSupportedMcsSet.u2TxMcsMap;
 	prBssDesc->fgIsVHTPresent = TRUE;
 #if CFG_SUPPORT_BFEE

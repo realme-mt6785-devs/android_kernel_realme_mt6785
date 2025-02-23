@@ -280,11 +280,13 @@ struct BSS_DESC {
 
 	/* If we are going to connect to this BSS (JOIN or ROAMING to another
 	 * BSS), don't remove this record from BSS List.
+	 * Is a Bitmap, Bit0: BSS0, Bit1: Bss1
 	 */
 	u_int8_t fgIsConnecting;
 
 	/* If we have connected to this BSS (NORMAL_TR), don't removed
 	 * this record from BSS list.
+	 * Is a Bitmap, Bit0: BSS0, Bit1: Bss1
 	 */
 	u_int8_t fgIsConnected;
 
@@ -779,7 +781,8 @@ void scanRemoveBssDescByBandAndNetwork(
 
 /* BSS-DESC State Change */
 void scanRemoveConnFlagOfBssDescByBssid(IN struct ADAPTER *prAdapter,
-					IN uint8_t aucBSSID[]);
+					IN uint8_t aucBSSID[],
+					IN uint8_t ucBssIndex);
 
 /* BSS-DESC Insertion - ALTERNATIVE */
 struct BSS_DESC *scanAddToBssDesc(IN struct ADAPTER *prAdapter,
@@ -915,10 +918,11 @@ void scanLogCacheAddBSS(struct LINK *prList,
 	struct SCAN_LOG_ELEM_BSS *prListBuf,
 	enum ENUM_SCAN_LOG_PREFIX prefix,
 	uint8_t bssId[], uint16_t seq);
-void scanLogCacheFlushBSS(struct LINK *prList, enum ENUM_SCAN_LOG_PREFIX prefix,
-	const uint16_t logBufLen);
-void scanLogCacheFlushAll(struct SCAN_LOG_CACHE *prScanLogCache,
-	enum ENUM_SCAN_LOG_PREFIX prefix, const uint16_t logBufLen);
+void scanLogCacheFlushBSS(struct LINK *prList,
+			enum ENUM_SCAN_LOG_PREFIX prefix);
+void scanLogCacheFlushAll(struct ADAPTER *prAdapter,
+	struct SCAN_LOG_CACHE *prScanLogCache,
+	enum ENUM_SCAN_LOG_PREFIX prefix);
 
 void scanRemoveBssDescFromList(IN struct LINK *prBSSDescList,
 			       IN struct BSS_DESC *prBssDesc,

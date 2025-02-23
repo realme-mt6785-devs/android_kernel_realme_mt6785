@@ -1432,6 +1432,28 @@ static bool mt6631_SetFreq(unsigned short freq)
 	*/
 	fm_reg_write(0xE0, 0x0806);
 #endif
+#ifdef OPLUS_BUG_COMPATIBILITY
+		/* Yongpei.Yao@MULTIMEDIA.AUDIODRIVER.HAL, 2018/12/06, Modify for FM rssi_th. */
+		/* mtk solution ID: FAQ06249 to solve FM Stereo separation
+		 * threshold = -((RSSI(dBuV)-107)*4*16/6 + 384)
+		 * eg: RSSI=33dBuV, threshold=-((33-107)*4*16/6 + 384)= 405 = 0x195 -> rssi_th
+		 * but maybe some deviation with reality, need to test
+		 */
+		fm_delayms(1);
+		fm_reg_write(0xE2, 0x3154);
+		/* Yongpei.Yao@MULTIMEDIA.AUDIODRIVER.MACHINE, 2018/12/06, Modify for fm */
+		fm_reg_write(0xE3, 0x0195); //rssi=33
+		fm_reg_write(0xE1, 0x0002);
+		fm_delayms(1);
+		fm_reg_write(0xE2, 0x3157);
+		fm_reg_write(0xE3, 0); //pamd_step
+		fm_reg_write(0xE1, 0x0002);
+		fm_delayms(1);
+		fm_reg_write(0xE2,	0x3155);
+		fm_reg_write(0xE3, 0); //pamd_th
+		fm_reg_write(0xE1, 0x0002);
+#endif /* OPLUS_BUG_COMPATIBILITY */
+
 	return true;
 }
 

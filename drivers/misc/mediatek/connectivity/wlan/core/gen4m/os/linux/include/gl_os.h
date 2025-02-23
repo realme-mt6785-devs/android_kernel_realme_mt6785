@@ -355,8 +355,6 @@ extern void update_driver_loaded_status(uint8_t loaded);
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define IW_AUTH_CIPHER_GCMP256  0x00000080
-
 /*******************************************************************************
  *                             D A T A   T Y P E S
  *******************************************************************************
