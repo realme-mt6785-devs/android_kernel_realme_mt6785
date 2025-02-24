@@ -1301,7 +1301,9 @@ static void uvc_ctrl_set_handle(struct uvc_fh *handle, struct uvc_control *ctrl,
 }
 
 static void uvc_ctrl_send_events(struct uvc_fh *handle,
-	const struct v4l2_ext_control *xctrls, unsigned int xctrls_count)
+				 struct uvc_entity *entity,
+				 const struct v4l2_ext_control *xctrls,
+				 unsigned int xctrls_count)
 {
 	struct uvc_control_mapping *mapping;
 	struct uvc_control *ctrl;
@@ -1311,6 +1313,8 @@ static void uvc_ctrl_send_events(struct uvc_fh *handle,
 
 	for (i = 0; i < xctrls_count; ++i) {
 		ctrl = uvc_find_control(handle->chain, xctrls[i].id, &mapping);
+		if (ctrl->entity != entity)
+			continue;
 
 		for (j = 0; j < ARRAY_SIZE(mapping->slave_ids); ++j) {
 			if (!mapping->slave_ids[j])
@@ -1500,10 +1504,11 @@ int __uvc_ctrl_commit(struct uvc_fh *handle, int rollback,
 					     rollback);
 		if (ret < 0)
 			goto done;
+		else if (ret > 0 && !rollback)
+			uvc_ctrl_send_events(handle, entity, xctrls,
+					     xctrls_count);
 	}
 
-	if (!rollback)
-		uvc_ctrl_send_events(handle, xctrls, xctrls_count);
 	ret = 0;
 done:
 	mutex_unlock(&chain->ctrl_mutex);
