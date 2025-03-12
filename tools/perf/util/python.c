@@ -967,8 +967,10 @@ static PyObject *pyrf_evlist__read_on_cpu(struct pyrf_evlist *pevlist,
 			return PyErr_NoMemory();
 
 		evsel = perf_evlist__event2evsel(evlist, event);
-		if (!evsel)
+		if (!evsel) {
+			Py_DECREF(pyevent);
 			return Py_None;
+		}
 
 		pevent->evsel = evsel;
 
@@ -977,9 +979,12 @@ static PyObject *pyrf_evlist__read_on_cpu(struct pyrf_evlist *pevlist,
 		/* Consume the even only after we parsed it out. */
 		perf_evlist__mmap_consume(evlist, cpu);
 
-		if (err)
+		if (err) {
+			Py_DECREF(pyevent);
 			return PyErr_Format(PyExc_OSError,
 					    "perf: can't parse sample, err=%d", err);
+		}
+
 		return pyevent;
 	}
 
