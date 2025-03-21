@@ -82,11 +82,6 @@
 
 #endif	/* __CHECKER__ */
 
-#ifdef __GENKSYMS__
-/* genksyms gets confused by _Static_assert */
-#define _Static_assert(expr, ...)
-#endif
-
 /**
  * static_assert - check integer constant expression at build time
  *
