@@ -47,7 +47,6 @@ ifeq ($(MTK_COMBO_CHIP),)
 MTK_COMBO_CHIP = MT6632
 endif
 
-
 ifneq ($(CONFIG_MTK_EMI),)
 ccflags-y += -DCONFIG_MTK_EMI=1
 endif
