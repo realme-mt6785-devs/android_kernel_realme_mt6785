@@ -455,8 +455,8 @@ __acquires(&port->port_lock)
 			break;
 	}
 
-	if (do_tty_wake && port->port.tty)
-		tty_wakeup(port->port.tty);
+	if (do_tty_wake)
+		tty_port_tty_wakeup(&port->port);
 	return status;
 }
 
@@ -772,7 +772,7 @@ static int gs_start_io(struct gs_port *port)
 #ifdef OPLUS_FEATURE_CHG_BASIC
 /* tongfeng.huang@BSP.CHG.Basic, 2020/11/03, add for null point issue  */
 		if (port->port.tty) {
-			tty_wakeup(port->port.tty);
+			tty_port_tty_wakeup(&port->port);
 		}
 #endif
 	} else {
