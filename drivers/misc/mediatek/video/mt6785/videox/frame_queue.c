@@ -190,8 +190,10 @@ static int frame_queue_head_init(struct frame_queue_head_t *head,
 				   DISP_SESSION_DEV(session_id));
 
 	if (IS_ERR_OR_NULL(head->worker)) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("create fence thread fail! ret=%ld\n",
 			       PTR_ERR(head->worker));
+#endif
 		head->worker = NULL;
 		return -ENOMEM;
 	}
@@ -236,10 +238,11 @@ struct frame_queue_head_t *get_frame_queue_head(int session_id)
 	}
 
 	/* NO free node ??!! */
+#ifdef CONFIG_MTK_AEE_AED
 	disp_aee_print(
 	"cannot find frame_q_head!! session_id=0x%08x ===>\n",
 		       session_id);
-
+#endif
 	pr_info("frame queue pool sesion id:");
 	for (i = 0; i < ARRAY_SIZE(frame_q_head); i++)
 		pr_info("0x%x,", frame_q_head[i].session_id);
@@ -269,8 +272,10 @@ struct frame_queue_t *frame_queue_node_create(void)
 
 	node = kzalloc(sizeof(struct frame_queue_t), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(node)) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("fail to kzalloc %zu of frame_queue\n",
 			       sizeof(struct frame_queue_t));
+#endif
 		return ERR_PTR(-ENOMEM);
 	}
 
