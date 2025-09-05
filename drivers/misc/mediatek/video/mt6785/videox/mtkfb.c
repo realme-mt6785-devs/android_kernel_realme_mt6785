@@ -2839,7 +2839,9 @@ int mtkfb_pm_suspend(struct device *device)
 	struct platform_device *pdev = to_platform_device(device);
 
 	if (pdev == NULL) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_db_print("pdev is NULL\n");
+#endif
 		return -1;
 	}
 
@@ -2853,7 +2855,9 @@ int mtkfb_pm_resume(struct device *device)
 	struct platform_device *pdev = to_platform_device(device);
 
 	if (pdev == NULL) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_db_print("pdev is NULL\n");
+#endif
 		return -1;
 	}
 

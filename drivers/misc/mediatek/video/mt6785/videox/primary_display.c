@@ -1709,9 +1709,11 @@ static void _cmdq_build_trigger_loop(void)
 					   CMDQ_SYNC_TOKEN_CABC_EOF);
 		/* RUN forever! */
 		if (ret < 0)
+#ifdef CONFIG_MTK_AEE_AED
 			disp_aee_db_print("cmdq build trigger fail, ret=%d\n",
 					  ret);
-	}
+#endif
+	
 
 	/*
 	 * dump trigger loop instructions to check
@@ -1719,7 +1721,7 @@ static void _cmdq_build_trigger_loop(void)
 	 */
 	DISPDBG("primary display BUILD cmdq trigger loop finished\n");
 }
-
+}
 void _cmdq_start_trigger_loop(void)
 {
 	int ret = 0;
@@ -2957,8 +2959,10 @@ static int _convert_disp_input_to_ovl(struct OVL_CONFIG_STRUCT *dst,
 	unsigned int Bpp = 0;
 
 	if (!src || !dst) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("%s src(0x%p) or dst(0x%p) is null\n",
 			       __func__, src, dst);
+#endif
 		return -1;
 	}
 
@@ -10259,7 +10263,9 @@ static int primary_display_enter_self_refresh(void)
 
 	if (primary_display_is_mirror_mode()) {
 		/* we only accept non-mirror mode */
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("enter self-refresh mode fail\n");
+#endif
 		goto out;
 	}
 
@@ -10287,7 +10293,9 @@ static int primary_display_exit_self_refresh(void)
 
 	if (primary_display_is_mirror_mode()) {
 		/* we only accept non-mirror mode */
+#ifdef CONIFG_MTK_AEE_AED
 		disp_aee_print("enter self-refresh mode fail\n");
+#endif
 		goto out;
 	}
 

@@ -699,8 +699,10 @@ int layering_get_valid_hrt(int active_config_id)
 
 	/* error handling when requested BW is less than 2 layers */
 	if (dvfs_bw < 200) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("avail BW less than 2 layers, BW: %llu\n",
 			dvfs_bw);
+#endif
 		dvfs_bw = 200;
 	}
 done:

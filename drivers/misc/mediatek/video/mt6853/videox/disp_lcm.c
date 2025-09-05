@@ -1627,7 +1627,6 @@ int disp_lcm_is_video_mode(struct disp_lcm_handle *plcm)
 		}
 	}
 
-	disp_aee_db_print("LCM parmas is error, type=%d\n", lcm_param->type);
 	return -1;
 }
 
@@ -1650,7 +1649,6 @@ int disp_lcm_set_lcm_cmd(struct disp_lcm_handle *plcm, void *cmdq_handle,
 		return 0;
 	}
 
-	DISPERR("lcm_drv is null\n");
 	return -1;
 }
 
