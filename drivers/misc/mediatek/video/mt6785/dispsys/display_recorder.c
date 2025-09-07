@@ -198,7 +198,7 @@ static unsigned int analysize_length;
 
 char dprec_error_log_buffer[DPREC_ERROR_LOG_BUFFER_LENGTH];
 static struct dprec_logger_event dprec_vsync_irq_event;
-static struct met_log_map dprec_met_info[DISP_SESSION_MEMORY + 2] = {
+static struct met_log_map __maybe_unused dprec_met_info[DISP_SESSION_MEMORY + 2] = {
 	{"UNKWON", 0, 0},
 	{"OVL0-DSI", 0, 0},
 	{"OVL1-MHL", 0, 0},
