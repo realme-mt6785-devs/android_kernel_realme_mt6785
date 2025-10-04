@@ -4684,12 +4684,6 @@ CONFIG_TEE=y
 # CONFIG_OPTEE is not set
 
 #
-# KernelSU
-#
-CONFIG_KSU=y
-# CONFIG_KSU_DEBUG is not set
-
-#
 # Firmware Drivers
 #
 CONFIG_ARM_PSCI_FW=y
