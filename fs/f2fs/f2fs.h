@@ -224,7 +224,7 @@ enum {
 //#define DEF_MID_DISCARD_ISSUE_TIME	500	/* 500 ms, if device busy */
 //#define DEF_MAX_DISCARD_ISSUE_TIME	60000	/* 60 s, if no candidates */
 #define DEF_DISCARD_URGENT_UTIL		80	/* do more discard over 80% */
-#define DEF_CP_INTERVAL			60	/* 60 secs */
+#define DEF_CP_INTERVAL			180	/* 180 secs */
 /* VENDOR_EDIT shifei.ge@TECH.Storage.FS
  * 2019-10-15, add for oDiscard
  */
