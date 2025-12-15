@@ -206,8 +206,8 @@ void pftch_qos_tick(int cpu)
 
 		if (!event || event->state != PERF_EVENT_STATE_ACTIVE)
 			continue;
-
-		ret = perf_event_read_local(event, &counter);
+		u64 enabled, running;
+		ret = perf_event_read_local(event, &counter, &enabled, &running);
 		cp_stats->counters[i] = (counter - cp_stats->prev_counters[i])
 			* 1000000000/delta;
 		cp_stats->prev_counters[i] = counter;
