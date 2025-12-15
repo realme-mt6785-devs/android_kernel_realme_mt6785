@@ -1101,7 +1101,7 @@ static int exfat_rename(struct inode *old_dir, struct dentry *old_dentry,
 {
 	struct inode *old_inode, *new_inode;
 	struct super_block *sb = old_dir->i_sb;
-	struct timespec ts;
+	struct timespec64 ts;
 	loff_t i_pos;
 	int err;
 
