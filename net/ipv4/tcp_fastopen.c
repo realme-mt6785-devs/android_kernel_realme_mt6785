@@ -430,16 +430,25 @@ EXPORT_SYMBOL(tcp_fastopen_defer_connect);
  * TFO connection with data exchanges.
  */
 
+/* Default to 1hr */
+unsigned int sysctl_tcp_fastopen_blackhole_timeout __read_mostly = 60 * 60;
+static atomic_t tfo_active_disable_times __read_mostly = ATOMIC_INIT(0);
+static unsigned long tfo_active_disable_stamp __read_mostly;
+
 /* Disable active TFO and record current jiffies and
  * tfo_active_disable_times
  */
 void tcp_fastopen_active_disable(struct sock *sk)
 {
-	struct net *net = sock_net(sk);
+	atomic_inc(&tfo_active_disable_times);
+	tfo_active_disable_stamp = jiffies;
+	NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPFASTOPENBLACKHOLE);
+}
 
-	atomic_inc(&net->ipv4.tfo_active_disable_times);
-	net->ipv4.tfo_active_disable_stamp = jiffies;
-	NET_INC_STATS(net, LINUX_MIB_TCPFASTOPENBLACKHOLE);
+/* Reset tfo_active_disable_times to 0 */
+void tcp_fastopen_active_timeout_reset(void)
+{
+	atomic_set(&tfo_active_disable_times, 0);
 }
 
 /* Calculate timeout for tfo active disable
@@ -448,18 +457,17 @@ void tcp_fastopen_active_disable(struct sock *sk)
  */
 bool tcp_fastopen_active_should_disable(struct sock *sk)
 {
-	unsigned int tfo_bh_timeout = sock_net(sk)->ipv4.sysctl_tcp_fastopen_blackhole_timeout;
-	int tfo_da_times = atomic_read(&sock_net(sk)->ipv4.tfo_active_disable_times);
-	unsigned long timeout;
+	int tfo_da_times = atomic_read(&tfo_active_disable_times);
 	int multiplier;
+	unsigned long timeout;
 
 	if (!tfo_da_times)
 		return false;
 
 	/* Limit timout to max: 2^6 * initial timeout */
 	multiplier = 1 << min(tfo_da_times - 1, 6);
-	timeout = multiplier * tfo_bh_timeout * HZ;
-	if (time_before(jiffies, sock_net(sk)->ipv4.tfo_active_disable_stamp + timeout))
+	timeout = multiplier * sysctl_tcp_fastopen_blackhole_timeout * HZ;
+	if (time_before(jiffies, tfo_active_disable_stamp + timeout))
 		return true;
 
 	/* Mark check bit so we can check for successful active TFO
@@ -493,10 +501,10 @@ void tcp_fastopen_active_disable_ofo_check(struct sock *sk)
 			}
 		}
 	} else if (tp->syn_fastopen_ch &&
-		   atomic_read(&sock_net(sk)->ipv4.tfo_active_disable_times)) {
+		   atomic_read(&tfo_active_disable_times)) {
 		dst = sk_dst_get(sk);
 		if (!(dst && dst->dev && (dst->dev->flags & IFF_LOOPBACK)))
-			atomic_set(&sock_net(sk)->ipv4.tfo_active_disable_times, 0);
+			tcp_fastopen_active_timeout_reset();
 		dst_release(dst);
 	}
 }
