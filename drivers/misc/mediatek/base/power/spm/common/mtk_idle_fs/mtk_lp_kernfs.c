@@ -195,9 +195,10 @@ int mtk_lp_kernfs_create_file(struct kernfs_node *parent,
 		ops = &mtk_lp_kernfs_kfops_rw;
 
 	kn = __kernfs_create_file(parent, name,
-				mode & 0755,
-				4096, ops,
-				(void *)attr, NULL, NULL);
+                          mode & 0755,
+                          GLOBAL_ROOT_UID, GLOBAL_ROOT_GID,
+                          4096, ops,
+                          (void *)attr, NULL, NULL);
 
 	if (IS_ERR(kn))
 		return PTR_ERR(kn);
