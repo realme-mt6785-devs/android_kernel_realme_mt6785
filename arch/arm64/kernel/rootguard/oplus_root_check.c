@@ -16,7 +16,6 @@
 #include <linux/types.h>
 #include <linux/version.h>
 #include <linux/vmalloc.h>
-#include <linux/selinux.h>
 #ifdef VENDOR_EDIT
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,19,0)
@@ -62,7 +61,7 @@ void oplus_root_check_succ(uid_t uid, uid_t euid, uid_t fsuid, uid_t callnum)
 	dcs_event->payload_length = snprintf(dcs_event_payload,256,
 	    "%d$$old_euid@@%d$$old_fsuid@@%d$$sys_call_number@@%d$$addr_limit@@%lx$$curr_uid@@%d$$curr_euid@@%d$$curr_fsuid@@%d$$curr_name@@%s$$ppid@@%d$$ppidname@@%s$$enforce@@%d\n",
 	    uid,euid,fsuid,callnum,
-	    get_fs(),current_uid().val,current_euid().val,current_fsuid().val,get_task_comm(comm, current), ppid, nameofppid,selinux_is_enabled());
+	    get_fs(),current_uid().val,current_euid().val,current_fsuid().val,get_task_comm(comm, current), ppid, nameofppid, 0);
 	printk(KERN_INFO "oplus_root_check_succ,payload:%s\n",dcs_event_payload);
 	memcpy(dcs_event->payload, dcs_event_payload, strlen(dcs_event_payload));
 
