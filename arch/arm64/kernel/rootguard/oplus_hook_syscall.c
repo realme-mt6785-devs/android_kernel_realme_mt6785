@@ -29,7 +29,6 @@
 #define KERNEL_ADDR_LIMIT 0x0000008000000000
 #include <asm/uaccess.h>
 #include <linux/cred.h>
-#include <linux/selinux.h>
 #include "oplus_root.h"
 #endif /* CONFIG_OPLUS_SECURE_GUARD */
 
