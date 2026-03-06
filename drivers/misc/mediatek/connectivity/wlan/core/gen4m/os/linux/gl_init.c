@@ -2525,6 +2525,8 @@ static void wlanCreateWirelessDevice(void)
 	prWiphy->features |= NL80211_FEATURE_QUIET;
 #endif
 
+    prWiphy->max_num_akm_suites = CFG80211_MAX_NUM_AKM_SUITES;
+
 	if (wiphy_register(prWiphy) < 0) {
 		DBGLOG(INIT, ERROR, "wiphy_register error\n");
 		goto free_wiphy;

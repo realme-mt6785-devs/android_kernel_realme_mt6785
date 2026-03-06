@@ -651,13 +651,15 @@ struct survey_info {
  * @wep_tx_key: key index (0..3) of the default TX static WEP key
  * @psk: PSK (for devices supporting 4-way-handshake offload)
  */
+#define CFG80211_MAX_NUM_AKM_SUITES	16
+
 struct cfg80211_crypto_settings {
 	u32 wpa_versions;
 	u32 cipher_group;
 	int n_ciphers_pairwise;
 	u32 ciphers_pairwise[NL80211_MAX_NR_CIPHER_SUITES];
 	int n_akm_suites;
-	u32 akm_suites[NL80211_MAX_NR_AKM_SUITES];
+	u32 akm_suites[CFG80211_MAX_NUM_AKM_SUITES];
 	bool control_port;
 	__be16 control_port_ethertype;
 	bool control_port_no_encrypt;
@@ -3792,6 +3794,7 @@ struct wiphy {
 
 	int n_cipher_suites;
 	const u32 *cipher_suites;
+	u16 max_num_akm_suites;
 
 	u8 retry_short;
 	u8 retry_long;
