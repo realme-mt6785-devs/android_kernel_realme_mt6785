@@ -56,7 +56,7 @@ ENTRY(oplus_root_check)
 	cmp	x19, #0						//if phone adb have root permission,we donnot check
 	beq	2f
 
-	bl	is_unlocked
+	b.ne 2f
 	cmp	x0, #0
 	bne	2f
 
