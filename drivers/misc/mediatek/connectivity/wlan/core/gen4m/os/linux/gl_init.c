@@ -1988,6 +1988,26 @@ void wlanUpdateChannelTable(struct GLUE_INFO *prGlueInfo)
 		}
 	}
 
+	/*
+	 * 4. Force-enable non-DFS 5GHz channels (UNII-1: 36-48, UNII-3: 149-165)
+	 * These channels are universally available without radar detection
+	 * and must be accessible for 5GHz hotspot/AP mode.
+	 */
+	for (i = 0; i < ARRAY_SIZE(mtk_5ghz_channels); i++) {
+		uint8_t ch = mtk_5ghz_channels[i].hw_value;
+
+		if ((ch >= 36 && ch <= 48) || (ch >= 149 && ch <= 165)) {
+			mtk_5ghz_channels[i].flags &= ~IEEE80211_CHAN_DISABLED;
+			mtk_5ghz_channels[i].orig_flags &=
+				~IEEE80211_CHAN_DISABLED;
+			mtk_5ghz_channels[i].flags &= ~IEEE80211_CHAN_RADAR;
+			mtk_5ghz_channels[i].orig_flags &=
+				~IEEE80211_CHAN_RADAR;
+			mtk_5ghz_channels[i].dfs_state =
+				NL80211_DFS_UNAVAILABLE;
+		}
+	}
+
 }
 
 #if CFG_SUPPORT_SAP_DFS_CHANNEL

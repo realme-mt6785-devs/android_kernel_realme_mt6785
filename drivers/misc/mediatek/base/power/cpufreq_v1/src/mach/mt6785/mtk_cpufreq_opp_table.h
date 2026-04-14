@@ -143,7 +143,7 @@
 #define CPU_DVFS_FREQ15_LL_6785T	500000		/* KHz */
 
 /* for DVFS OPP table B */
-#define CPU_DVFS_FREQ0_L_6785T		2050000		/* KHz */
+#define CPU_DVFS_FREQ0_L_6785T		2200000		/* KHz - OC from 2050MHz */
 #define CPU_DVFS_FREQ1_L_6785T		1986000		/* KHz */
 #define CPU_DVFS_FREQ2_L_6785T		1923000		/* KHz */
 #define CPU_DVFS_FREQ3_L_6785T		1860000		/* KHz */
@@ -197,7 +197,7 @@
 #define CPU_DVFS_VOLT15_VPROC1_6785T     60000          /* 10uV */
 
 /* for DVFS OPP table B */
-#define CPU_DVFS_VOLT0_VPROC2_6785T	 111875		/* 10uV */
+#define CPU_DVFS_VOLT0_VPROC2_6785T	 115000		/* 10uV - OC voltage for 2.2GHz */
 #define CPU_DVFS_VOLT1_VPROC2_6785T	 109375		/* 10uV */
 #define CPU_DVFS_VOLT2_VPROC2_6785T	 106250     /* 10uV */
 #define CPU_DVFS_VOLT3_VPROC2_6785T	 103750		/* 10uV */

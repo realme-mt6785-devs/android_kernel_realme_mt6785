@@ -102,7 +102,7 @@ static unsigned int FY_6785TTbl[NR_FREQ * NR_MT_CPU_DVFS][ARRAY_COL_SIZE] = {
 
 
 	/* L */
-	{ 2050, 115, 1, 1 },
+	{ 2200, 115, 1, 1 },  /* OC from 2050MHz */
 	{ 1986, 111, 1, 1 },
 	{ 1923, 106, 1, 1 },
 	{ 1860, 102, 1, 1 },
