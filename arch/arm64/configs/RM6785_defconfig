@@ -2,6 +2,21 @@
 # Automatically generated file; DO NOT EDIT.
 # Linux/arm64 4.14.334 Kernel Configuration
 #
+
+#
+# enable KernelSU + SuSFS 1.5.5+
+#
+CONFIG_KSU=y
+
+#
+# manual integration
+#
+CONFIG_KSU_MANUAL_HOOK=y
+# CONFIG_KPROBES is not set
+# CONFIG_HAVE_KPROBES is not set
+# CONFIG_KPROBE_EVENTS is not set
+# CONFIG_KPROBE_EVENT is not set
+
 CONFIG_ARM64=y
 CONFIG_64BIT=y
 CONFIG_ARCH_PHYS_ADDR_T_64BIT=y
