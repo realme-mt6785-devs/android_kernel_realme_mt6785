@@ -954,7 +954,7 @@ static int show_smaps_rollup(struct seq_file *m, void *v)
 	down_read(&mm->mmap_sem);
 	hold_task_mempolicy(priv);
 
-	for (vma = priv->mm->mmap; vma;) {
+	for (vma = priv->mm->mmap; vma; vma = vma->vm_next) {
 		smap_gather_stats(vma, &mss);
 		last_vma_end = vma->vm_end;
 
@@ -966,47 +966,14 @@ static int show_smaps_rollup(struct seq_file *m, void *v)
 			up_read(&mm->mmap_sem);
 			down_read(&mm->mmap_sem);
 
-			/*
-			 * After dropping the lock, there are three cases to
-			 * consider. See the following example for explanation.
-			 *
-			 *   +------+------+-----------+
-			 *   | VMA1 | VMA2 | VMA3      |
-			 *   +------+------+-----------+
-			 *   |      |      |           |
-			 *  4k     8k     16k         400k
-			 *
-			 * Suppose we drop the lock after reading VMA2 due to
-			 * contention, then we get:
-			 *
-			 *	last_vma_end = 16k
-			 *
-			 * 1) VMA2 is freed, but VMA3 exists:
-			 *
-			 *    find_vma(mm, 16k - 1) will return VMA3.
-			 *    In this case, just continue from VMA3.
-			 *
-			 * 2) VMA2 still exists:
-			 *
-			 *    find_vma(mm, 16k - 1) will return VMA2.
-			 *    Iterate the loop like the original one.
-			 *
-			 * 3) No more VMAs can be found:
-			 *
-			 *    find_vma(mm, 16k - 1) will return NULL.
-			 *    No more things to do, just break.
-			 */
+			/* Try to find whether current vma is available */
 			vma = find_vma(mm, last_vma_end - 1);
-			/* Case 3 above */
-			if (!vma)
-				break;
-
-			/* Case 1 above */
-			if (vma->vm_start >= last_vma_end)
+			if (vma && vma->vm_start <= last_vma_end)
 				continue;
+
+			/* Current vma is not available, just break */
+			break;
 		}
-		/* Case 2 above */
-		vma = vma->vm_next;
 	}
 
 	show_vma_header_prefix(m, priv->mm->mmap->vm_start,
