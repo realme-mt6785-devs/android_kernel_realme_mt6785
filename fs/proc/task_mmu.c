@@ -797,9 +797,12 @@ void __weak arch_show_smap(struct seq_file *m, struct vm_area_struct *vma)
 {
 }
 
-static void smap_gather_stats(struct vm_area_struct *vma,
-			     struct mem_size_stats *mss)
+static int show_smap(struct seq_file *m, void *v)
 {
+	struct proc_maps_private *priv = m->private;
+	struct vm_area_struct *vma = v;
+	struct mem_size_stats mss_stack;
+	struct mem_size_stats *mss;
 	struct mm_walk smaps_walk = {
 		.pmd_entry = smaps_pte_range,
 #ifdef CONFIG_HUGETLB_PAGE
@@ -807,6 +810,23 @@ static void smap_gather_stats(struct vm_area_struct *vma,
 #endif
 		.mm = vma->vm_mm,
 	};
+	int ret = 0;
+	bool rollup_mode;
+	bool last_vma;
+
+	if (priv->rollup) {
+		rollup_mode = true;
+		mss = priv->rollup;
+		if (mss->first) {
+			mss->first_vma_start = vma->vm_start;
+			mss->first = false;
+		}
+		last_vma = !m_next_vma(priv, vma);
+	} else {
+		rollup_mode = false;
+		memset(&mss_stack, 0, sizeof(mss_stack));
+		mss = &mss_stack;
+	}
 
 	smaps_walk.private = mss;
 
@@ -837,33 +857,6 @@ static void smap_gather_stats(struct vm_area_struct *vma,
 #endif
 	/* mmap_sem is held in m_start */
 	walk_page_vma(vma, &smaps_walk);
-}
-
-static int show_smap(struct seq_file *m, void *v)
-{
-	struct proc_maps_private *priv = m->private;
-	struct vm_area_struct *vma = v;
-	struct mem_size_stats mss_stack;
-	struct mem_size_stats *mss;
-	int ret = 0;
-	bool rollup_mode;
-	bool last_vma;
-
-	if (priv->rollup) {
-		rollup_mode = true;
-		mss = priv->rollup;
-		if (mss->first) {
-			mss->first_vma_start = vma->vm_start;
-			mss->first = false;
-		}
-		last_vma = !m_next_vma(priv, vma);
-	} else {
-		rollup_mode = false;
-		memset(&mss_stack, 0, sizeof(mss_stack));
-		mss = &mss_stack;
-	}
-
-	smap_gather_stats(vma, mss);
 
 	#ifdef VENDOR_EDIT //yixue.ge@bsp.drv modify for android.bg get pss too slow
 	if (strcmp(current->comm, "android.bg") == 0) {
