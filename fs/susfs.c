@@ -1320,6 +1320,7 @@ out_copy_to_user:
 /* code is straightly borrowed from KernelSU's pkg_observer.c */
 #define SDCARD_ANDROID_PATH "/data/media/0/Android"
 bool susfs_is_sdcard_android_data_decrypted __read_mostly = false;
+DEFINE_STATIC_KEY_TRUE(susfs_is_sdcard_android_data_not_decrypted);
 
 struct watch_dir {
 	const char *path;
@@ -1344,9 +1345,10 @@ static void susfs_sdcard_cleanup_fn(struct work_struct *work)
 {
 	struct fsnotify_group *grp;
 	struct inode *inode;
-
-	SUSFS_LOGI("set susfs_is_sdcard_android_data_decrypted to true\n");
-	WRITE_ONCE(susfs_is_sdcard_android_data_decrypted, true);
+	if (static_key_enabled(&susfs_is_sdcard_android_data_not_decrypted))
+		static_branch_disable(&susfs_is_sdcard_android_data_not_decrypted);
+	SUSFS_LOGI("/sdcard is decrypted\n");
+	SUSFS_LOGI("cleaning up fsnotify sdcard watch\n");
 
 	SUSFS_LOGI("cleaning up fsnotify sdcard watch\n");
 
@@ -1485,8 +1487,9 @@ static int susfs_sdcard_monitor_fn(void *data)
 void susfs_start_sdcard_monitor_fn(void) {
 	if (IS_ERR(kthread_run(susfs_sdcard_monitor_fn, NULL, "susfs_sdcard_monitor"))) {
 		SUSFS_LOGE("failed to create thread susfs_sdcard_monitor\n");
-		SUSFS_LOGI("set susfs_is_sdcard_android_data_decrypted to true\n");
-		WRITE_ONCE(susfs_is_sdcard_android_data_decrypted, true);
+		SUSFS_LOGI("/sdcard is forcibly set decrypted\n");
+		if (static_key_enabled(&susfs_is_sdcard_android_data_not_decrypted))
+			static_branch_disable(&susfs_is_sdcard_android_data_not_decrypted);
 	}
 }
 
