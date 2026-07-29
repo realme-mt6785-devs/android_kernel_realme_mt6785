@@ -198,6 +198,18 @@ struct kbase_context *kbase_create_context(struct kbase_device *kbdev,
 		}
 	}
 
+	/* Make the context visible to kctx_list walkers (e.g. the
+	 * js_ctx_scheduling_mode sysfs handler) only now that every
+	 * context_init[] step - including kbasep_js_kctx_init - has
+	 * completed successfully. Adding it earlier (as common_init used
+	 * to) exposed a partially-initialised context whose JS list heads
+	 * were still zeroed, causing a NULL-pointer oops under the sysfs
+	 * scheduling-mode write path.
+	 */
+	mutex_lock(&kbdev->kctx_list_lock);
+	list_add(&kctx->kctx_list_link, &kbdev->kctx_list);
+	mutex_unlock(&kbdev->kctx_list_lock);
+
 	return kctx;
 }
 KBASE_EXPORT_SYMBOL(kbase_create_context);

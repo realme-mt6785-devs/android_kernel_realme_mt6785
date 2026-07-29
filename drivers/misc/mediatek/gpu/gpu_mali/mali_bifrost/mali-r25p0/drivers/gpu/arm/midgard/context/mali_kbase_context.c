@@ -215,8 +215,12 @@ int kbase_context_common_init(struct kbase_context *kctx)
 
 	mutex_init(&kctx->legacy_hwcnt_lock);
 
+	/* Keep the list node valid (self-linked) even before it is added
+	 * to kbdev->kctx_list, so a later list_del_init() is always safe.
+	 */
+	INIT_LIST_HEAD(&kctx->kctx_list_link);
+
 	mutex_lock(&kctx->kbdev->kctx_list_lock);
-	list_add(&kctx->kctx_list_link, &kctx->kbdev->kctx_list);
 
 	err = kbase_insert_kctx_to_process(kctx);
 	if (err)
@@ -290,7 +294,7 @@ void kbase_context_common_term(struct kbase_context *kctx)
 	KBASE_TLSTREAM_TL_KBASE_DEL_CTX(kctx->kbdev, kctx->id);
 
 	KBASE_TLSTREAM_TL_DEL_CTX(kctx->kbdev, kctx);
-	list_del(&kctx->kctx_list_link);
+	list_del_init(&kctx->kctx_list_link);
 	mutex_unlock(&kctx->kbdev->kctx_list_lock);
 
 	KBASE_KTRACE_ADD(kctx->kbdev, CORE_CTX_DESTROY, kctx, 0u);
