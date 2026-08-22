@@ -31,6 +31,7 @@
 #include <asm/mmu_context.h>
 #include <linux/file.h>
 #include <linux/sched/signal.h>
+#include <linux/timekeeping.h>
 
 #include "internal.h"
 
@@ -369,7 +370,7 @@ void trigger_svm_oom_event(struct mm_struct *mm, bool brk_risk, bool is_locked)
 		return;
 	}
 
-	current_time_ns = ktime_get_boot_ns();
+	current_time_ns = ktime_get_boottime_ns();
 	if ((current_time_ns > current->real_start_time) ||
 			(current_time_ns - current->real_start_time >= TRIGGER_TIME_NS))
 		over_time = 1;
