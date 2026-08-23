@@ -49,10 +49,6 @@
 #include <linux/wait.h>
 #include <linux/build_bug.h>
 
-#if KERNEL_VERSION(4, 16, 0) >= LINUX_VERSION_CODE
-typedef unsigned int __poll_t;
-#endif
-
 #ifndef ENOTSUP
 #define ENOTSUP EOPNOTSUPP
 #endif
