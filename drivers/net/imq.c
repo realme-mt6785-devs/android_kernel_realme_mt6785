@@ -618,8 +618,10 @@ static int __imq_nf_queue(struct nf_queue_entry *entry, struct net_device *dev)
 
 		if (likely(skb_popd)) {
 			/* Note that we validate skb (GSO, checksum, ...) outside of locks */
-			if (validate)
-				skb_popd = validate_xmit_skb_list(skb_popd, dev);
+		    if (validate) {
+		        bool again = false;
+		        skb_popd = validate_xmit_skb_list(skb_popd, dev, &again);
+		    }
 
 			if (skb_popd) {
 				int dummy_ret;
