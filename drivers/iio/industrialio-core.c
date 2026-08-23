@@ -226,11 +226,9 @@ s64 iio_get_time_ns(const struct iio_dev *indio_dev)
 		tp = get_monotonic_coarse();
 		break;
 	case CLOCK_BOOTTIME:
-		get_monotonic_boottime(&tp);
-		break;
+		return ktime_get_boottime_ns();
 	case CLOCK_TAI:
-		timekeeping_clocktai(&tp);
-		break;
+		return ktime_get_clocktai_ns();
 	default:
 		BUG();
 	}

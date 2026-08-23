@@ -188,6 +188,14 @@ config DEBUG_INFO_DWARF4
 	  But it significantly improves the success of resolving
 	  variables in gdb on optimized code.
 
+config DEBUG_INFO_BTF
+	bool "Generate BTF typeinfo"
+	depends on DEBUG_INFO
+	help
+	  Generate deduplicated BTF type information from DWARF debug info.
+	  Turning this on expects presence of pahole tool, which will convert
+	  DWARF type info into equivalent deduplicated BTF type info.
+
 config GDB_SCRIPTS
 	bool "Provide GDB scripts for kernel debugging"
 	depends on DEBUG_INFO
@@ -324,11 +332,11 @@ config DEBUG_SECTION_MISMATCH
 	    the analysis would not catch the illegal reference.
 	    This option tells gcc to inline less (but it does result in
 	    a larger kernel).
-	  - Run the section mismatch analysis for each module/built-in.o file.
+	  - Run the section mismatch analysis for each module/built-in.a file.
 	    When we run the section mismatch analysis on vmlinux.o, we
 	    lose valuable information about where the mismatch was
 	    introduced.
-	    Running the analysis for each module/built-in.o file
+	    Running the analysis for each module/built-in.a file
 	    tells where the mismatch happens much closer to the
 	    source. The drawback is that the same mismatch is
 	    reported at least twice.
@@ -1520,6 +1528,10 @@ config FAULT_INJECTION
 	help
 	  Provide fault-injection framework.
 	  For more details, see Documentation/fault-injection/.
+
+config FUNCTION_ERROR_INJECTION
+	def_bool y
+	depends on HAVE_FUNCTION_ERROR_INJECTION && KPROBES
 
 config FAILSLAB
 	bool "Fault-injection capability for kmalloc"

@@ -119,7 +119,7 @@ static struct sk_buff *esp4_gso_segment(struct sk_buff *skb,
 		return ERR_PTR(-EINVAL);
 
 	if (!(skb_shinfo(skb)->gso_type & SKB_GSO_ESP))
-		return ERR_PTR(-EINVAL);
+		goto out;
 
 	x = skb->sp->xvec[skb->sp->len - 1];
 	aead = x->data;
@@ -135,11 +135,11 @@ static struct sk_buff *esp4_gso_segment(struct sk_buff *skb,
 
 	skb->encap_hdr_csum = 1;
 
-	if (!(features & NETIF_F_HW_ESP) || !x->xso.offload_handle ||
-	    (x->xso.dev != skb->dev))
+	if (!(features & NETIF_F_HW_ESP) || x->xso.dev != skb->dev)
 		esp_features = features & ~(NETIF_F_SG | NETIF_F_CSUM_MASK);
 
 	xo->flags |= XFRM_GSO_SEGMENT;
+
 	return x->outer_mode->gso_segment(x, skb, esp_features);
 }
 
@@ -176,8 +176,7 @@ static int esp_xmit(struct xfrm_state *x, struct sk_buff *skb,  netdev_features_
 	if (!xo)
 		return -EINVAL;
 
-	if (!(features & NETIF_F_HW_ESP) || !x->xso.offload_handle ||
-	    (x->xso.dev != skb->dev)) {
+	if (!(features & NETIF_F_HW_ESP) || x->xso.dev != skb->dev) {
 		xo->flags |= CRYPTO_FALLBACK;
 		hw_offload = false;
 	}
@@ -215,6 +214,7 @@ static int esp_xmit(struct xfrm_state *x, struct sk_buff *skb,  netdev_features_
 
 	if (xo->flags & XFRM_GSO_SEGMENT) {
 		esph->seq_no = htonl(seq);
+
 		if (!skb_is_gso(skb))
 			xo->seq.low++;
 		else
@@ -222,6 +222,7 @@ static int esp_xmit(struct xfrm_state *x, struct sk_buff *skb,  netdev_features_
 	}
 
 	esp.seqno = cpu_to_be64(seq + ((u64)xo->seq.hi << 32));
+
 	ip_hdr(skb)->tot_len = htons(skb->len);
 	ip_send_check(ip_hdr(skb));
 

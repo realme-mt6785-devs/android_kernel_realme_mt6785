@@ -270,6 +270,7 @@
 #include <linux/time.h>
 #include <linux/slab.h>
 #include <linux/errqueue.h>
+#include <linux/static_key.h>
 
 #include <net/icmp.h>
 #include <net/inet_common.h>
@@ -307,6 +308,11 @@ EXPORT_SYMBOL(tcp_memory_allocated);
 int sysctl_tcp_ts_control[2] __read_mostly = {0,0};
 EXPORT_SYMBOL(sysctl_tcp_ts_control);
 #endif /* OPLUS_BUG_STABILITY */
+
+#if IS_ENABLED(CONFIG_SMC)
+DEFINE_STATIC_KEY_FALSE(tcp_have_smc);
+EXPORT_SYMBOL(tcp_have_smc);
+#endif
 
 /*
  * Current number of TCP sockets.
@@ -425,6 +431,8 @@ void tcp_init_sock(struct sock *sk)
 	INIT_LIST_HEAD(&tp->tsq_node);
 
 	icsk->icsk_rto = TCP_TIMEOUT_INIT;
+	icsk->icsk_rto_min = TCP_RTO_MIN;
+	icsk->icsk_delack_max = TCP_DELACK_MAX;
 	tp->mdev_us = jiffies_to_usecs(TCP_TIMEOUT_INIT);
 	minmax_reset(&tp->rtt_min, tcp_jiffies32, ~0U);
 
@@ -449,6 +457,7 @@ void tcp_init_sock(struct sock *sk)
 	tcp_assign_congestion_control(sk);
 
 	tp->tsoffset = 0;
+	tp->rack.reo_wnd_steps = 1;
 
 	sk->sk_state = TCP_CLOSE;
 
@@ -549,7 +558,7 @@ unsigned int tcp_poll(struct file *file, struct socket *sock, poll_table *wait)
 
 	/* Connected or passive Fast Open socket? */
 	if (state != TCP_SYN_SENT &&
-	    (state != TCP_SYN_RECV || tp->fastopen_rsk)) {
+	    (state != TCP_SYN_RECV || rcu_access_pointer(tp->fastopen_rsk))) {
 		int target = sock_rcvlowat(sk, 0, INT_MAX);
 
 		if (tp->urg_seq == tp->copied_seq &&
@@ -2052,6 +2061,30 @@ void tcp_set_state(struct sock *sk, int state)
 {
 	int oldstate = sk->sk_state;
 
+	/* We defined a new enum for TCP states that are exported in BPF
+	 * so as not force the internal TCP states to be frozen. The
+	 * following checks will detect if an internal state value ever
+	 * differs from the BPF value. If this ever happens, then we will
+	 * need to remap the internal value to the BPF value before calling
+	 * tcp_call_bpf_2arg.
+	 */
+	BUILD_BUG_ON((int)BPF_TCP_ESTABLISHED != (int)TCP_ESTABLISHED);
+	BUILD_BUG_ON((int)BPF_TCP_SYN_SENT != (int)TCP_SYN_SENT);
+	BUILD_BUG_ON((int)BPF_TCP_SYN_RECV != (int)TCP_SYN_RECV);
+	BUILD_BUG_ON((int)BPF_TCP_FIN_WAIT1 != (int)TCP_FIN_WAIT1);
+	BUILD_BUG_ON((int)BPF_TCP_FIN_WAIT2 != (int)TCP_FIN_WAIT2);
+	BUILD_BUG_ON((int)BPF_TCP_TIME_WAIT != (int)TCP_TIME_WAIT);
+	BUILD_BUG_ON((int)BPF_TCP_CLOSE != (int)TCP_CLOSE);
+	BUILD_BUG_ON((int)BPF_TCP_CLOSE_WAIT != (int)TCP_CLOSE_WAIT);
+	BUILD_BUG_ON((int)BPF_TCP_LAST_ACK != (int)TCP_LAST_ACK);
+	BUILD_BUG_ON((int)BPF_TCP_LISTEN != (int)TCP_LISTEN);
+	BUILD_BUG_ON((int)BPF_TCP_CLOSING != (int)TCP_CLOSING);
+	BUILD_BUG_ON((int)BPF_TCP_NEW_SYN_RECV != (int)TCP_NEW_SYN_RECV);
+	BUILD_BUG_ON((int)BPF_TCP_MAX_STATES != (int)TCP_MAX_STATES);
+
+	if (BPF_SOCK_OPS_TEST_FLAG(tcp_sk(sk), BPF_SOCK_OPS_STATE_CB_FLAG))
+		tcp_call_bpf_2arg(sk, BPF_SOCK_OPS_STATE_CB, oldstate, state);
+
 	switch (state) {
 	case TCP_ESTABLISHED:
 		if (oldstate != TCP_ESTABLISHED)
@@ -2313,7 +2346,10 @@ adjudge_to_death:
 	}
 
 	if (sk->sk_state == TCP_CLOSE) {
-		struct request_sock *req = tcp_sk(sk)->fastopen_rsk;
+		struct request_sock *req;
+
+		req = rcu_dereference_protected(tcp_sk(sk)->fastopen_rsk,
+						lockdep_sock_is_held(sk));
 		/* We could get here with a non-NULL req if the socket is
 		 * aborted (e.g., closed with unread data) before 3WHS
 		 * finishes.
@@ -2389,12 +2425,16 @@ int tcp_disconnect(struct sock *sk, int flags)
 		tp->write_seq = 1;
 	tp->snd_cwnd = 2;
 	icsk->icsk_probes_out = 0;
+	icsk->icsk_rto = TCP_TIMEOUT_INIT;
+	icsk->icsk_rto_min = TCP_RTO_MIN;
+	icsk->icsk_delack_max = TCP_DELACK_MAX;
 	tp->snd_ssthresh = TCP_INFINITE_SSTHRESH;
 	tp->snd_cwnd_cnt = 0;
 	tp->is_cwnd_limited = 0;
 	tp->max_packets_out = 0;
 	tp->window_clamp = 0;
 	tp->delivered = 0;
+	tp->delivered_ce = 0;
 	if (icsk->icsk_ca_ops->release)
 		icsk->icsk_ca_ops->release(sk);
 	memset(icsk->icsk_ca_priv, 0, sizeof(icsk->icsk_ca_priv));
@@ -2414,10 +2454,24 @@ int tcp_disconnect(struct sock *sk, int flags)
 	tcp_saved_syn_free(tp);
 	tp->segs_in = 0;
 	tp->segs_out = 0;
+	tp->bytes_sent = 0;
 	tp->bytes_acked = 0;
 	tp->bytes_received = 0;
+	tp->bytes_retrans = 0;
 	tp->data_segs_in = 0;
 	tp->data_segs_out = 0;
+	tp->dsack_dups = 0;
+	tp->rack.mstamp = 0;
+	tp->rack.advanced = 0;
+	tp->rack.reo_wnd_steps = 1;
+	tp->rack.last_delivered = 0;
+	tp->rack.reo_wnd_persist = 0;
+	tp->rack.dsack_seen = 0;
+	tp->syn_data_acked = 0;
+	tp->rx_opt.saw_tstamp = 0;
+	tp->rx_opt.dsack = 0;
+	tp->rx_opt.num_sacks = 0;
+
 
 	/* Clean up fastopen related fields */
 	tcp_free_fastopen_req(tp);
@@ -2525,6 +2579,39 @@ static int tcp_repair_options_est(struct sock *sk,
 	return 0;
 }
 
+int tcp_sock_set_keepidle_locked(struct sock *sk, int val)
+{
+	struct tcp_sock *tp = tcp_sk(sk);
+
+	if (val < 1 || val > MAX_TCP_KEEPIDLE)
+		return -EINVAL;
+
+	tp->keepalive_time = val * HZ;
+	if (sock_flag(sk, SOCK_KEEPOPEN) &&
+	    !((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_LISTEN))) {
+		u32 elapsed = keepalive_time_elapsed(tp);
+
+		if (tp->keepalive_time > elapsed)
+			elapsed = tp->keepalive_time - elapsed;
+		else
+			elapsed = 0;
+		inet_csk_reset_keepalive_timer(sk, elapsed);
+	}
+
+	return 0;
+}
+
+int tcp_sock_set_keepidle(struct sock *sk, int val)
+{
+	int err;
+
+	lock_sock(sk);
+	err = tcp_sock_set_keepidle_locked(sk, val);
+	release_sock(sk);
+	return err;
+}
+EXPORT_SYMBOL(tcp_sock_set_keepidle);
+
 /*
  *	Socket option code for TCP.
  */
@@ -2552,7 +2639,7 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 		name[val] = 0;
 
 		lock_sock(sk);
-		err = tcp_set_congestion_control(sk, name, true, true,
+		err = tcp_set_congestion_control(sk, name, true,
 						 ns_capable(sock_net(sk)->user_ns,
 							    CAP_NET_ADMIN));
 		release_sock(sk);
@@ -2701,21 +2788,7 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 		break;
 
 	case TCP_KEEPIDLE:
-		if (val < 1 || val > MAX_TCP_KEEPIDLE)
-			err = -EINVAL;
-		else {
-			tp->keepalive_time = val * HZ;
-			if (sock_flag(sk, SOCK_KEEPOPEN) &&
-			    !((1 << sk->sk_state) &
-			      (TCPF_CLOSE | TCPF_LISTEN))) {
-				u32 elapsed = keepalive_time_elapsed(tp);
-				if (tp->keepalive_time > elapsed)
-					elapsed = tp->keepalive_time - elapsed;
-				else
-					elapsed = 0;
-				inet_csk_reset_keepalive_timer(sk, elapsed);
-			}
-		}
+		err = tcp_sock_set_keepidle_locked(sk, val);
 		break;
 	case TCP_KEEPINTVL:
 		if (val < 1 || val > MAX_TCP_KEEPINTVL)
@@ -2737,7 +2810,8 @@ static int do_tcp_setsockopt(struct sock *sk, int level,
 		break;
 
 	case TCP_SAVE_SYN:
-		if (val < 0 || val > 1)
+		/* 0: disable, 1: enable, 2: start from ether_header */
+		if (val < 0 || val > 2)
 			err = -EINVAL;
 		else
 			tp->save_syn = val;
@@ -2998,9 +3072,40 @@ void tcp_get_info(struct sock *sk, struct tcp_info *info)
 	rate64 = tcp_compute_delivery_rate(tp);
 	if (rate64)
 		info->tcpi_delivery_rate = rate64;
+	info->tcpi_delivered = tp->delivered;
+	info->tcpi_delivered_ce = tp->delivered_ce;
+	info->tcpi_bytes_sent = tp->bytes_sent;
+	info->tcpi_bytes_retrans = tp->bytes_retrans;
+	info->tcpi_dsack_dups = tp->dsack_dups;
 	unlock_sock_fast(sk, slow);
 }
 EXPORT_SYMBOL_GPL(tcp_get_info);
+
+static size_t tcp_opt_stats_get_size(void)
+{
+	return
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_BUSY */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_RWND_LIMITED */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_SNDBUF_LIMITED */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_DATA_SEGS_OUT */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_TOTAL_RETRANS */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_PACING_RATE */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_DELIVERY_RATE */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_SND_CWND */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_REORDERING */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_MIN_RTT */
+		nla_total_size(sizeof(u8)) + /* TCP_NLA_RECUR_RETRANS */
+		nla_total_size(sizeof(u8)) + /* TCP_NLA_DELIVERY_RATE_APP_LMT */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_SNDQ_SIZE */
+		nla_total_size(sizeof(u8)) + /* TCP_NLA_CA_STATE */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_SND_SSTHRESH */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_DELIVERED */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_DELIVERED_CE */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_BYTES_SENT */
+		nla_total_size_64bit(sizeof(u64)) + /* TCP_NLA_BYTES_RETRANS */
+		nla_total_size(sizeof(u32)) + /* TCP_NLA_DSACK_DUPS */
+		0;
+}
 
 struct sk_buff *tcp_get_timestamping_opt_stats(const struct sock *sk)
 {
@@ -3010,9 +3115,7 @@ struct sk_buff *tcp_get_timestamping_opt_stats(const struct sock *sk)
 	u64 rate64;
 	u32 rate;
 
-	stats = alloc_skb(7 * nla_total_size_64bit(sizeof(u64)) +
-			  3 * nla_total_size(sizeof(u32)) +
-			  2 * nla_total_size(sizeof(u8)), GFP_ATOMIC);
+	stats = alloc_skb(tcp_opt_stats_get_size(), GFP_ATOMIC);
 	if (!stats)
 		return NULL;
 
@@ -3041,6 +3144,19 @@ struct sk_buff *tcp_get_timestamping_opt_stats(const struct sock *sk)
 
 	nla_put_u8(stats, TCP_NLA_RECUR_RETRANS, inet_csk(sk)->icsk_retransmits);
 	nla_put_u8(stats, TCP_NLA_DELIVERY_RATE_APP_LMT, !!tp->rate_app_limited);
+	nla_put_u32(stats, TCP_NLA_SND_SSTHRESH, tp->snd_ssthresh);
+	nla_put_u32(stats, TCP_NLA_DELIVERED, tp->delivered);
+	nla_put_u32(stats, TCP_NLA_DELIVERED_CE, tp->delivered_ce);
+
+	nla_put_u32(stats, TCP_NLA_SNDQ_SIZE, tp->write_seq - tp->snd_una);
+	nla_put_u8(stats, TCP_NLA_CA_STATE, inet_csk(sk)->icsk_ca_state);
+
+	nla_put_u64_64bit(stats, TCP_NLA_BYTES_SENT, tp->bytes_sent,
+			  TCP_NLA_PAD);
+	nla_put_u64_64bit(stats, TCP_NLA_BYTES_RETRANS, tp->bytes_retrans,
+			  TCP_NLA_PAD);
+	nla_put_u32(stats, TCP_NLA_DSACK_DUPS, tp->dsack_dups);
+
 	return stats;
 }
 
@@ -3241,20 +3357,21 @@ static int do_tcp_getsockopt(struct sock *sk, int level,
 
 		lock_sock(sk);
 		if (tp->saved_syn) {
-			if (len < tp->saved_syn[0]) {
-				if (put_user(tp->saved_syn[0], optlen)) {
+			if (len < tcp_saved_syn_len(tp->saved_syn)) {
+				if (put_user(tcp_saved_syn_len(tp->saved_syn),
+					     optlen)) {
 					release_sock(sk);
 					return -EFAULT;
 				}
 				release_sock(sk);
 				return -EINVAL;
 			}
-			len = tp->saved_syn[0];
+			len = tcp_saved_syn_len(tp->saved_syn);
 			if (put_user(len, optlen)) {
 				release_sock(sk);
 				return -EFAULT;
 			}
-			if (copy_to_user(optval, tp->saved_syn + 1, len)) {
+			if (copy_to_user(optval, tp->saved_syn->data, len)) {
 				release_sock(sk);
 				return -EFAULT;
 			}
@@ -3447,8 +3564,10 @@ EXPORT_SYMBOL(tcp_md5_hash_key);
 
 void tcp_done(struct sock *sk)
 {
-	struct request_sock *req = tcp_sk(sk)->fastopen_rsk;
+	struct request_sock *req;
 
+	req = rcu_dereference_protected(tcp_sk(sk)->fastopen_rsk,
+					lockdep_sock_is_held(sk));
 	if (sk->sk_state == TCP_SYN_SENT || sk->sk_state == TCP_SYN_RECV)
 		TCP_INC_STATS(sock_net(sk), TCP_MIB_ATTEMPTFAILS);
 

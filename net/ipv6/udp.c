@@ -102,28 +102,12 @@ static u32 udp6_ehashfn(const struct net *net,
 			       udp6_ehash_secret + net_hash_mix(net));
 }
 
-static u32 udp6_portaddr_hash(const struct net *net,
-			      const struct in6_addr *addr6,
-			      unsigned int port)
-{
-	unsigned int hash, mix = net_hash_mix(net);
-
-	if (ipv6_addr_any(addr6))
-		hash = jhash_1word(0, mix);
-	else if (ipv6_addr_v4mapped(addr6))
-		hash = jhash_1word((__force u32)addr6->s6_addr32[3], mix);
-	else
-		hash = jhash2((__force u32 *)addr6->s6_addr32, 4, mix);
-
-	return hash ^ port;
-}
-
 int udp_v6_get_port(struct sock *sk, unsigned short snum)
 {
 	unsigned int hash2_nulladdr =
-		udp6_portaddr_hash(sock_net(sk), &in6addr_any, snum);
+		ipv6_portaddr_hash(sock_net(sk), &in6addr_any, snum);
 	unsigned int hash2_partial =
-		udp6_portaddr_hash(sock_net(sk), &sk->sk_v6_rcv_saddr, 0);
+		ipv6_portaddr_hash(sock_net(sk), &sk->sk_v6_rcv_saddr, 0);
 
 	/* precompute partial secondary hash */
 	udp_sk(sk)->udp_portaddr_hash = hash2_partial;
@@ -132,7 +116,7 @@ int udp_v6_get_port(struct sock *sk, unsigned short snum)
 
 static void udp_v6_rehash(struct sock *sk)
 {
-	u16 new_hash = udp6_portaddr_hash(sock_net(sk),
+	u16 new_hash = ipv6_portaddr_hash(sock_net(sk),
 					  &sk->sk_v6_rcv_saddr,
 					  inet_sk(sk)->inet_num);
 
@@ -197,7 +181,7 @@ static struct sock *udp6_lib_lookup2(struct net *net,
 		struct udp_hslot *hslot2, struct sk_buff *skb)
 {
 	struct sock *sk, *result;
-	int score, badness, matches = 0, reuseport = 0;
+	int score, badness;
 	u32 hash = 0;
 
 	result = NULL;
@@ -206,24 +190,18 @@ static struct sock *udp6_lib_lookup2(struct net *net,
 		score = compute_score(sk, net, saddr, sport,
 				      daddr, hnum, dif, sdif, exact_dif);
 		if (score > badness) {
-			reuseport = sk->sk_reuseport;
-			if (reuseport) {
+			if (sk->sk_reuseport &&
+			    sk->sk_state != TCP_ESTABLISHED) {
 				hash = udp6_ehashfn(net, daddr, hnum,
 						    saddr, sport);
 
 				result = reuseport_select_sock(sk, hash, skb,
 							sizeof(struct udphdr));
-				if (result)
+				if (result && !reuseport_has_conns(sk, false))
 					return result;
-				matches = 1;
 			}
 			result = sk;
 			badness = score;
-		} else if (score == badness && reuseport) {
-			matches++;
-			if (reciprocal_scale(hash, matches) == 0)
-				result = sk;
-			hash = next_pseudo_random32(hash);
 		}
 	}
 	return result;
@@ -241,11 +219,11 @@ struct sock *__udp6_lib_lookup(struct net *net,
 	unsigned int hash2, slot2, slot = udp_hashfn(net, hnum, udptable->mask);
 	struct udp_hslot *hslot2, *hslot = &udptable->hash[slot];
 	bool exact_dif = udp6_lib_exact_dif_match(net, skb);
-	int score, badness, matches = 0, reuseport = 0;
+	int score, badness;
 	u32 hash = 0;
 
 	if (hslot->count > 10) {
-		hash2 = udp6_portaddr_hash(net, daddr, hnum);
+		hash2 = ipv6_portaddr_hash(net, daddr, hnum);
 		slot2 = hash2 & udptable->mask;
 		hslot2 = &udptable->hash2[slot2];
 		if (hslot->count < hslot2->count)
@@ -256,7 +234,7 @@ struct sock *__udp6_lib_lookup(struct net *net,
 					  hslot2, skb);
 		if (!result) {
 			unsigned int old_slot2 = slot2;
-			hash2 = udp6_portaddr_hash(net, &in6addr_any, hnum);
+			hash2 = ipv6_portaddr_hash(net, &in6addr_any, hnum);
 			slot2 = hash2 & udptable->mask;
 			/* avoid searching the same slot again. */
 			if (unlikely(slot2 == old_slot2))
@@ -271,6 +249,8 @@ struct sock *__udp6_lib_lookup(struct net *net,
 						  exact_dif, hslot2,
 						  skb);
 		}
+		if (unlikely(IS_ERR(result)))
+			return NULL;
 		return result;
 	}
 begin:
@@ -280,23 +260,18 @@ begin:
 		score = compute_score(sk, net, saddr, sport, daddr, hnum, dif,
 				      sdif, exact_dif);
 		if (score > badness) {
-			reuseport = sk->sk_reuseport;
-			if (reuseport) {
+			if (sk->sk_reuseport) {
 				hash = udp6_ehashfn(net, daddr, hnum,
 						    saddr, sport);
 				result = reuseport_select_sock(sk, hash, skb,
 							sizeof(struct udphdr));
+				if (unlikely(IS_ERR(result)))
+					return NULL;
 				if (result)
 					return result;
-				matches = 1;
 			}
 			result = sk;
 			badness = score;
-		} else if (score == badness && reuseport) {
-			matches++;
-			if (reciprocal_scale(hash, matches) == 0)
-				result = sk;
-			hash = next_pseudo_random32(hash);
 		}
 	}
 	return result;
@@ -761,9 +736,9 @@ static int __udp6_lib_mcast_deliver(struct net *net, struct sk_buff *skb,
 	struct sk_buff *nskb;
 
 	if (use_hash2) {
-		hash2_any = udp6_portaddr_hash(net, &in6addr_any, hnum) &
+		hash2_any = ipv6_portaddr_hash(net, &in6addr_any, hnum) &
 			    udptable->mask;
-		hash2 = udp6_portaddr_hash(net, daddr, hnum) & udptable->mask;
+		hash2 = ipv6_portaddr_hash(net, daddr, hnum) & udptable->mask;
 start_lookup:
 		hslot = &udptable->hash2[hash2];
 		offset = offsetof(typeof(*sk), __sk_common.skc_portaddr_node);
@@ -849,6 +824,7 @@ int __udp6_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 	struct net *net = dev_net(skb->dev);
 	struct udphdr *uh;
 	struct sock *sk;
+	bool refcounted;
 	u32 ulen = 0;
 
 	if (!pskb_may_pull(skb, sizeof(struct udphdr)))
@@ -885,7 +861,7 @@ int __udp6_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 		goto csum_error;
 
 	/* Check if the socket is already available, e.g. due to early demux */
-	sk = skb_steal_sock(skb);
+	sk = skb_steal_sock(skb, &refcounted);
 	if (sk) {
 		struct dst_entry *dst = skb_dst(skb);
 		int ret;
@@ -894,12 +870,14 @@ int __udp6_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 			udp6_sk_rx_dst_set(sk, dst);
 
 		if (!uh->check && !udp_sk(sk)->no_check6_rx) {
-			sock_put(sk);
+			if (refcounted)
+				sock_put(sk);
 			goto report_csum_error;
 		}
 
 		ret = udp6_unicast_rcv_skb(sk, skb, uh);
-		sock_put(sk);
+		if (refcounted)
+			sock_put(sk);
 		return ret;
 	}
 
@@ -958,7 +936,7 @@ static struct sock *__udp6_lib_demux_lookup(struct net *net,
 			int dif, int sdif)
 {
 	unsigned short hnum = ntohs(loc_port);
-	unsigned int hash2 = udp6_portaddr_hash(net, loc_addr, hnum);
+	unsigned int hash2 = ipv6_portaddr_hash(net, loc_addr, hnum);
 	unsigned int slot2 = hash2 & udp_table.mask;
 	struct udp_hslot *hslot2 = &udp_table.hash2[slot2];
 	const __portpair ports = INET_COMBINED_PORTS(rmt_port, hnum);
@@ -1558,7 +1536,8 @@ int udpv6_setsockopt(struct sock *sk, int level, int optname,
 		     char __user *optval, unsigned int optlen)
 {
 	if (level == SOL_UDP  ||  level == SOL_UDPLITE)
-		return udp_lib_setsockopt(sk, level, optname, optval, optlen,
+		return udp_lib_setsockopt(sk, level, optname,
+					  USER_SOCKPTR(optval), optlen,
 					  udp_v6_push_pending_frames);
 	return ipv6_setsockopt(sk, level, optname, optval, optlen);
 }
@@ -1568,7 +1547,7 @@ int compat_udpv6_setsockopt(struct sock *sk, int level, int optname,
 			    char __user *optval, unsigned int optlen)
 {
 	if (level == SOL_UDP  ||  level == SOL_UDPLITE)
-		return udp_lib_setsockopt(sk, level, optname, optval, optlen,
+		return udp_lib_setsockopt(sk, level, optname, USER_SOCKPTR(optval), optlen,
 					  udp_v6_push_pending_frames);
 	return compat_ipv6_setsockopt(sk, level, optname, optval, optlen);
 }

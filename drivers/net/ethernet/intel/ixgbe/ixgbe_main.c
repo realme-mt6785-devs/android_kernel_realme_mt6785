@@ -2339,6 +2339,7 @@ static int ixgbe_clean_rx_irq(struct ixgbe_q_vector *q_vector,
 		if (!skb) {
 			xdp.data = page_address(rx_buffer->page) +
 				   rx_buffer->page_offset;
+			xdp_set_data_meta_invalid(&xdp);
 			xdp.data_hard_start = xdp.data -
 					      ixgbe_rx_offset(rx_ring);
 			xdp.data_end = xdp.data + size;
@@ -9893,7 +9894,6 @@ static int ixgbe_xdp(struct net_device *dev, struct netdev_bpf *xdp)
 	case XDP_SETUP_PROG:
 		return ixgbe_xdp_setup(dev, xdp->prog);
 	case XDP_QUERY_PROG:
-		xdp->prog_attached = !!(adapter->xdp_prog);
 		xdp->prog_id = adapter->xdp_prog ?
 			adapter->xdp_prog->aux->id : 0;
 		return 0;
@@ -9923,30 +9923,6 @@ static int ixgbe_xdp_xmit(struct net_device *dev, struct xdp_buff *xdp)
 		return -ENOSPC;
 
 	return 0;
-}
-
-static void ixgbe_xdp_flush(struct net_device *dev)
-{
-	struct ixgbe_adapter *adapter = netdev_priv(dev);
-	struct ixgbe_ring *ring;
-
-	/* Its possible the device went down between xdp xmit and flush so
-	 * we need to ensure device is still up.
-	 */
-	if (unlikely(test_bit(__IXGBE_DOWN, &adapter->state)))
-		return;
-
-	ring = adapter->xdp_prog ? adapter->xdp_ring[smp_processor_id()] : NULL;
-	if (unlikely(!ring))
-		return;
-
-	/* Force memory writes to complete before letting h/w know there
-	 * are new descriptors to fetch.
-	 */
-	wmb();
-	writel(ring->next_to_use, ring->tail);
-
-	return;
 }
 
 static const struct net_device_ops ixgbe_netdev_ops = {
@@ -9996,7 +9972,6 @@ static const struct net_device_ops ixgbe_netdev_ops = {
 	.ndo_features_check	= ixgbe_features_check,
 	.ndo_bpf		= ixgbe_xdp,
 	.ndo_xdp_xmit		= ixgbe_xdp_xmit,
-	.ndo_xdp_flush		= ixgbe_xdp_flush,
 };
 
 /**

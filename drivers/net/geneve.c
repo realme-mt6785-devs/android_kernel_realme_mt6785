@@ -14,6 +14,7 @@
 #include <linux/module.h>
 #include <linux/etherdevice.h>
 #include <linux/hash.h>
+#include <net/ipv6_stubs.h>
 #include <net/dst_metadata.h>
 #include <net/gro_cells.h>
 #include <net/rtnetlink.h>
@@ -234,7 +235,8 @@ static void geneve_rx(struct geneve_dev *geneve, struct geneve_sock *gs,
 		}
 		/* Update tunnel dst according to Geneve options. */
 		ip_tunnel_info_opts_set(&tun_dst->u.tun_info,
-					gnvh->options, gnvh->opt_len * 4);
+					gnvh->options, gnvh->opt_len * 4,
+					TUNNEL_GENEVE_OPT);
 	} else {
 		/* Drop packets w/ critical options,
 		 * since we don't support any...
@@ -692,7 +694,8 @@ static void geneve_build_header(struct genevehdr *geneveh,
 	geneveh->proto_type = htons(ETH_P_TEB);
 	geneveh->rsvd2 = 0;
 
-	ip_tunnel_info_opts_get(geneveh->options, info);
+	if (info->key.tun_flags & TUNNEL_GENEVE_OPT)
+		ip_tunnel_info_opts_get(geneveh->options, info);
 }
 
 static int geneve_build_skb(struct dst_entry *dst, struct sk_buff *skb,
@@ -1689,9 +1692,11 @@ static int geneve_netdevice_event(struct notifier_block *unused,
 	    event == NETDEV_UDP_TUNNEL_DROP_INFO) {
 		geneve_offload_rx_ports(dev, event == NETDEV_UDP_TUNNEL_PUSH_INFO);
 	} else if (event == NETDEV_UNREGISTER) {
-		geneve_offload_rx_ports(dev, false);
+		if (!dev->udp_tunnel_nic_info)
+			geneve_offload_rx_ports(dev, false);
 	} else if (event == NETDEV_REGISTER) {
-		geneve_offload_rx_ports(dev, true);
+		if (!dev->udp_tunnel_nic_info)
+			geneve_offload_rx_ports(dev, true);
 	}
 
 	return NOTIFY_DONE;

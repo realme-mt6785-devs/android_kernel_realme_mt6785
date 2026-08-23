@@ -59,7 +59,7 @@ static int xfrm6_mode_tunnel_output(struct xfrm_state *x, struct sk_buff *skb)
 	if (x->props.flags & XFRM_STATE_NOECN)
 		dsfield &= ~INET_ECN_MASK;
 	ipv6_change_dsfield(top_iph, 0, dsfield);
-	top_iph->hop_limit = ip6_dst_hoplimit(dst->child);
+	top_iph->hop_limit = ip6_dst_hoplimit(xfrm_dst_child(dst));
 	top_iph->saddr = *(struct in6_addr *)&x->props.saddr;
 	top_iph->daddr = *(struct in6_addr *)&x->id.daddr;
 	return 0;
@@ -105,7 +105,6 @@ static struct sk_buff *xfrm6_mode_tunnel_gso_segment(struct xfrm_state *x,
 {
 	__skb_push(skb, skb->mac_len);
 	return skb_mac_gso_segment(skb, features);
-
 }
 
 static void xfrm6_mode_tunnel_xmit(struct xfrm_state *x, struct sk_buff *skb)

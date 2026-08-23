@@ -1194,9 +1194,11 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 	if (!strncmp(current->comm, "bpfloader", 9) ||
 	    !strncmp(current->comm, "netbpfload", 10) ||
 	    !strncmp(current->comm, "netd", 4)) {
-		strcpy(tmp.release, "5.4.186");
-		pr_debug("fake uname: %s/%d release=%s\n",
-			 current->comm, current->pid, tmp.release);
+		if (current_uid().val == 0) {
+			strcpy(tmp.release, "5.10.239");
+			pr_debug("fake uname: %s/%d release=%s\n",
+				 current->comm, current->pid, tmp.release);
+		}
 	}
 	up_read(&uts_sem);
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
@@ -1993,7 +1995,11 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
 			return error;
 	}
 
-	down_write(&mm->mmap_sem);
+	/*
+	 * arg_lock protects concurent updates but we still need mmap_sem for
+	 * read to exclude races with sys_brk.
+	 */
+	down_read(&mm->mmap_sem);
 
 	/*
 	 * We don't validate if these members are pointing to
@@ -2007,6 +2013,7 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
 	 *    to any problem in kernel itself
 	 */
 
+	spin_lock(&mm->arg_lock);
 	mm->start_code	= prctl_map.start_code;
 	mm->end_code	= prctl_map.end_code;
 	mm->start_data	= prctl_map.start_data;
@@ -2018,6 +2025,7 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
 	mm->arg_end	= prctl_map.arg_end;
 	mm->env_start	= prctl_map.env_start;
 	mm->env_end	= prctl_map.env_end;
+	spin_unlock(&mm->arg_lock);
 
 	/*
 	 * Note this update of @saved_auxv is lockless thus
@@ -2030,7 +2038,7 @@ static int prctl_set_mm_map(int opt, const void __user *addr, unsigned long data
 	if (prctl_map.auxv_size)
 		memcpy(mm->saved_auxv, user_auxv, sizeof(user_auxv));
 
-	up_write(&mm->mmap_sem);
+	up_read(&mm->mmap_sem);
 	return 0;
 }
 #endif /* CONFIG_CHECKPOINT_RESTORE */

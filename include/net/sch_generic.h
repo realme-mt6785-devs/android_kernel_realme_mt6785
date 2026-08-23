@@ -256,13 +256,10 @@ struct tcf_proto {
 };
 
 struct qdisc_skb_cb {
-	union {
-		struct {
-			unsigned int		pkt_len;
-			u16			slave_dev_queue_mapping;
-			u16			tc_classid;
-		};
-		struct bpf_flow_keys *flow_keys;
+	struct {
+		unsigned int		pkt_len;
+		u16			slave_dev_queue_mapping;
+		u16			tc_classid;
 	};
 #define QDISC_CB_PRIV_LEN 20
 	unsigned char		data[QDISC_CB_PRIV_LEN];
@@ -439,7 +436,7 @@ void dev_deactivate_many(struct list_head *head);
 struct Qdisc *dev_graft_qdisc(struct netdev_queue *dev_queue,
 			      struct Qdisc *qdisc);
 void qdisc_reset(struct Qdisc *qdisc);
-void qdisc_destroy(struct Qdisc *qdisc);
+void qdisc_put(struct Qdisc *qdisc);
 void qdisc_tree_reduce_backlog(struct Qdisc *qdisc, unsigned int n,
 			       unsigned int len);
 struct Qdisc *qdisc_alloc(struct netdev_queue *dev_queue,

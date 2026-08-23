@@ -2053,7 +2053,8 @@ static int issue_discard_thread(void *data)
 			}
 		}
 
-		if (sbi->gc_mode == GC_URGENT) {
+		if (sbi->gc_mode == GC_URGENT ||
+			!f2fs_available_free_memory(sbi, DISCARD_CACHE)) {
 			/* VENDOR_EDIT huangjianan@TECH.Storage.FS
 			 * 2020-1-14, add for oDiscard decoupling
 			 */

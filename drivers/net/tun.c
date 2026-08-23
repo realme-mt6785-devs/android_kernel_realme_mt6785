@@ -598,7 +598,6 @@ static void tun_detach(struct tun_file *tfile, bool clean)
 static void tun_detach_all(struct net_device *dev)
 {
 	struct tun_struct *tun = netdev_priv(dev);
-	struct bpf_prog *xdp_prog = rtnl_dereference(tun->xdp_prog);
 	struct tun_file *tfile, *tmp;
 	int i, n = tun->numqueues;
 
@@ -630,9 +629,6 @@ static void tun_detach_all(struct net_device *dev)
 		sock_put(&tfile->sk);
 	}
 	BUG_ON(tun->numdisabled != 0);
-
-	if (xdp_prog)
-		bpf_prog_put(xdp_prog);
 
 	if (tun->flags & IFF_PERSIST)
 		module_put(THIS_MODULE);
@@ -1050,7 +1046,6 @@ static int tun_xdp(struct net_device *dev, struct netdev_bpf *xdp)
 		return tun_xdp_set(dev, xdp->prog, xdp->extack);
 	case XDP_QUERY_PROG:
 		xdp->prog_id = tun_xdp_query(dev);
-		xdp->prog_attached = !!xdp->prog_id;
 		return 0;
 	default:
 		return -EINVAL;
@@ -1345,7 +1340,7 @@ static struct sk_buff *tun_build_skb(struct tun_struct *tun,
 			get_page(alloc_frag->page);
 			alloc_frag->offset += buflen;
 			err = xdp_do_redirect(tun->dev, &xdp, xdp_prog);
-			xdp_do_flush_map();
+			xdp_do_flush();
 			if (err)
 				goto err_redirect;
 			rcu_read_unlock();
