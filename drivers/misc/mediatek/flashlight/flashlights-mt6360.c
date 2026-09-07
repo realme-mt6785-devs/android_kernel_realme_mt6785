@@ -768,6 +768,73 @@ static struct flashlight_operations mt6360_ops = {
 	mt6360_set_driver
 };
 
+/******************************************************************************
+ * Torch brightness sysfs
+ *****************************************************************************/
+static int mt6360_torch_level_sysfs;
+
+static void mt6360_torch_enable_sysfs(int level_idx)
+{
+	if (!flashlight_dev_ch1 || !flashlight_dev_ch2) {
+		pr_info("Failed to enable torch: device not ready.\n");
+		return;
+	}
+
+	mt6360_decouple_mode = FLASHLIGHT_SCENARIO_COUPLE;
+
+	flashlight_set_torch_brightness(
+		flashlight_dev_ch1, mt6360_torch_level[level_idx]);
+	mt6360_timeout_ms[MT6360_CHANNEL_CH1] = 0;
+	mt6360_en_ch1 = MT6360_ENABLE_TORCH;
+
+	flashlight_set_torch_brightness(
+		flashlight_dev_ch2, mt6360_torch_level[level_idx]);
+	mt6360_timeout_ms[MT6360_CHANNEL_CH2] = 0;
+	mt6360_en_ch2 = MT6360_ENABLE_TORCH;
+
+	mt6360_enable();
+}
+
+static void mt6360_torch_disable_sysfs(void)
+{
+	mt6360_disable(MT6360_CHANNEL_ALL);
+}
+
+static ssize_t torchbrightness_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int value;
+
+	if (kstrtoint(buf, 0, &value))
+		return -EINVAL;
+
+	if (value < 0)
+		value = 0;
+	else if (value > MT6360_LEVEL_TORCH)
+		value = MT6360_LEVEL_TORCH;
+
+	if (value > 0 && mt6360_torch_level_sysfs > 0) {
+		mt6360_torch_disable_sysfs();
+		mt6360_torch_enable_sysfs(value - 1);
+	} else if (value > 0 && mt6360_torch_level_sysfs == 0) {
+		mt6360_set_driver(1);
+		mt6360_torch_enable_sysfs(value - 1);
+	} else if (value == 0 && mt6360_torch_level_sysfs > 0) {
+		mt6360_torch_disable_sysfs();
+		mt6360_set_driver(0);
+	}
+	mt6360_torch_level_sysfs = value;
+
+	return size;
+}
+
+static ssize_t torchbrightness_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%d\n", mt6360_torch_level_sysfs);
+}
+
+static DEVICE_ATTR_RW(torchbrightness);
 
 /******************************************************************************
  * Platform device and driver
@@ -901,6 +968,10 @@ static int mt6360_probe(struct platform_device *pdev)
 			return -EFAULT;
 	}
 
+	/* create torchbrightness sysfs */
+	if (device_create_file(&pdev->dev, &dev_attr_torchbrightness))
+		pr_info("Failed to create torchbrightness sysfs\n");
+
 	pr_debug("Probe done.\n");
 
 	return 0;
@@ -914,6 +985,9 @@ static int mt6360_remove(struct platform_device *pdev)
 	pr_debug("Remove start.\n");
 
 	pdev->dev.platform_data = NULL;
+
+	/* remove torchbrightness sysfs */
+	device_remove_file(&pdev->dev, &dev_attr_torchbrightness);
 
 	/* unregister flashlight device */
 	if (pdata && pdata->channel_num)
