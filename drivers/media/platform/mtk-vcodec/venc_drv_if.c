@@ -28,6 +28,7 @@
 #ifdef CONFIG_VIDEO_MEDIATEK_VCU
 #include "mtk_vcu.h"
 const struct venc_common_if *get_enc_common_if(void);
+const struct venc_common_if *get_enc_log_if(void);
 #endif
 
 #ifdef CONFIG_VIDEO_MEDIATEK_VPU
@@ -88,6 +89,7 @@ int venc_if_get_param(struct mtk_vcodec_ctx *ctx, enum venc_get_param_type type,
 		inst->ctx = ctx;
 		ctx->drv_handle = (unsigned long)(inst);
 		ctx->enc_if = get_enc_common_if();
+		mtk_vcodec_add_ctx_list(ctx);
 		drv_handle_exist = 0;
 		mtk_v4l2_debug(0, "%s init drv_handle = 0x%lx",
 			__func__, ctx->drv_handle);
@@ -96,6 +98,7 @@ int venc_if_get_param(struct mtk_vcodec_ctx *ctx, enum venc_get_param_type type,
 	ret = ctx->enc_if->get_param(ctx->drv_handle, type, out);
 
 	if (!drv_handle_exist) {
+		mtk_vcodec_del_ctx_list(ctx);
 		kfree(inst);
 		ctx->drv_handle = 0;
 		ctx->enc_if = NULL;
@@ -107,10 +110,29 @@ int venc_if_get_param(struct mtk_vcodec_ctx *ctx, enum venc_get_param_type type,
 int venc_if_set_param(struct mtk_vcodec_ctx *ctx,
 	enum venc_set_param_type type, struct venc_enc_param *in)
 {
+	struct venc_inst *inst = NULL;
 	int ret = 0;
+	int drv_handle_exist = 1;
+
+	if (!ctx->drv_handle) {
+		inst = kzalloc(sizeof(struct venc_inst), GFP_KERNEL);
+		if (!inst)
+			return -ENOMEM;
+		inst->ctx = ctx;
+		ctx->drv_handle = (unsigned long)(inst);
+		ctx->enc_if = get_enc_common_if();
+		drv_handle_exist = 0;
+		mtk_v4l2_debug(0, "%s init drv_handle = 0x%lx",
+			__func__, ctx->drv_handle);
+	}
 
 	ret = ctx->enc_if->set_param(ctx->drv_handle, type, in);
 
+	if (!drv_handle_exist) {
+		kfree(inst);
+		ctx->drv_handle = 0;
+		ctx->enc_if = NULL;
+	}
 	return ret;
 }
 

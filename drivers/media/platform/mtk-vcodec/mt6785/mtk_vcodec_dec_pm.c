@@ -44,7 +44,6 @@ static unsigned int h265_frm_scale[4] = {12, 24, 40, 12};
 static unsigned int vp9_frm_scale[4] = {12, 24, 40, 12};
 static unsigned int vp8_frm_scale[4] = {12, 24, 40, 12};
 static unsigned int mp24_frm_scale[5] = {16, 20, 32, 50, 16};
-struct pm_qos_request vdec_qos_req_bw;
 
 static struct plist_head vdec_rlist;
 static struct mm_qos_request vdec_mc;
@@ -150,11 +149,19 @@ void mtk_vcodec_dec_clock_on(struct mtk_vcodec_pm *pm, int hw_id)
 {
 #ifndef FPGA_PWRCLK_API_DISABLE
 	int ret;
+	struct mtk_vcodec_dev *dev;
+	unsigned long flags;
 
 	smi_bus_prepare_enable(SMI_LARB2, "VDEC");
 	ret = clk_prepare_enable(pm->clk_MT_CG_VDEC);
 	if (ret)
 		mtk_v4l2_err("clk_prepare_enable CG_VDEC fail %d", ret);
+	else {
+		dev = container_of(pm, struct mtk_vcodec_dev, pm);
+		spin_lock_irqsave(&dev->dec_power_lock[hw_id], flags);
+		dev->dec_is_power_on[hw_id] = true;
+		spin_unlock_irqrestore(&dev->dec_power_lock[hw_id], flags);
+	}
 #endif
 }
 
@@ -162,10 +169,15 @@ void mtk_vcodec_dec_clock_off(struct mtk_vcodec_pm *pm, int hw_id)
 {
 #ifndef FPGA_PWRCLK_API_DISABLE
 	struct mtk_vcodec_dev *dev;
+	unsigned long flags;
 
 	dev = container_of(pm, struct mtk_vcodec_dev, pm);
 	mtk_vdec_hw_break(dev, hw_id);
 
+	/* avoid translation fault callback dump reg not done */
+	spin_lock_irqsave(&dev->dec_power_lock[hw_id], flags);
+	dev->dec_is_power_on[hw_id] = false;
+	spin_unlock_irqrestore(&dev->dec_power_lock[hw_id], flags);
 	clk_disable_unprepare(pm->clk_MT_CG_VDEC);
 	smi_bus_disable_unprepare(SMI_LARB2, "VDEC");
 #endif
@@ -177,15 +189,28 @@ void mtk_vdec_hw_break(struct mtk_vcodec_dev *dev, int hw_id)
 	void __iomem *vdec_misc_addr = dev->dec_reg_base[VDEC_MISC];
 	void __iomem *vdec_vld_addr = dev->dec_reg_base[VDEC_VLD];
 	void __iomem *vdec_gcon_addr = dev->dec_reg_base[VDEC_SYS];
-	struct mtk_vcodec_ctx *ctx = dev->curr_dec_ctx[hw_id];
+	struct mtk_vcodec_ctx *ctx = NULL;
+	int misc_offset[4] = {64, 66, 67, 65};
 
 	struct timeval tv_start;
 	struct timeval tv_end;
 	s32 usec, timeout = 20000;
-	int offset;
+	int offset, idx;
 	unsigned long value;
+	u32 fourcc;
 
 	if (hw_id == MTK_VDEC_CORE) {
+		ctx = dev->curr_dec_ctx[hw_id];
+		if (ctx)
+			fourcc = ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc;
+		else
+			fourcc = 0;
+		if (readl(vdec_gcon_addr) == 0) {
+			mtk_v4l2_debug(0, "VDEC not HW break since clk off. codec:0x%08x(%c%c%c%c)",
+			    fourcc, fourcc & 0xFF, (fourcc >> 8) & 0xFF,
+			    (fourcc >> 16) & 0xFF, (fourcc >> 24) & 0xFF);
+			return;
+		}
 		/* hw break */
 		writel((readl(vdec_misc_addr + 0x0100) | 0x1),
 			vdec_misc_addr + 0x0100);
@@ -197,20 +222,34 @@ void mtk_vdec_hw_break(struct mtk_vcodec_dev *dev, int hw_id)
 			usec = (tv_end.tv_sec - tv_start.tv_sec) * 1000000 +
 			       tv_end.tv_usec - tv_start.tv_usec;
 			if (usec > timeout) {
-				mtk_v4l2_err("VDEC HW break timeout. codec:0x%08x",
-				  ctx->q_data[MTK_Q_DATA_SRC].fmt->fourcc);
-				for (offset = 68; offset <= 79; offset++) {
+				mtk_v4l2_err("VDEC HW break timeout. codec:0x%08x(%c%c%c%c)",
+				    fourcc, fourcc & 0xFF, (fourcc >> 8) & 0xFF,
+				    (fourcc >> 16) & 0xFF, (fourcc >> 24) & 0xFF);
+				value = readl(vdec_gcon_addr + (0 << 2));
+				mtk_v4l2_err("[DEBUG][GCON] 0x%x(%d) = 0x%lx",
+					0 << 2, 0, value);
+				value = readl(vdec_gcon_addr + (6 << 2));
+				mtk_v4l2_err("[DEBUG][GCON] 0x%x(%d) = 0x%lx",
+					6 << 2, 6, value);
+				for (offset = 64; offset <= 79; offset++) {
 					value = readl(
 					    vdec_misc_addr + (offset << 2));
 					mtk_v4l2_err("[DEBUG][MISC] 0x%x(%d) = 0x%lx",
 						offset << 2, offset, value);
 				}
-				value = readl(vdec_gcon_addr + (6 << 2));
-				mtk_v4l2_err("[DEBUG][GCON] 0x%x(%d) = 0x%lx",
-					6 << 2, 6, value);
+				for (idx = 0; idx < 4; idx++) {
+					offset = misc_offset[idx];
+					value = readl(
+					    vdec_misc_addr + (offset << 2));
+					mtk_v4l2_err("[DEBUG][MISC] 0x%x(%d) = 0x%lx",
+						offset << 2, offset, value);
+				}
 
 				if (timeout == 20000)
 					timeout = 1000000;
+				else if (timeout == 1000000) {
+					break;
+				}
 				do_gettimeofday(&tv_start);
 				//smi_debug_bus_hang_detect(0, "VCODEC");
 			}
@@ -224,6 +263,7 @@ void mtk_vdec_hw_break(struct mtk_vcodec_dev *dev, int hw_id)
 		mtk_v4l2_err("hw_id (%d) is unknown\n", hw_id);
 	}
 }
+
 
 void mtk_prepare_vdec_dvfs(void)
 {
@@ -276,7 +316,7 @@ void mtk_prepare_vdec_emi_bw(void)
 void mtk_unprepare_vdec_emi_bw(void)
 {
 #ifdef DEC_EMI_BW
-	pm_qos_remove_request(&vdec_qos_req_bw);
+	mm_qos_remove_all_request(&vdec_rlist);
 #endif
 }
 
@@ -367,8 +407,6 @@ void mtk_vdec_emi_bw_begin(struct mtk_vcodec_ctx *ctx)
 		break;
 	case V4L2_PIX_FMT_MPEG4:
 	case V4L2_PIX_FMT_H263:
-	case V4L2_PIX_FMT_S263:
-	case V4L2_PIX_FMT_XVID:
 	case V4L2_PIX_FMT_MPEG1:
 	case V4L2_PIX_FMT_MPEG2:
 		emi_bw = emi_bw * mp24_frm_scale[f_type] / (2 * STD_VDEC_FREQ);

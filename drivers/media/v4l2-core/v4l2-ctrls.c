@@ -985,6 +985,7 @@ const char *v4l2_ctrl_get_name(u32 id)
 	case V4L2_CID_MPEG_MTK_GOLDEN_PATH:	return "Video golden path";
 	case V4L2_CID_MPEG_MTK_SET_WAIT_KEY_FRAME: return "Wait key frame";
 	case V4L2_CID_MPEG_MTK_OPERATING_RATE: return "Vdec Operating Rate";
+	case V4L2_CID_MPEG_MTK_REAL_TIME_PRIORITY: return "Vdec Realtime Priority";
 	case V4L2_CID_MPEG_MTK_ASPECT_RATIO:	return "Video aspect ratio";
 	case V4L2_CID_MPEG_MTK_SEC_DECODE:	return "Video Sec Decode path";
 	case V4L2_CID_MPEG_MTK_SEC_ENCODE:	return "Video Sec Encode path";
@@ -999,6 +1000,8 @@ const char *v4l2_ctrl_get_name(u32 id)
 		return "P-Frame QP Value";
 	case V4L2_CID_MPEG_MTK_ENCODE_RC_B_FRAME_QP:
 		return "B-Frame QP Value";
+	case V4L2_CID_MPEG_MTK_LOG:	return "Video Log";
+	case V4L2_CID_MPEG_MTK_GET_LOG:	return "Get Video Log";
 	default:
 		return NULL;
 	}
@@ -1025,6 +1028,7 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 	case V4L2_CID_MPEG_MTK_FIXED_MAX_FRAME_BUFFER:
 	case V4L2_CID_MPEG_MTK_SET_WAIT_KEY_FRAME:
 	case V4L2_CID_MPEG_MTK_OPERATING_RATE:
+	case V4L2_CID_MPEG_MTK_REAL_TIME_PRIORITY:
 	case V4L2_CID_MPEG_MTK_SEC_DECODE:
 	case V4L2_CID_MPEG_MTK_SEC_ENCODE:
 	case V4L2_CID_MPEG_MTK_QUEUED_FRAMEBUF_COUNT:
@@ -1033,8 +1037,16 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 		break;
 	case V4L2_CID_MPEG_MTK_CRC_PATH:
 	case V4L2_CID_MPEG_MTK_GOLDEN_PATH:
+	case V4L2_CID_MPEG_MTK_LOG:
 		*type = V4L2_CTRL_TYPE_STRING;
 		*flags |= V4L2_CTRL_FLAG_WRITE_ONLY;
+		break;
+	case V4L2_CID_MPEG_MTK_GET_LOG:
+		*type = V4L2_CTRL_TYPE_STRING;
+		*flags |= V4L2_CTRL_FLAG_READ_ONLY | V4L2_CTRL_FLAG_VOLATILE;
+		*min = 0;
+		*max = 1024;
+		*step = 1;
 		break;
 	case V4L2_CID_AUDIO_MUTE:
 	case V4L2_CID_AUDIO_LOUDNESS:

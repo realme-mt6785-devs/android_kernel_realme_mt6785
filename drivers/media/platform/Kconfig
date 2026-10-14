@@ -286,6 +286,15 @@ config VIDEO_MEDIATEK_VCODEC
 	    To compile this driver as a module, choose M here: the
 	    module will be called mtk-vcodec
 
+
+config VIDEO_MEDIATEK_VCODEC_LEGACY
+	bool "Compat with legacy VCU firmware/blobs"
+	depends on VIDEO_MEDIATEK_VCODEC
+	default n
+	help
+	    Enable this option if you are using legacy VCU firmware/blobs.
+
+	    If unsure, say N.
 config VIDEO_MEDIATEK_WARP
 	tristate "Mediatek warp driver"
 	depends on MTK_IOMMU || COMPILE_TEST
