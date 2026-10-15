@@ -173,10 +173,7 @@ void mtk_prepare_venc_dvfs(void)
 void mtk_unprepare_venc_dvfs(void)
 {
 #ifdef ENC_DVFS
-	int freq_idx = 0;
-
-	freq_idx = (venc_freq_step_size == 0) ? 0 : (venc_freq_step_size - 1);
-	pm_qos_update_request(&venc_qos_req_f, venc_freq_steps[freq_idx]);
+	pm_qos_update_request(&venc_qos_req_f, PM_QOS_DEFAULT_VALUE);
 	pm_qos_remove_request(&venc_qos_req_f);
 	free_hist(&venc_hists, 0);
 	/* TODO: jobs error handle */
@@ -324,8 +321,12 @@ void mtk_venc_dvfs_end(struct mtk_vcodec_ctx *ctx)
 		pr_debug("no job at venc_dvfs_end, reset freq only");
 	}
 
-	freq_idx = (venc_freq_step_size == 0) ? 0 : (venc_freq_step_size - 1);
-	pm_qos_update_request(&venc_qos_req_f, venc_freq_steps[freq_idx]);
+	if (venc_jobs == 0) {
+		pm_qos_update_request(&venc_qos_req_f, PM_QOS_DEFAULT_VALUE);
+	} else {
+		freq_idx = (venc_freq_step_size == 0) ? 0 : (venc_freq_step_size - 1);
+		pm_qos_update_request(&venc_qos_req_f, venc_freq_steps[freq_idx]);
+	}
 	mutex_unlock(&ctx->dev->enc_dvfs_mutex);
 #endif
 }
