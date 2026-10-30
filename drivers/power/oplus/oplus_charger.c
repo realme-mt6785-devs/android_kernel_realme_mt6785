@@ -857,7 +857,14 @@ int oplus_battery_get_property(struct power_supply *psy,
 #endif
 #ifndef CONFIG_OPLUS_SDM670_CHARGER
 		case POWER_SUPPLY_PROP_CHARGE_FULL:
-			val->intval = chip->batt_fcc;
+			/* Gauge FCC is unfiltered, derive it from SOH instead */
+			if ((chip->batt_soh & 0xff) > 0 && (chip->batt_soh & 0xff) <= 100)
+				val->intval = chip->batt_capacity_mah * (chip->batt_soh & 0xff) * 10;
+			else
+				val->intval = chip->batt_fcc * 1000;
+			break;
+		case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+			val->intval = chip->batt_capacity_mah * 1000;
 			break;
 #endif
 		case POWER_SUPPLY_PROP_BATTERY_FCC:
